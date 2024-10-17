@@ -1,5 +1,5 @@
 ## Hi there 👋
-<h2>Kul grej!</h2>
+<h6>Kul grej!</h6>
 <!--
 **DS2877/DS2877** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
