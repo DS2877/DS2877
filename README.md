@@ -1,5 +1,5 @@
 ## Hi there 👋
-<h6>Kul grej!</h6>
+<h6>Im having a great time!</h6>
 <!--
 **DS2877/DS2877** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
