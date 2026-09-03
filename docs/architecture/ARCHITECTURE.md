@@ -7,7 +7,7 @@ Status: living document. Decisions with rationale live as ADRs in `/docs/archite
 Aeria has two independently-scalable systems (ADR 0004):
 
 ```
-Aeria Clients (iOS/iPadOS/macOS/tvOS, later Windows)
+Aeria Clients (macOS + iOS/iPadOS lead, Windows + Android fast-follow — ADR 0007; tvOS deprioritized)
         |
         v
 Aeria Control API  <-- stateless app servers, PostgreSQL (source of truth) + Redis (cache/rate-limit/ephemeral state)
@@ -28,7 +28,7 @@ The Control Plane never depends on a specific VPN node being healthy. A VPN node
 
 ## 2. Client architecture (Apple platforms)
 
-Native Swift/SwiftUI everywhere (ADR 0002). Shared Swift packages, platform-specific UI:
+Native Swift/SwiftUI everywhere (ADR 0002), Mac and iPhone/iPad built first and together (ADR 0007). Shared Swift packages, platform-specific UI:
 
 - **AeriaCore** — shared business logic, no UI, no platform-specific APIs beyond what's universally available.
 - **AeriaModels** — Codable data models shared between API client and UI.
@@ -36,9 +36,9 @@ Native Swift/SwiftUI everywhere (ADR 0002). Shared Swift packages, platform-spec
 - **AeriaVPN** — wraps `NEPacketTunnelProvider` / `NETunnelProviderManager` interaction; owns connection state machine (see `/docs/product/PRODUCT_REQUIREMENTS.md` for the state machine itself); the actual tunnel provider extension links `WireGuardKit`.
 - **AeriaAuthentication** — Sign in with Apple flow, session token storage in Keychain.
 - **AeriaSubscriptions** — StoreKit 2 wrapper, `Transaction` listening, restore purchases.
-- **AeriaDesignSystem** — shared design tokens (color, type, spacing, motion) consumed by per-platform SwiftUI views; views themselves are NOT shared 1:1 across iPhone/iPad/Mac/TV (ADR 0002) — each platform gets an idiomatic layout, especially tvOS's focus-engine-driven UI.
+- **AeriaDesignSystem** — shared design tokens (color, type, spacing, motion) consumed by per-platform SwiftUI views; views themselves are NOT shared 1:1 across iPhone/iPad/Mac (ADR 0002) — each platform gets an idiomatic layout.
 
-Per-platform app targets (`AeriaiOS`, `AeriaMac`, `AeriaTV`, each with a `PacketTunnel` extension target) consume these packages. iPad ships from the same target as iPhone with size-class-adaptive layouts (not a separate package) per the brief's "no simple iPhone-stretch" instruction.
+Per-platform app targets (`AeriaiOS`, `AeriaMac`, each with a `PacketTunnel` extension target) consume these packages, built together in the lead phase (ADR 0007). iPad ships from the same target as iPhone with size-class-adaptive layouts (not a separate package) per the brief's "no simple iPhone-stretch" instruction. An `AeriaTV` target is deferred — not part of the near-term build — and Windows/Android are separate native codebases built in the fast-follow phase, reusing only the Control API contract and WireGuard protocol (ADR 0007), not any Swift package here.
 
 ### VPN credential handling (client side)
 

@@ -1,14 +1,14 @@
 # Aeria — Master Plan
 
-**Status**: Phase 0 (Architecture + Research) complete. This document is the entry point into the full plan — every claim below is backed by a linked document; this file is a summary, not the source of truth.
+**Status**: Phase 0 (Architecture + Research) complete, revised 2026-09-03 for updated platform strategy (ADR 0007). This document is the entry point into the full plan — every claim below is backed by a linked document; this file is a summary, not the source of truth.
 
 ## What Aeria is
 
-A premium, Apple-ecosystem-first VPN subscription service. Core promise: *Open Aeria → tap Connect → you're protected.* Positioning: "Privacy, beautifully simple." Full detail: `/docs/business/positioning.md`.
+A premium VPN subscription service, built with Apple-native craft, with **Mac and iPhone as the lead platforms** and broad device reach (Windows, Android fast-follow) as a deliberate goal — not a Mullvad-style narrow, single-ecosystem product. Mac priority is a business decision: Aeria VPN is planned to eventually integrate with **Aeria+**, an existing Aeria streaming/TV product, into a broader bundle — out of scope for this codebase, but the reason Mac leads. Core promise: *Open Aeria → tap Connect → you're protected.* Positioning: "Privacy, beautifully simple." Full detail: `/docs/business/positioning.md`, `/docs/architecture/adr/0007-platform-sequencing.md`.
 
 ## Why now / why this shape
 
-Competitive research (`/docs/business/competitive-analysis.md`) found a real gap: mainstream VPNs (NordVPN, Surfshark, ExpressVPN, CyberGhost, PIA) compete on server count and feature bundling with commodity trust and manipulative renewal pricing; privacy-purist minimalists (Mullvad, IVPN) have excellent trust but neglect platform craft (Mullvad's Mac app is menu-bar-only; neither has an Apple TV app). Nobody currently combines Apple-ecosystem-native craft, architectural privacy, and honest pricing. That's Aeria's opening.
+Competitive research (`/docs/business/competitive-analysis.md`) found a real gap: mainstream VPNs (NordVPN, Surfshark, ExpressVPN, CyberGhost, PIA) compete on server count and feature bundling with commodity trust and manipulative renewal pricing; privacy-purist minimalists (Mullvad, IVPN) have excellent trust but neglect platform craft (Mullvad's Mac app is menu-bar-only) and narrow their reach. Aeria's opening is craft + trust + honest pricing, combined with the broad platform reach of the mainstream players rather than the minimalists' narrowness — with Mac given outsized priority for the Aeria+ integration reason above.
 
 ## Foundational decisions (all documented as ADRs, `/docs/architecture/adr/`)
 
@@ -16,7 +16,7 @@ Competitive research (`/docs/business/competitive-analysis.md`) found a real gap
 |---|---|---|
 | VPN protocol | WireGuard | Reviewed cryptography, MIT-licensed official Apple reference implementation, no custom crypto written |
 | Client UI | Native Swift/SwiftUI, no cross-platform framework | NetworkExtension/StoreKit reliability and Apple-native feel are non-negotiable |
-| Android | Not in MVP | Focus; API/protocol stay platform-neutral so it's additive later, not a rewrite |
+| Platform sequencing | Mac + iPhone lead (built together); Windows + Android fast-follow right after; Apple TV deprioritized | Mac matters most for future Aeria+ integration; "any device" reach is explicit, not Mullvad-style narrow (ADR 0007) |
 | System split | Control Plane (auth/billing/registry) vs. Data Plane (VPN nodes) | Nodes are disposable/stateless; control plane never depends on one node |
 | Key handling | Client generates WireGuard keypair on-device; only public key ever transmitted | Same pattern as Mullvad/Cloudflare WARP in production |
 | Server provider | Vultr primary, Hetzner fallback, OVH excluded | OVH's own ToS bans VPN hosting; Vultr has best bandwidth economics + official Terraform provider without that risk |
@@ -32,27 +32,28 @@ Architecture-level privacy: VPN nodes hold no user/billing/auth data, ever (`/do
 
 ## Product scope
 
-MVP: Sign in with Apple, StoreKit 2 subscriptions with server-side verification, WireGuard connect/disconnect with automatic fastest-server selection, kill switch, DNS protection, on iPhone/iPad/Mac (Apple TV if stable at launch time — technically confirmed feasible since tvOS 17). Explicitly excluded from MVP: dedicated IP, double VPN, Tor, ad/tracker blocking, antivirus, password manager, family plan, Windows, Android. Full requirements: `/docs/product/PRODUCT_REQUIREMENTS.md`.
+MVP: Sign in with Apple, StoreKit 2 subscriptions with server-side verification, WireGuard connect/disconnect with automatic fastest-server selection, kill switch, DNS protection, on **Mac, iPhone, and iPad** (built together, Mac and iPhone leading). Windows and Android are committed fast-follow phases immediately after Apple launch — not indefinitely deferred. Apple TV is out of the roadmap entirely for now (tied to the separate Aeria+ bundle decision). Explicitly excluded from MVP: dedicated IP, double VPN, Tor, ad/tracker blocking, antivirus, password manager, family plan. Full requirements: `/docs/product/PRODUCT_REQUIREMENTS.md`.
 
-## Roadmap (10 phases, full detail in `/docs/product/ROADMAP.md`)
+## Roadmap (9 phases + Scale, full detail in `/docs/product/ROADMAP.md`)
 
 0. Architecture + research (done)
 1. WireGuard prototype — real iPhone, real tunnel, real server, real traffic
-2. Aeria iOS MVP (client shell around the proven tunnel)
+2. Client shell: iPhone + Mac built together (not sequential)
 3. Backend (Control Plane v1 — auth, devices, server registry)
 4. Infrastructure automation (Terraform, node lifecycle, zero manual SSH)
-5. Mac/iPad + real subscriptions (server-verified)
-6. Apple TV (physical-device tested)
-7. Security hardening (incident response, key management, GDPR data-subject-rights flows — non-negotiable gate, not optional polish)
-8. App Store launch
-9. Windows
-10. Scale (only what real usage data demands — no premature Kubernetes/multi-region)
+5. Subscriptions (server-verified) + iPad layout polish — full commercial flow live on iPhone/iPad/Mac
+6. Security hardening (incident response, key management, GDPR data-subject-rights flows — non-negotiable gate, not optional polish)
+7. App Store launch (Apple platforms)
+8. Windows + Android (fast-follow, not deferred)
+9. Scale (only what real usage data demands — no premature Kubernetes/multi-region)
+
+Apple TV is deliberately not a numbered phase — see `/docs/product/ROADMAP.md` for why.
 
 ## What's deliberately not done yet
 
 - Full legal documents (Terms, Privacy Policy, refund policy) — require counsel, not generated as binding text here; checkpoints listed in `/docs/business/BUSINESS_PLAN.md`.
 - Full 12/24/36-month financial scenarios — blocked on real churn/CAC data that doesn't exist pre-launch.
-- Incident response, key management, disaster recovery documents — tracked as named Phase 7 deliverables, not silently dropped.
+- Incident response, key management, disaster recovery documents — tracked as named Phase 6 deliverables, not silently dropped.
 - Any real cloud spend, Apple Developer org account setup, or App Store Connect configuration — these require the user's direct action/decision, not something this process executes unilaterally.
 
 ## Immediate next step
@@ -72,7 +73,7 @@ Milestone 1 (Phase 1): the smallest real vertical slice that proves the core tec
     unit-economics.md
   /architecture
     ARCHITECTURE.md
-    /adr  (0001-0006)
+    /adr  (0001-0007; 0003 superseded by 0007)
   /security
     THREAT_MODEL.md
     data-collection.md

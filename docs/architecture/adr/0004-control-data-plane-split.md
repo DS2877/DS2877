@@ -21,7 +21,7 @@ The brief requires the control plane (auth, subscriptions, device/server registr
 ## Architecture
 
 ```
-Aeria Client (iOS/iPadOS/macOS/tvOS)
+Aeria Client (macOS/iOS/iPadOS lead; Windows/Android fast-follow — ADR 0007)
   |
   |  (1) Sign in with Apple -> session token
   |  (2) Register device, generate WireGuard keypair on-device

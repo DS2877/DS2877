@@ -38,4 +38,4 @@ The admin system (`/docs/product/PRODUCT_REQUIREMENTS.md` §Admin Panel) is trea
 - `/docs/security/key-management.md` — detailed key lifecycle (WireGuard keys, TLS certs, signing credentials, secrets rotation procedure).
 - `/docs/operations/disaster-recovery.md` — backup/restore testing, infrastructure recreation procedure.
 
-These are named explicitly here so they aren't silently dropped — they are Phase 3-7 deliverables (`/docs/product/ROADMAP.md`), not needed to start Milestone 1 implementation but required before public launch.
+These are named explicitly here so they aren't silently dropped — they are Phase 3-6 deliverables (`/docs/product/ROADMAP.md`), not needed to start Milestone 1 implementation but required before public launch.

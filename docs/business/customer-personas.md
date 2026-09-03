@@ -31,12 +31,12 @@ On planes and hotel Wi-Fi weekly. Wants auto-connect on untrusted networks and d
 
 ## 4. The Multi-Device Apple Family — "The Lindqvist household"
 
-Two adults, two teenagers, five-plus Apple devices between them including an Apple TV in the living room. Currently unprotected or using a family plan from a mainstream provider they find clunky to manage across devices.
+Two adults, two teenagers, a mix of Macs, iPhones, and at least one Windows laptop between them. Currently unprotected or using a family plan from a mainstream provider they find clunky to manage across devices.
 
 - **Willingness to pay**: moderate per-device, but a family bundle (future, not MVP — see `/docs/product/ROADMAP.md`) at a fair multiple of the single price is attractive.
-- **Pain points**: managing multiple accounts/devices, explaining VPN concepts to less technical family members.
-- **Why they'd switch**: a device list that "just works" (`/docs/product/PRODUCT_REQUIREMENTS.md` §Device Management) and an Apple TV experience competitors mostly ignore or handle poorly.
-- **What makes them cancel**: complexity, a family member's device breaking silently.
+- **Pain points**: managing multiple accounts/devices across a mixed-platform household, explaining VPN concepts to less technical family members.
+- **Why they'd switch**: a device list that "just works" (`/docs/product/PRODUCT_REQUIREMENTS.md` §Device Management) and not being forced to choose an Apple-only product when one family member has a Windows laptop — Aeria's fast-follow Windows support (`/docs/architecture/adr/0007-platform-sequencing.md`) matters directly to this household.
+- **What makes them cancel**: complexity, a family member's device breaking silently, or discovering a household device isn't supported at all.
 
 ## 5. The Premium-Tech Enthusiast — "Yuki, 26, designer"
 

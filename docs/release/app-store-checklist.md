@@ -1,6 +1,6 @@
 # Aeria — App Store Release Checklist
 
-Grounded in `/docs/research/apple-platform-requirements.md` (live-fetched Apple primary sources, 2026-09-03). Re-verify against current guidelines immediately before actual submission (Phase 8, `/docs/product/ROADMAP.md`) — policy can change between now and then.
+Grounded in `/docs/research/apple-platform-requirements.md` (live-fetched Apple primary sources, 2026-09-03). Re-verify against current guidelines immediately before actual submission (Phase 7, `/docs/product/ROADMAP.md`) — policy can change between now and then.
 
 ## Account & entitlements
 
@@ -8,7 +8,7 @@ Grounded in `/docs/research/apple-platform-requirements.md` (live-fetched Apple 
 - [ ] `com.apple.developer.networking.networkextension` entitlement with `packet-tunnel-provider` value, on both the container app and the tunnel-provider extension target(s).
 - [ ] App Groups entitlement (`com.apple.security.application-groups`) for container-app ↔ extension shared state.
 - [ ] Confirm entitlement is genuinely self-service per current developer portal (TN3134 implies no manual approval gate as of research date — verify this hasn't changed).
-- [ ] tvOS extension target `productType` set to `com.apple.product-type.app-extension` (known build-config gotcha, not the tv-specific extension type).
+- [ ] *(Deferred with Apple TV itself — ADR 0007)* tvOS extension target `productType` set to `com.apple.product-type.app-extension` (known build-config gotcha, not the tv-specific extension type) — relevant only if/when Apple TV is built.
 
 ## Guideline 5.4 (VPN Apps) compliance
 
@@ -50,4 +50,4 @@ Grounded in `/docs/research/apple-platform-requirements.md` (live-fetched Apple 
 
 ## Explicit re-verification note
 
-Every checkbox above that references a specific Apple policy (5.4, 4.8, entitlement self-service status, StoreKit mechanics) is grounded in research performed 2026-09-03. Apple's guidelines and StoreKit APIs change between WWDC cycles — this checklist must be re-validated against live Apple documentation immediately before Phase 8 submission, not trusted as permanently current.
+Every checkbox above that references a specific Apple policy (5.4, 4.8, entitlement self-service status, StoreKit mechanics) is grounded in research performed 2026-09-03. Apple's guidelines and StoreKit APIs change between WWDC cycles — this checklist must be re-validated against live Apple documentation immediately before Phase 7 submission, not trusted as permanently current.

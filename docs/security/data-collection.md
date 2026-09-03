@@ -56,7 +56,7 @@ Exact final retention periods are a joint product/legal decision, not unilateral
 
 ## Data subject rights (GDPR Chapter III)
 
-Account deletion, data export, and correction must be supported end-to-end (not just "requestable via support email") before public launch. This is a Phase 7/8 engineering deliverable (`/docs/product/ROADMAP.md`), tracked from day one so the data model (`/docs/architecture/ARCHITECTURE.md`) doesn't accumulate fields that later make deletion/export hard to implement correctly.
+Account deletion, data export, and correction must be supported end-to-end (not just "requestable via support email") before public launch. This is a Phase 6/7 engineering deliverable (`/docs/product/ROADMAP.md`), tracked from day one so the data model (`/docs/architecture/ARCHITECTURE.md`) doesn't accumulate fields that later make deletion/export hard to implement correctly.
 
 ## Product analytics boundary
 

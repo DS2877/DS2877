@@ -4,7 +4,7 @@ Supporting documents: `/docs/business/competitive-analysis.md`, `/docs/business/
 
 ## Executive summary
 
-Aeria is a premium, Apple-ecosystem-first VPN subscription service. It competes not on server count or feature breadth but on native platform craft, architectural privacy, and honest pricing — a combination no current competitor owns (`/docs/business/competitive-analysis.md`). Target launch footprint: iPhone, iPad, Mac, with Apple TV included if stable (technically feasible since tvOS 17 — `/docs/research/apple-platform-requirements.md`). MVP is subscription-only, no permanent free tier, 7-day trial, WireGuard-based.
+Aeria is a premium VPN subscription service, built with Apple-native craft and broad device reach as a deliberate goal. It competes not on server count or feature breadth but on native platform craft, architectural privacy, and honest pricing — a combination no current competitor owns (`/docs/business/competitive-analysis.md`). Target launch footprint: Mac and iPhone/iPad first (Mac prioritized for future integration with Aeria+, an existing Aeria streaming product — `/docs/architecture/adr/0007-platform-sequencing.md`), with Windows and Android as committed fast-follow phases. Apple TV is out of the near-term roadmap. MVP is subscription-only, no permanent free tier, 7-day trial, WireGuard-based.
 
 ## Market
 

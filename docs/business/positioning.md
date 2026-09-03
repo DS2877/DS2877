@@ -28,7 +28,7 @@ Privacy, beautifully simple.
 > - One-tap connection with automatic fastest-server selection
 > - Built on WireGuard, one of the most reviewed VPN protocols available
 > - A kill switch that actually holds
-> - Native apps for iPhone, iPad, Mac, and Apple TV — not ports
+> - A genuinely native app on Mac and iPhone — not ports, not a menu-bar afterthought
 > - No browsing history logged. No DNS queries logged. No destination tracking.
 > - Honest pricing: no renewal-price surprises
 >

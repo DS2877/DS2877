@@ -5,11 +5,11 @@
 - **Authentication**: Sign in with Apple only (ADR 0006).
 - **Subscription**: StoreKit 2, annual + monthly plans, restore purchases, server-side verification via App Store Server API (never trust client state — `/docs/architecture/ARCHITECTURE.md` §3).
 - **VPN**: WireGuard (ADR 0001), connect/disconnect, server selection with automatic "fastest server" default, kill switch, DNS protection, secure on-device credential storage.
-- **Platforms**: iPhone, iPad, Mac. Apple TV included if technically stable enough at launch time (tvOS 17+ NetworkExtension support confirmed feasible — `/docs/research/apple-platform-requirements.md`); otherwise ships immediately after iOS/macOS.
+- **Platforms**: Mac and iPhone, built together as the lead platforms (ADR 0007); iPad ships alongside iPhone via the shared adaptive codebase at negligible extra cost. Windows and Android are fast-follow, not MVP, but are scheduled shortly after Apple launch rather than indefinitely deferred (ADR 0007) — Aeria is not aiming for Mullvad-style narrow platform reach. Apple TV is deprioritized out of the near-term roadmap entirely; its future, if any, is tied to the separate Aeria+ bundle strategy, out of this document's scope.
 
 ## Explicitly NOT in MVP
 
-Dedicated IP, double VPN, Tor, obfuscation, ad blocker, antivirus, password manager, identity-theft monitoring, file storage, browser, email, cryptocurrency payments, social features, permanent free tier, Android. Each future feature must pass: *does this strengthen Aeria's core proposition* (privacy, simplicity, Apple-ecosystem craft)? If not, it doesn't belong even post-MVP.
+Dedicated IP, double VPN, Tor, obfuscation, ad blocker, antivirus, password manager, identity-theft monitoring, file storage, browser, email, cryptocurrency payments, social features, permanent free tier, Windows, Android, Apple TV. Windows and Android are fast-follow phases immediately after Apple MVP launch (ADR 0007), not "maybe eventually." Each future feature must pass: *does this strengthen Aeria's core proposition* (privacy, simplicity, premium craft)? If not, it doesn't belong even post-MVP.
 
 ## Core user flow (must work end-to-end, acceptance-tested)
 
@@ -51,7 +51,7 @@ The "Protected" UI state is driven strictly by verified tunnel state, never by u
 VPN CONNECTED -> VPN FAILS -> TRAFFIC BLOCKED -> VPN RECONNECTS -> TRAFFIC RESTORED
 ```
 
-Test matrix (must pass before any release, physical-device-tested per brief §104): Wi-Fi → cellular, cellular → Wi-Fi, airplane mode, router reboot, server failure, DNS failure, VPN process failure, sleep/wake, Mac network changes, Apple TV network changes.
+Test matrix (must pass before any release, physical-device-tested per brief §104): Wi-Fi → cellular, cellular → Wi-Fi, airplane mode, router reboot, server failure, DNS failure, VPN process failure, sleep/wake, Mac network changes. (Apple TV network-transition testing is deferred with the platform itself — ADR 0007.)
 
 ## Auto-connect / On-Demand
 
@@ -61,7 +61,7 @@ Home Wi-Fi   -> Trusted   -> VPN off (user-configurable, off by default is a pro
 Office Wi-Fi -> Protected -> VPN auto-connects
 Public Wi-Fi -> Protected -> VPN auto-connects
 ```
-Implemented via platform on-demand VPN rules where supported (iOS/iPadOS/macOS); tvOS has no per-app on-demand distinction given whole-tunnel-only support (`/docs/research/apple-platform-requirements.md`).
+Implemented via platform on-demand VPN rules where supported (iOS/iPadOS/macOS).
 
 ## Main screen — design philosophy
 
@@ -97,7 +97,6 @@ Your devices
   iPhone 17 Pro     (rename, remove, last active, platform, app version)
   MacBook Pro
   iPad Pro
-  Apple TV
 ```
 No collection of device data beyond what's needed for this feature (`/docs/security/data-collection.md`).
 
