@@ -18,5 +18,7 @@ require("./odds.spec")
 require("./tokenbucket.spec")
 require("./economy.spec")
 require("./namegen.spec")
+require("./profile.spec")
+require("./income.spec")
 
 process.exit(h.report())
