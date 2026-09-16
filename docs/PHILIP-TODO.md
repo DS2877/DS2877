@@ -1,7 +1,7 @@
 # PHILIP-TODO
 
 Things only Philip can do. Claude keeps this current (brief §12, §11.11).
-Last updated: 2026-09-16 (TEST experience published; IDs recorded).
+Last updated: 2026-09-16 (API key and GitHub config done; TEST publish blocked on a 409).
 
 **Status key:** ⬜ not started · 🟡 in progress · ✅ done · ⏸️ not needed yet
 
@@ -128,14 +128,37 @@ Roblox earnings are taxable in Sweden. Talk to Skatteverket or an accountant onc
 - React-Lua and ProfileStore approved.
 - Studio time: available later in the project when needed.
 
-### 🔴 Blocking Phase 2 completion
-
-Claude can build the whole pipeline without these, but **cannot publish anything to TEST until they exist**:
+### 🔴 Blocking Phase 2 completion — one thing left
 
 1. ✅ **Done** — universe and place IDs captured above.
-2. **Create the Open Cloud API key.** Creator Dashboard → **Credentials** → API Keys → Create API Key. Add the **`universe-places`** API system with the **Write** operation on this experience. (You pick systems and operations from menus; you never type scope strings — the earlier instruction to do so was wrong.) Full walkthrough in [`docs/CLOUD-SETUP.md`](CLOUD-SETUP.md) §5.
-3. **Add to GitHub:** secret `ROBLOX_API_KEY`, variables `ROBLOX_TEST_UNIVERSE_ID` and `ROBLOX_TEST_PLACE_ID`.
+2. ✅ **Done** — Open Cloud API key created with `universe-places` → **Write** on this experience.
+3. ✅ **Done** — GitHub secret `ROBLOX_API_KEY` and variables `ROBLOX_TEST_UNIVERSE_ID`, `ROBLOX_TEST_PLACE_ID` all set.
 4. ⏸️ The `production` GitHub Environment gate can wait until there is a PROD experience to protect.
+
+#### 🔴 5. The TEST publish is failing with HTTP 409 — two checks, ~2 minutes
+
+Every attempt to publish to TEST returns:
+
+> `Save failed. Server is busy and unable to process your upload request.`
+
+Three times, across 2½ hours. "Busy" is Roblox's wording, not the cause.
+
+**Everything on our side has been ruled out** (evidence in [`docs/RUNBOOKS.md`](RUNBOOKS.md) §9a):
+the universe/place pair is confirmed correct against Roblox's own public lookup, the
+API key is valid and authorized (an invalid key returns 401 instantly, and ours gets
+past that), the built place file is a valid `.rbxl`, and the upload headers match the docs.
+
+So it is the **state of the place**. Two things only you can check:
+
+- [ ] **Close Roblox Studio completely** — not just the place tab, quit the app. If Studio is holding the place open, nothing else can save to it.
+- [ ] **Check collaborative editing (Team Create)** is off for *Fuse a Nomling TEST*.
+
+Then tell Claude and the deploy gets re-run.
+
+**If it still fails, one test settles it:** open Studio and do `File → Publish to Roblox`
+on the TEST place. If *that* works while the automated publish does not, it is not a
+Roblox outage and Claude keeps digging. If Studio fails with the same message, it is
+Roblox's side and we wait.
 
 ### 📅 When you next have computer + Studio time
 
