@@ -21,6 +21,8 @@ local Economy = require(Shared:WaitForChild("Config"):WaitForChild("Economy"))
 local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 local Style = require(Shared:WaitForChild("Style"))
 local World = require(Shared:WaitForChild("Config"):WaitForChild("World"))
+local Genome = require(Shared:WaitForChild("Logic"):WaitForChild("Genome"))
+local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 
 local DataService = require(script.Parent:WaitForChild("DataService"))
 
@@ -36,7 +38,7 @@ type Plot = {
 	pad: BasePart,
 	owner: Player?,
 	pedestals: { BasePart },
-	models: { [string]: Model },
+	models: { [string]: Instance },
 }
 
 local plots: { Plot } = {}
@@ -44,9 +46,9 @@ local plots: { Plot } = {}
 --- Set by StealService. Called for every rendered Nomling so it can attach a
 --- snatch prompt. A hook rather than a require, because StealService already
 --- requires this module and the other direction would be a cycle.
-local decorate: ((model: Model, owner: Player, nomlingId: string) -> ())? = nil
+local decorate: ((anchor: Instance, owner: Player, nomlingId: string) -> ())? = nil
 
-function PlotService.onNomlingRendered(fn: (Model, Player, string) -> ())
+function PlotService.onNomlingRendered(fn: (Instance, Player, string) -> ())
 	decorate = fn
 end
 
@@ -87,34 +89,36 @@ local function buildPedestals(plot: Plot)
 	folder.Parent = plot.pad
 end
 
---- Placeholder visual. Replaced by NomlingBuilder at M2a; the genome is
---- already passed in full so the swap needs nothing new.
-local function buildNomlingModel(nomling: Profile.Nomling): Model
-	local model = Instance.new("Model")
-	model.Name = `Nomling_{nomling.id}`
+--- Replicates a Nomling as an invisible ANCHOR carrying its genome. The client
+--- builds the twenty-odd parts locally (docs/GDD.md 5.4) -- a genome is a
+--- handful of strings, a model is twenty parts, and with 150 creatures visible
+--- that difference is whether a phone can run this.
+---
+--- The anchor is also the only queryable part, so it owns interaction: the
+--- visual parts the client makes cannot intercept a tap.
+local function buildAnchor(nomling: Profile.Nomling, owner: Player): BasePart
+	local anchor = Instance.new("Part")
+	anchor.Name = "NomlingAnchor"
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.Transparency = 1
+	anchor.Size = Vector3.new(3.5, 4, 3.5)
+
+	for key, value in Genome.attributes(nomling :: any, Nomlings.BY_ID :: any, owner.UserId) do
+		anchor:SetAttribute(key, value)
+	end
 
 	local rarity = Style.RARITY[nomling.rarity] or Style.RARITY.common
 
-	local body = Instance.new("Part")
-	body.Name = "Body"
-	body.Anchored = true
-	body.CanCollide = false
-	body.Shape = Enum.PartType.Ball
-	body.Size = Vector3.new(2.6, 2.6, 2.6)
-	body.Color = rarity.color
-	body.Material = Enum.Material.SmoothPlastic
-	body.Parent = model
-	model.PrimaryPart = body
-
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Nameplate"
-	gui.Size = UDim2.fromScale(6, 1.4)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, 2.2, 0)
+	gui.Size = UDim2.fromScale(7, 2)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 3.4, 0)
 	gui.AlwaysOnTop = false
-	-- A phone screen is small and a plot holds eight of these. Past this
-	-- distance the labels turn into noise.
-	gui.MaxDistance = 60
-	gui.Parent = body
+	-- A base holds eight of these and a street holds eight bases. Past this
+	-- distance the labels stop being information and become texture.
+	gui.MaxDistance = 70
+	gui.Parent = anchor
 
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
@@ -122,16 +126,15 @@ local function buildNomlingModel(nomling: Profile.Nomling): Model
 	label.Font = Enum.Font.FredokaOne
 	label.TextScaled = true
 	label.TextColor3 = Style.PALETTE.nomCream
-	label.TextStrokeTransparency = 0.4
-	-- Rarity is never colour alone -- the label carries the word too
-	-- (docs/GDD.md 5.16).
-	label.Text = `{nomling.snack} {nomling.animal}\n{rarity.label}`
+	label.TextStrokeTransparency = 0.35
+	-- Rarity is never colour alone -- the word is always there (GDD 5.16).
+	local mutationLine = if nomling.mutation then `\n✨ {string.upper(nomling.mutation)}` else ""
+	label.Text = `{nomling.snack} {nomling.animal}{mutationLine}\n{rarity.label}`
 	label.Parent = gui
 
-	return model
+	return anchor
 end
 
---- The plot a point is standing in, or nil for the road.
 function PlotService.plotAt(x: number, z: number): Plot?
 	for _, plot in plots do
 		if World.isInsideBase(plot.index, x, z) then
@@ -171,12 +174,12 @@ function PlotService.render(player: Player)
 		if not pedestal or not nomling then
 			continue
 		end
-		local model = buildNomlingModel(nomling)
-		model:PivotTo(pedestal.CFrame * CFrame.new(0, PEDESTAL_HEIGHT / 2 + 1.4, 0))
-		model.Parent = plot.pad
-		plot.models[nomlingId] = model
+		local anchor = buildAnchor(nomling, player)
+		anchor.CFrame = pedestal.CFrame * CFrame.new(0, PEDESTAL_HEIGHT / 2 + 0.1, 0)
+		anchor.Parent = plot.pad
+		plot.models[nomlingId] = anchor :: any
 		if decorate then
-			local ok, err = pcall(decorate, model, player, nomlingId)
+			local ok, err = pcall(decorate, anchor :: any, player, nomlingId)
 			if not ok then
 				warn(`[PlotService] decorate failed for {nomlingId}: {err}`)
 			end

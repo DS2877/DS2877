@@ -29,6 +29,7 @@ local Odds = require(Shared:WaitForChild("Logic"):WaitForChild("Odds"))
 local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 local Style = require(Shared:WaitForChild("Style"))
 local World = require(Shared:WaitForChild("Config"):WaitForChild("World"))
+local Genome = require(Shared:WaitForChild("Logic"):WaitForChild("Genome"))
 
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local NetService = require(script.Parent:WaitForChild("NetService"))
@@ -43,7 +44,7 @@ type Item = {
 	id: string,
 	nomling: Profile.Nomling,
 	price: number,
-	model: Model,
+	model: BasePart,
 	--- Studs travelled along Z. The belt runs from -half to +half.
 	z: number,
 	--- Set the instant someone buys it, so two players tapping the same
@@ -69,30 +70,30 @@ local function priceOf(nomling: Profile.Nomling): number
 	return math.max(1, math.floor(incomeOf(nomling) * World.BELT_PAYBACK_SECONDS))
 end
 
-local function buildModel(item: Item): Model
+--- A belt Nomling is an anchor with its genome on it, same as one on a
+--- pedestal. The client builds the creature; the server owns the price tag and
+--- the prompt.
+local function buildAnchor(item: Item): BasePart
 	local nomling = item.nomling
 	local rarity = Style.RARITY[nomling.rarity] or Style.RARITY.common
 
-	local model = Instance.new("Model")
-	model.Name = `Belt_{item.id}`
+	local anchor = Instance.new("Part")
+	anchor.Name = "NomlingAnchor"
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.Transparency = 1
+	anchor.Size = Vector3.new(4, 4.5, 4)
 
-	local body = Instance.new("Part")
-	body.Name = "Body"
-	body.Anchored = true
-	body.CanCollide = false
-	body.Shape = Enum.PartType.Ball
-	body.Size = Vector3.new(3.2, 3.2, 3.2)
-	body.Color = rarity.color
-	body.Material = if nomling.mutation then Enum.Material.Neon else Enum.Material.SmoothPlastic
-	body.Parent = model
-	model.PrimaryPart = body
+	for key, value in Genome.attributes(nomling :: any, Nomlings.BY_ID :: any, nil) do
+		anchor:SetAttribute(key, value)
+	end
 
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Tag"
-	gui.Size = UDim2.fromScale(9, 3.4)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, 3.4, 0)
-	gui.MaxDistance = 140
-	gui.Parent = body
+	gui.Size = UDim2.fromScale(10, 3.8)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 4.2, 0)
+	gui.MaxDistance = 160
+	gui.Parent = anchor
 
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
@@ -100,9 +101,9 @@ local function buildModel(item: Item): Model
 	label.Font = Enum.Font.FredokaOne
 	label.TextScaled = true
 	label.TextColor3 = Style.PALETTE.nomCream
-	label.TextStrokeTransparency = 0.25
-	-- Rarity is never colour alone (GDD 5.16), and the mutation has to be the
-	-- loudest thing on the sign -- it is the reason to buy this one.
+	label.TextStrokeTransparency = 0.2
+	-- The mutation is the loudest line on the sign, because it is the reason to
+	-- buy this one rather than wait for the next.
 	local mutationLine = if nomling.mutation
 		then `\n✨ {string.upper(nomling.mutation)} ✨`
 		else ""
@@ -116,15 +117,15 @@ local function buildModel(item: Item): Model
 	prompt.ActionText = `Buy · {Income.format(item.price)}`
 	prompt.ObjectText = "Nomling"
 	prompt.HoldDuration = 0
-	prompt.MaxActivationDistance = 16
+	prompt.MaxActivationDistance = 18
 	prompt.RequiresLineOfSight = false
-	prompt.Parent = body
+	prompt.Parent = anchor
 
 	prompt.Triggered:Connect(function(player)
 		ConveyorService.buy(player, item.id)
 	end)
 
-	return model
+	return anchor
 end
 
 local function spawnItem()
@@ -166,8 +167,8 @@ local function spawnItem()
 		claimed = false,
 	}
 	nextId += 1
-	item.model = buildModel(item)
-	item.model:PivotTo(CFrame.new(0, World.BELT_HEIGHT + 2, item.z))
+	item.model = buildAnchor(item)
+	item.model.CFrame = CFrame.new(0, World.BELT_HEIGHT + 0.6, item.z)
 	item.model.Parent = folder
 	table.insert(items, item)
 end
@@ -282,7 +283,7 @@ function ConveyorService.start()
 				if item.z >= finish then
 					removeItem(item)
 				else
-					item.model:PivotTo(CFrame.new(0, World.BELT_HEIGHT + 2, item.z))
+					item.model.CFrame = CFrame.new(0, World.BELT_HEIGHT + 0.6, item.z)
 				end
 			end
 		end

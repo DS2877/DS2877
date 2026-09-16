@@ -50,7 +50,14 @@ globals:
     property: new-fields
   NumberSequence:
     property: new-fields
+  # Needed by the mutation aura and every particle effect. A missing global
+  # surfaces as `undefined_variable` rather than a silent gap -- that is the
+  # cost D-017 accepted for committing this file instead of generating it.
+  NumberSequenceKeypoint:
+    property: new-fields
   ColorSequence:
+    property: new-fields
+  ColorSequenceKeypoint:
     property: new-fields
   BrickColor:
     property: new-fields

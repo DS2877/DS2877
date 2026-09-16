@@ -12,6 +12,8 @@ local CONTROLLER_ORDER = {
 	"PingController",
 	"BaseHudController",
 	"TutorialController",
+	"AudioController",
+	"NomlingRenderController",
 }
 
 type Controller = {

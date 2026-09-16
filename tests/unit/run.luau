@@ -22,5 +22,6 @@ require("./profile.spec")
 require("./income.spec")
 require("./world.spec")
 require("./snatch.spec")
+require("./nomlingspec.spec")
 
 process.exit(h.report())

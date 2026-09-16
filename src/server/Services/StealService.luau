@@ -226,9 +226,10 @@ function StealService.start()
 	-- Offer a snatch prompt on every rendered Nomling. The prompt is created
 	-- for everyone and filtered per player by the server when triggered, so a
 	-- client cannot make one appear where it should not.
-	PlotService.onNomlingRendered(function(model, owner, nomlingId)
-		local body = model:FindFirstChild("Body")
-		if not body or not body:IsA("BasePart") then
+	PlotService.onNomlingRendered(function(anchor, owner, nomlingId)
+		-- The anchor IS the interaction target: it is the only queryable part,
+		-- because the visual parts are built client-side and set CanQuery false.
+		if not anchor:IsA("BasePart") then
 			return
 		end
 		local prompt = Instance.new("ProximityPrompt")
@@ -238,7 +239,7 @@ function StealService.start()
 		prompt.HoldDuration = Snatch.HOLD_SECONDS
 		prompt.MaxActivationDistance = 12
 		prompt.RequiresLineOfSight = false
-		prompt.Parent = body
+		prompt.Parent = anchor
 
 		prompt.Triggered:Connect(function(thief)
 			local ok, reason = StealService.attempt(thief, owner, nomlingId)

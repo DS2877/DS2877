@@ -46,6 +46,91 @@ Style.RARITY = {
 	secret = { color = Color3.fromRGB(250, 250, 255), label = "Secret", icon = "sparkle" },
 }
 
+--- Per-species colour sets, keyed by the `palette` field in Config/Nomlings.
+--- Three roles each: the body, a lighter belly/limb tone, and the snack layer.
+--- Picked so the snack colour always contrasts with the body -- the overlay is
+--- what makes a fusion legible, and it cannot read if it blends in.
+Style.SPECIES_PALETTE = {
+	ochre_shell = {
+		primary = Color3.fromRGB(196, 142, 78),
+		secondary = Color3.fromRGB(240, 222, 186),
+		snack = Color3.fromRGB(240, 186, 86),
+	},
+	rice_salmon = {
+		primary = Color3.fromRGB(246, 242, 232),
+		secondary = Color3.fromRGB(255, 226, 214),
+		snack = Color3.fromRGB(244, 122, 108),
+	},
+	crust_tomato = {
+		primary = Color3.fromRGB(238, 196, 116),
+		secondary = Color3.fromRGB(250, 232, 196),
+		snack = Color3.fromRGB(214, 74, 58),
+	},
+	glaze_sprinkle = {
+		primary = Color3.fromRGB(252, 228, 160),
+		secondary = Color3.fromRGB(255, 246, 216),
+		snack = Color3.fromRGB(250, 158, 196),
+	},
+	bun_lettuce = {
+		primary = Color3.fromRGB(214, 164, 104),
+		secondary = Color3.fromRGB(242, 214, 168),
+		snack = Color3.fromRGB(126, 196, 106),
+	},
+	broth_scallion = {
+		primary = Color3.fromRGB(226, 186, 118),
+		secondary = Color3.fromRGB(246, 226, 178),
+		snack = Color3.fromRGB(148, 206, 118),
+	},
+	popcorn_butter = {
+		primary = Color3.fromRGB(250, 238, 206),
+		secondary = Color3.fromRGB(255, 250, 234),
+		snack = Color3.fromRGB(252, 206, 92),
+	},
+	waffle_syrup = {
+		primary = Color3.fromRGB(206, 154, 96),
+		secondary = Color3.fromRGB(238, 208, 158),
+		snack = Color3.fromRGB(168, 104, 48),
+	},
+	frosting_cherry = {
+		primary = Color3.fromRGB(216, 196, 240),
+		secondary = Color3.fromRGB(242, 232, 252),
+		snack = Color3.fromRGB(226, 76, 102),
+	},
+	pickle_beak = {
+		primary = Color3.fromRGB(132, 180, 92),
+		secondary = Color3.fromRGB(196, 224, 158),
+		snack = Color3.fromRGB(246, 154, 62),
+	},
+	mochi_dust = {
+		primary = Color3.fromRGB(248, 242, 244),
+		secondary = Color3.fromRGB(255, 250, 250),
+		snack = Color3.fromRGB(198, 172, 186),
+	},
+	nacho_cheese = {
+		primary = Color3.fromRGB(240, 196, 96),
+		secondary = Color3.fromRGB(250, 228, 168),
+		snack = Color3.fromRGB(246, 150, 54),
+	},
+}
+
+--- Mutation tints. A mutation recolours and adds a glow -- it must be obvious
+--- from across the street, because it is the single biggest reason to want a
+--- particular creature off the belt.
+Style.MUTATION = {
+	glazed = { tint = Color3.fromRGB(255, 226, 150), glow = 0.35 },
+	frosted = { tint = Color3.fromRGB(186, 232, 255), glow = 0.45 },
+	spicy = { tint = Color3.fromRGB(255, 118, 86), glow = 0.55 },
+	rainbow = { tint = Color3.fromRGB(255, 160, 220), glow = 0.75 },
+	galaxy = { tint = Color3.fromRGB(140, 120, 255), glow = 0.95 },
+}
+
+--- Eye colours are fixed across every species. A creature reads as alive
+--- because of its eyes, and inconsistent eyes read as a bug.
+Style.EYE = {
+	white = Color3.fromRGB(252, 252, 255),
+	pupil = Color3.fromRGB(38, 30, 34),
+}
+
 Style.MATERIAL = {
 	plaza = Enum.Material.SmoothPlastic,
 	plot = Enum.Material.Grass,
