@@ -78,9 +78,14 @@ jobs:
     name: Publish to TEST (Saved)
     needs: check
     runs-on: ubuntu-latest
-    # Skips cleanly until Philip has created the experiences and the secrets
-    # exist, so early PRs still go green on everything that can run.
-    if: ${{ github.event_name == 'pull_request' }}
+    # Also runs on manual dispatch, not just pull_request. Without that there
+    # was no way to exercise the publish path on demand -- the first real
+    # attempt could only happen inside a PR, which is a poor place to discover
+    # that Roblox is returning 409.
+    #
+    # Skips cleanly when the secrets are absent, so early PRs still go green on
+    # everything that can run.
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@v4
 
