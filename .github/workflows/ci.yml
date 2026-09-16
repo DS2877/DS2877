@@ -157,3 +157,27 @@ jobs:
           # One task, many assertions: task creation is capped at 5/minute per
           # API key owner, so never split this into a task per test.
           python3 tools/run-cloud-tests.py --env test --version "${{ steps.publish.outputs.version }}"
+
+  upload-audio:
+    name: Upload the theme to Roblox (manual only)
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload
+        id: upload
+        continue-on-error: true
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          ROBLOX_USER_ID: "7185134469"
+        run: python3 tools/upload-audio.py --file assets/audio/nomling-glade.ogg --name "Nomling Glade"
+      - name: Report
+        run: |
+          {
+            echo "### Theme upload"
+            if [ -n "${{ steps.upload.outputs.asset_id }}" ]; then
+              echo "Asset ID: \`${{ steps.upload.outputs.asset_id }}\`"
+            else
+              echo "No asset id - see the log (most likely the key lacks \`asset:write\`)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
