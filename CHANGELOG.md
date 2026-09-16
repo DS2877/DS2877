@@ -4,6 +4,24 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### First TEST deploy · 2026-09-16
+
+**Shipped**
+- **`Fuse a Nomling TEST` is live at version 4** with the M0 plaza. The pipeline is real: a push to `main` builds and publishes on its own.
+
+**Fixed**
+- Open Cloud permission names were wrong in `tools/opencloud.py` — it named scopes that do not exist, so a 401 sent the reader hunting for something Creator Hub never shows. Roblox's guide says `universe-places` + the **Write** operation, picked from menus.
+- Removed `Swatinem/rust-cache` from both workflows. It needs a Cargo workspace, and this repo is not one, so it cached nothing and failed in its post step on every run. `~/.cargo/bin` is cached directly instead, which turns a ~2-minute Rojo build into a restore.
+- Dropped the deprecated `Workspace.FilteringEnabled` from the project file.
+
+**Added**
+- A universe/place preflight in `tools/publish.py`. It needs no API key, takes a second, and catches a mistyped GitHub variable before a multi-minute build instead of after it.
+- Retry with backoff on transient Open Cloud failures (~135 s across 4 attempts).
+- `docs/RUNBOOKS.md` §9a — the HTTP 409 decision tree.
+
+**The 409, honestly**
+Three failed publishes over 2½ hours, all `Save failed. Server is busy`. Everything on our side was ruled out by test: the universe/place pair against Roblox's public mapping endpoint, the key (an invalid one 401s instantly, ours got past that), the built file, the content type. Then it published first try with nothing changed — so it was Roblox-side and cleared on its own. The ruled-out table is kept because it is what makes the next one a minute's work.
+
 ### Name generator (M2a, pure-logic half) · 2026-09-16
 
 **Added**
