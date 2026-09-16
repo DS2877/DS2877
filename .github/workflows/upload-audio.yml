@@ -1,0 +1,52 @@
+name: Upload audio to Roblox
+
+# Manual only. Uploading creates assets on Philip's Roblox account and sends
+# them through moderation, so it is never automatic.
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: "Audio file in the repo to upload"
+        default: "assets/audio/nomling-glade.ogg"
+        required: true
+      name:
+        description: "Asset display name"
+        default: "Nomling Glade"
+        required: true
+
+jobs:
+  upload:
+    name: Upload and report the asset ID
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload
+        id: upload
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          ROBLOX_USER_ID: ${{ vars.ROBLOX_USER_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ROBLOX_USER_ID:-}" ]; then
+            echo "ROBLOX_USER_ID variable is not set; falling back to the known creator id"
+            export ROBLOX_USER_ID=7185134469
+          fi
+          python3 tools/upload-audio.py \
+            --file "${{ inputs.file }}" \
+            --name "${{ inputs.name }}"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Audio upload"
+            echo ""
+            if [ -n "${{ steps.upload.outputs.asset_id }}" ]; then
+              echo "Asset ID: \`${{ steps.upload.outputs.asset_id }}\`"
+              echo ""
+              echo "Put it in \`src/shared/Config/Audio.luau\`."
+            else
+              echo "No asset ID returned - check the log above."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

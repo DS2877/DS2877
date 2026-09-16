@@ -15,6 +15,7 @@ import array
 import json
 import math
 import os
+import random
 import struct
 import sys
 import wave
@@ -40,10 +41,7 @@ def arrange() -> dict:
             {"p": pitch, "t": round(start, 5), "d": round(dur, 5), "v": round(vel, 3)}
         )
 
-    def add_at(voice, pitch, start, dur, vel, level):
-        add(voice, pitch, start, dur, vel * level)
-
-    for label, bars, progression, melody, active, level in score.SECTIONS:
+    for label, bars, progression, melody, counter, active, level in score.SECTIONS:
         for bar in range(bars):
             chord_name = progression[bar % len(progression)]
             bass, tones = score.CHORDS[chord_name]
@@ -52,44 +50,65 @@ def arrange() -> dict:
             # Harp: a rolling 6/8 arpeggio, one note per eighth. This is the
             # spine -- it plays in every section, which is what lets the loop
             # point disappear.
-            pattern = [tones[0], tones[1], tones[2], tones[0] + 12, tones[1], tones[2]]
             if "harp" in active:
+                pattern = [tones[0], tones[1], tones[2 % len(tones)],
+                           tones[0] + 12, tones[1], tones[2 % len(tones)]]
                 for e, pitch in enumerate(pattern):
                     # Lean on beats 1 and 4 so the 6/8 lilt is audible with no drums.
                     vel = 0.42 if e % 3 == 0 else 0.26
-                    add_at("harp", pitch, bar_start + e * EIGHTH_SECONDS,
-                           EIGHTH_SECONDS * 2.4, vel, level)
+                    add("harp", pitch, bar_start + e * EIGHTH_SECONDS,
+                        EIGHTH_SECONDS * 2.4, vel * level)
 
             if "strings" in active:
                 for pitch in tones:
-                    add_at("strings", pitch - 12, bar_start,
-                           score.EIGHTHS_PER_BAR * EIGHTH_SECONDS, 0.20, level)
+                    add("strings", pitch - 12, bar_start,
+                        score.EIGHTHS_PER_BAR * EIGHTH_SECONDS, 0.20 * level)
 
-            if "pizz" in active:
-                for e in (0, 3):
-                    add_at("pizz", bass, bar_start + e * EIGHTH_SECONDS,
-                           EIGHTH_SECONDS * 1.5, 0.38, level)
+            # Cello: root on beat 1, fifth on beat 4. A bowed bass line rather
+            # than a plucked one -- it is what makes the low end feel scored
+            # instead of sequenced.
+            if "cello" in active:
+                add("cello", bass, bar_start, EIGHTH_SECONDS * 2.9, 0.34 * level)
+                fifth = tones[1] - 12 if len(tones) > 1 else bass
+                add("cello", fifth, bar_start + 3 * EIGHTH_SECONDS,
+                    EIGHTH_SECONDS * 2.9, 0.26 * level)
 
-            if "marimba" in active:
-                for e in (2, 5):
-                    add_at("marimba", tones[(e // 2) % len(tones)] + 12,
-                           bar_start + e * EIGHTH_SECONDS, EIGHTH_SECONDS, 0.22, level)
+            # Bodhran: the walk. Strong-light-medium-light across the two
+            # groups of three, which is the 6/8 pulse made audible.
+            if "bodhran" in active:
+                for e, vel in ((0, 0.52), (2, 0.16), (3, 0.34), (5, 0.18)):
+                    add("bodhran", 48, bar_start + e * EIGHTH_SECONDS,
+                        EIGHTH_SECONDS * 0.8, vel * level)
+
+            if counter is not None and "fiddle" in active:
+                cursor = bar_start
+                for pitch, eighths in counter[bar % len(counter)]:
+                    dur = eighths * EIGHTH_SECONDS
+                    add("fiddle", pitch, cursor, dur * 0.96, 0.30 * level)
+                    cursor += dur
 
             if melody is not None:
                 cursor = bar_start
                 for note_index, (pitch, eighths) in enumerate(melody[bar]):
                     dur = eighths * EIGHTH_SECONDS
-                    for voice, octave, vel in (
-                        ("recorder", 0, 0.62), ("flute", 0, 0.58), ("horn", -12, 0.42)
-                    ):
+                    leads = (
+                        ("whistle", 0, 0.60),
+                        ("horn", -12, 0.40),
+                    )
+                    for voice, octave, vel in leads:
                         if voice in active:
-                            # A hair of separation between notes, or a woodwind
-                            # line turns into one long smear.
-                            add_at(voice, pitch + octave, cursor, dur * 0.94, vel, level)
-                    # Glockenspiel doubles only the first note of each half-bar,
-                    # two octaves up: sparkle on the accent, not a second melody.
-                    if "glock" in active and note_index == 0:
-                        add_at("glock", pitch + 12, cursor, min(dur, EIGHTH_SECONDS * 2), 0.30, level)
+                            # A hair of separation between notes, or a wind line
+                            # turns into one long smear.
+                            add(voice, pitch + octave, cursor, dur * 0.94, vel * level)
+                    # In sections with no counterline the fiddle doubles the
+                    # tune an octave down, which thickens it without crowding.
+                    if "fiddle" in active and counter is None:
+                        add("fiddle", pitch - 12, cursor, dur * 0.94, 0.26 * level)
+                    # Bells mark only the first note of each half-bar, two
+                    # octaves up: sparkle on the accent, not a second melody.
+                    if "bells" in active and note_index == 0:
+                        add("bells", pitch + 12, cursor,
+                            min(dur, EIGHTH_SECONDS * 2), 0.26 * level)
                     cursor += dur
 
             bar_index += 1
@@ -102,8 +121,14 @@ def arrange() -> dict:
 TICKS_PER_QUARTER = 480
 # General MIDI programs, so the file opens sounding roughly right anywhere.
 GM_PROGRAM = {
-    "recorder": 74, "flute": 73, "horn": 60, "strings": 48,
-    "harp": 46, "glock": 9, "marimba": 12, "pizz": 45,
+    "whistle": 75,   # Pan Flute -- closest GM voice to a tin whistle
+    "fiddle": 110,   # GM actually has a Fiddle, and it is the right one
+    "cello": 42,
+    "horn": 60,
+    "strings": 48,
+    "harp": 46,
+    "bells": 9,
+    "bodhran": 116,  # Taiko Drum, on a pitched channel rather than GM percussion
 }
 
 
@@ -165,28 +190,43 @@ def write_midi(voices: dict, path: str) -> None:
 
 TABLE_SIZE = 2048
 
+# name:     harmonics,                              attack, decay, sustain, release, pluck
 INSTRUMENTS = {
-    # name:      harmonics,                          attack, decay, sustain, release, pluck
-    "recorder": ([1.0, 0.22, 0.10, 0.03],            0.055, 0.09, 0.86, 0.22, None),
-    "flute":    ([1.0, 0.33, 0.11, 0.06, 0.02],      0.050, 0.09, 0.84, 0.24, None),
-    "horn":     ([1.0, 0.58, 0.34, 0.19, 0.11, 0.05], 0.110, 0.14, 0.80, 0.34, None),
-    "strings":  ([1.0, 0.50, 0.33, 0.25, 0.20, 0.15, 0.11, 0.08], 0.34, 0.20, 0.88, 0.55, None),
-    "harp":     ([1.0, 0.45, 0.28, 0.16, 0.09, 0.05], 0.004, 0, 0, 0, 1.9),
-    "glock":    ([1.0, 0.0, 0.0, 0.42, 0.0, 0.26],   0.002, 0, 0, 0, 1.3),
-    "marimba":  ([1.0, 0.0, 0.0, 0.34],              0.003, 0, 0, 0, 0.65),
-    "pizz":     ([1.0, 0.66, 0.38, 0.22, 0.13],      0.004, 0, 0, 0, 0.55),
+    # A tin whistle is nearly a sine with a strong second partial and a lot of
+    # breath. The breath is what stops it sounding like a test tone.
+    "whistle": ([1.0, 0.30, 0.09, 0.04, 0.015],      0.045, 0.08, 0.88, 0.20, None),
+    # A bowed string is rich in odd and even harmonics with a slow-ish attack.
+    "fiddle":  ([1.0, 0.72, 0.48, 0.34, 0.24, 0.17, 0.12, 0.08], 0.075, 0.12, 0.84, 0.26, None),
+    "cello":   ([1.0, 0.66, 0.42, 0.28, 0.18, 0.12, 0.08], 0.090, 0.14, 0.86, 0.38, None),
+    "horn":    ([1.0, 0.58, 0.34, 0.19, 0.11, 0.05],  0.110, 0.14, 0.80, 0.34, None),
+    "strings": ([1.0, 0.50, 0.33, 0.25, 0.20, 0.15, 0.11, 0.08], 0.34, 0.20, 0.88, 0.55, None),
+    "harp":    ([1.0, 0.45, 0.28, 0.16, 0.09, 0.05],  0.004, 0, 0, 0, 1.9),
+    "bells":   ([1.0, 0.0, 0.0, 0.42, 0.0, 0.26],     0.002, 0, 0, 0, 1.3),
+    # A frame drum is mostly noise with a low thump under it -- see NOISE below.
+    "bodhran": ([1.0, 0.5, 0.25],                     0.002, 0, 0, 0, 0.30),
 }
+
+# Voices synthesised from noise rather than a wavetable, and how much pitched
+# body to keep under the noise.
+NOISE = {"bodhran": 0.45}
+
+# Breath mixed into the wind voices, as a fraction of the tone. Without it a
+# tin whistle sounds like a synthesiser pretending to be one.
+BREATH = {"whistle": 0.06}
 
 # Vibrato makes the sustained voices breathe. Plucked voices get none.
-VIBRATO = {"recorder": (5.2, 0.0045), "flute": (5.6, 0.0040), "horn": (4.8, 0.0035)}
-
-# Where each voice sits in the stereo field, and how loud.
-MIX = {
-    "recorder": (0.95, -0.15), "flute": (0.88, 0.12), "horn": (1.05, -0.30),
-    "strings": (0.52, 0.0), "harp": (0.70, 0.22), "glock": (0.50, 0.40),
-    "marimba": (0.45, -0.38), "pizz": (0.62, 0.0),
+VIBRATO = {
+    "whistle": (5.4, 0.0040), "fiddle": (5.8, 0.0060),
+    "cello": (4.6, 0.0045), "horn": (4.8, 0.0035),
 }
 
+# Where each voice sits in the stereo field, and how loud. A real ensemble is
+# not mono: the fiddle sits off to one side of the whistle, as it would on stage.
+MIX = {
+    "whistle": (0.95, -0.12), "fiddle": (0.66, 0.28), "cello": (0.62, -0.22),
+    "horn": (0.74, -0.34), "strings": (0.50, 0.06), "harp": (0.66, 0.20),
+    "bells": (0.42, 0.40), "bodhran": (0.70, 0.0),
+}
 
 def _wavetable(harmonics: list[float]) -> array.array:
     table = array.array("d", [0.0] * TABLE_SIZE)
@@ -215,6 +255,8 @@ def render_wav(voices: dict, path: str) -> float:
         harmonics, attack, decay, sustain, release, pluck = INSTRUMENTS[name]
         table = tables[name]
         gain, pan = MIX[name]
+        noise_mix = NOISE.get(name, 0.0)
+        breath = BREATH.get(name, 0.0)
         gl, gr = gain * (1.0 - pan) * 0.5, gain * (1.0 + pan) * 0.5
         vib_rate, vib_depth = VIBRATO.get(name, (0.0, 0.0))
 
@@ -240,6 +282,10 @@ def render_wav(voices: dict, path: str) -> float:
             r_len = max(1, int(release * SAMPLE_RATE)) if release else 1
             env = 1.0                      # running envelope for plucked voices
             vib_inc = 2.0 * math.pi * vib_rate / SAMPLE_RATE
+            # Seeded per note, so a render is byte-identical every time. A theme
+            # that changes slightly on each build cannot be reviewed.
+            rnd = random.Random(note["p"] * 7919 + int(note["t"] * 1000)).random
+            lp = 0.0                       # one-pole lowpass state for noise
 
             for i in range(length):
                 if pluck:
@@ -274,6 +320,16 @@ def render_wav(voices: dict, path: str) -> float:
                 phase += step
                 if phase >= TABLE_SIZE:
                     phase -= TABLE_SIZE
+
+                if noise_mix:
+                    # A frame drum is a noise burst with a low body under it.
+                    # The lowpass takes the hiss off so it reads as skin, not static.
+                    lp += 0.28 * ((rnd() * 2.0 - 1.0) - lp)
+                    s = lp * (1.0 - noise_mix) + s * noise_mix
+                elif breath:
+                    # Breath is what separates a wind instrument from a test tone.
+                    lp += 0.55 * ((rnd() * 2.0 - 1.0) - lp)
+                    s += lp * breath
 
                 value = s * e * amp
                 j = start + i
@@ -349,6 +405,30 @@ def main() -> int:
         render_wav(voices, wav_path)
         mb = os.path.getsize(wav_path) / 1024 / 1024
         print(f"WAV   {wav_path} ({mb:.1f} MB)")
+
+        # Roblox takes .ogg and .mp3, not .wav, so an upload needs this step.
+        # soundfile is OPTIONAL dev tooling -- neither the game nor CI depends
+        # on it, and a missing encoder prints how to get one rather than failing.
+        ogg_path = os.path.join(args.out, "nomling-theme.ogg")
+        try:
+            import soundfile  # type: ignore
+        except ImportError:
+            print("OGG   skipped -- `pip install soundfile` to encode for Roblox")
+        else:
+            # Encoded in blocks, not in one call. Handing libsndfile's Vorbis
+            # encoder all five million frames at once segfaults it -- verified.
+            with soundfile.SoundFile(wav_path) as src:
+                with soundfile.SoundFile(
+                    ogg_path, "w", samplerate=src.samplerate,
+                    channels=src.channels, format="OGG", subtype="VORBIS",
+                ) as dst:
+                    while True:
+                        block = src.read(65536, dtype="float32")
+                        if len(block) == 0:
+                            break
+                        dst.write(block)
+            kb = os.path.getsize(ogg_path) / 1024
+            print(f"OGG   {ogg_path} ({kb:.0f} KB) -- this is the file Roblox takes")
 
     return 0
 
