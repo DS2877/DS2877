@@ -1,7 +1,7 @@
 # PHILIP-TODO
 
 Things only Philip can do. Claude keeps this current (brief §12, §11.11).
-Last updated: 2026-09-16 (Phase 0).
+Last updated: 2026-09-16 (Phase 0 answers recorded).
 
 **Status key:** ⬜ not started · 🟡 in progress · ✅ done · ⏸️ not needed yet
 
@@ -9,7 +9,7 @@ Last updated: 2026-09-16 (Phase 0).
 
 ## 🔥 Time-critical — the clock is running
 
-### ⬜ 1. Start Roblox Plus (or confirm an existing Premium subscription)
+### 🟡 1. Start Roblox Plus (or confirm an existing Premium subscription)
 
 **Why now:** publishing to under-16 audiences requires an active Plus or Premium subscription **for 2 consecutive months** at the moment you publish for all ages. Starting today (2026-09-16) clears that bar around **2026-11-16**, comfortably before the M6 all-ages target of 2026-12-12. Every week of delay eats that buffer.
 
@@ -17,7 +17,7 @@ Last updated: 2026-09-16 (Phase 0).
 
 **Alternative:** a one-time refundable per-game publishing fee instead of the subscription. It is auto-refunded 90 days after the game becomes Kids/Select eligible — or 90 days after payment if it never gets there. Not refunded if the game is permanently removed for Community Standards violations.
 
-→ *Tell Claude which route you pick; it changes the M6 plan.*
+→ **Answered 2026-09-16: Philip is subscribing to Roblox Plus now.** Two-month bar clears ~2026-11-16. *Tell Claude the day it actually starts so the M6 date can be pinned.*
 
 ---
 
@@ -40,6 +40,8 @@ Verified: the higher DevEx rate (0.0054 vs 0.0038 per Robux) requires player cha
 ### ⬜ 4. Open Cloud API keys
 Create keys with minimal scopes and store as the GitHub Actions secret `ROBLOX_API_KEY`.
 *Claude will give you the exact scope list in Phase 2 — wait for it rather than guessing.*
+
+🆕 **You're on Claude Pro, so you also get the better option:** add an environment **API credential** for `apis.roblox.com` (header name `x-api-key`, no prefix) in the cloud environment settings. Cloud sessions can then call Open Cloud directly — Claude never sees the key, and publishing to TEST stops depending on a GitHub Actions round-trip. Claude will give you this text in Phase 2 too.
 
 ### ⬜ 5. Cloud environment setup
 Set the network allowlist and setup script for the Claude Code cloud environment.
@@ -83,10 +85,31 @@ Roblox earnings are taxable in Sweden. Talk to Skatteverket or an accountant onc
 - Playtest on the phone.
 - Review KPIs in Creator Hub.
 - Approve releases.
-- Spend ~1 hour at the computer with Studio open when you can (lets Claude do visual work and multi-client playtests).
+- Send phone screenshots whenever something looks wrong — with no Studio, that is Claude's only view of the game.
+- *Optional:* an hour at the computer with Studio open, if you ever get one. Not assumed by the plan.
 
 ---
 
+## Answers on record (2026-09-16)
+
+| Question | Answer |
+|---|---|
+| Weekly hours | ~8–10 h, **phone-only during business hours** (Sweden, CEST) |
+| Roblox Plus / Premium | None yet — **subscribing now** |
+| Community (group) name | "Nomling Games" (default accepted) |
+| Claude plan tier | **Pro** → environment API credential for Open Cloud is available |
+| TEST / PROD IDs | Not yet created — coming |
+
 ## Waiting on Philip right now
 
-Answers to the 5 Phase 0 questions (weekly hours, Plus/Premium status, community name, Claude plan tier, TEST/PROD IDs) — see the session report. Claude is stopped at the Phase 0 gate until then.
+1. **TEST and PROD universe + place IDs**, once the Community and experiences exist (task 3). Remember **R15 Only** in Avatar Settings on both.
+2. **The date your Roblox Plus subscription starts**, so the M6 all-ages date can be pinned.
+3. **Do you ever have computer + Studio time** (evenings, weekends), or should Claude plan for zero? See the note below — it changes how snatching gets tested and how the art pass works.
+
+### Why the Studio question matters
+
+Phone-only means no Roblox Studio, and two parts of the plan assumed it:
+- **Multi-client playtesting.** Snatching is player-vs-player; it needs two clients at once. Without Studio, Claude will build scripted NPC "test snatchers" and server-side simulation instead, and you verify on your phone against a bot.
+- **Visual review.** Claude cannot see the game without Studio viewport captures. Your phone screenshots become the only art feedback channel, so the art pass (M4) will lean on you sending pictures.
+
+Both are solvable and Claude is planning for zero Studio time by default. If you *do* get occasional computer time, say so — it makes M2 and M4 cheaper.
