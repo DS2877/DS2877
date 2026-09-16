@@ -87,9 +87,10 @@ Cold `cargo install` on a 4-core runner, measured twice: **440 s** and **573 s**
 **Why.** "Nomling" is unused on Roblox and unclaimed as a trademark — the unique noun is exactly what the discovery rules reward. The verb matches the current breakout pattern without duplicating anyone's metadata.
 **Open:** Philip must confirm in Roblox's own search (`docs/PHILIP-TODO.md` task 6). A proper EUIPO/USPTO check before M5 is cheap insurance.
 
-### D-003 · Taco Cat → Taco Tiger
-**Decision.** Replace the base Nomling.
-**Why.** "Tacocat" is an established palindrome meme, an indie band and several published games. It is the one name on the roster someone else already made famous, which is the opposite of the unique-metadata signal we need.
+### D-003 · Taco Cat → Taco Tiger → **Taco Rhino**
+**Decision.** Slot 1 of the roster is **Taco Rhino**.
+**Why, twice.** "Tacocat" is an established palindrome meme, an indie band and several published games — the one name on the roster someone else had already made famous, which is the opposite of the unique-metadata signal we need. The replacement, Taco Tiger, was then rejected by the exhaustive name-safety test: `Sushi` + `tiger` spells **Sushitiger**, and tiger was the only tail on the roster starting with `t`, so the species changed rather than the rule.
+**Worth noting:** no human reading twelve names would have caught the second one. This is the case for generating names from tokens and testing the whole cross-product rather than hand-curating a list.
 
 ### D-002 · No casino visual language, anywhere
 **Decision.** Hard art rule. No prize wheels, slot reels, playing cards, dice, chips or jackpot levers. The Egg Market is a vending machine; the Fusion Lab is a kitchen.

@@ -4,6 +4,21 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### Name generator (M2a, pure-logic half) · 2026-09-16
+
+**Added**
+- `src/shared/Config/Nomlings.luau` — the 12 base species with their head/tail tokens.
+- `src/shared/Logic/NameGen.luau` — deterministic name generation. The whole rule is `affix + head(A) + tail(B)`, which reproduces the brief's own Sushiwal example.
+- `src/shared/Config/NameSafety.luau` — multilingual profanity, brand and filter-risk blocklists, plus an allowlist.
+- 12 new tests, including an exhaustive sweep of all 876 names.
+- `tools/sample/names.luau` — prints a sample of what the generator produces.
+
+**The name-safety test found a real bug on its first run.**
+`Sushi` + `tiger` spells **Sushitiger** — a name that would have appeared in a reveal banner, in front of children, read aloud by the game's text-to-speech. Tiger was the only tail on the roster starting with `t`, so slot 1 became **Taco Rhino**. No human reading twelve names would have caught it.
+
+It also exposed a flaw in the blocklist itself: "Titan" contains "tit", "shell" contains "hell". A substring list needs an allowlist to be usable, so one was added — innocent words are stripped before scanning.
+
+
 ### Phase 2 — M0 pipeline · 2026-09-16
 
 **Added**

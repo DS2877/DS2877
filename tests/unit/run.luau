@@ -17,5 +17,6 @@ print("Running unit tests\n")
 require("./odds.spec")
 require("./tokenbucket.spec")
 require("./economy.spec")
+require("./namegen.spec")
 
 process.exit(h.report())

@@ -28,7 +28,7 @@ One character, one emotion, readable at 60 px.
 
 **Concept B.** Two small Nomlings at the edges with a bright burst between them and the silhouette of something new emerging. Tells the mechanic, but silhouettes read poorly at 60 px.
 
-**Concept C.** A big-eyed Taco Tiger, cute and clean. Safest, most generic, least differentiating — it would look like fifty other games' icons, which is precisely the non-unique-metadata risk.
+**Concept C.** A big-eyed Taco Rhino, cute and clean. Safest, most generic, least differentiating — it would look like fifty other games' icons, which is precisely the non-unique-metadata risk.
 
 **Test every candidate at 60 px on a phone before choosing.** If it is unreadable small, it does not matter how good it looks large.
 
@@ -59,7 +59,7 @@ Short, honest, front-loaded — most players read only the first line.
 Hatch silly snack-animals. Fuse two together and get a creature that has
 never existed — with a name nobody has heard.
 
-🥚 Hatch Nomlings: taco tigers, sushi pups, waffle walruses
+🥚 Hatch Nomlings: taco rhinos, sushi pups, waffle walruses
 🧪 Fuse any two and see what comes out. 876 creatures to discover.
 🏆 World First: be the first player anywhere to make one — your name stays
    on it forever

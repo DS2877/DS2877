@@ -6,11 +6,14 @@ Phase 1.3. Everything here is data, not code: it belongs in `src/shared/Config/`
 
 ## 1. The 12 base Nomlings
 
-Each base Nomling is a **snack** crossed with an **animal**. One change from the brief: **Taco Cat → Taco Tiger** (see `docs/TITLES.md` — "Tacocat" is an established meme, band and game name, and unique metadata is a discovery requirement).
+Each base Nomling is a **snack** crossed with an **animal**. Two changes from the brief, both forced:
+
+1. **Taco Cat → Taco Tiger**, because "Tacocat" is an established meme, band and game name, and unique metadata is a discovery requirement (`docs/TITLES.md`).
+2. **Taco Tiger → Taco Rhino**, because the name-safety test found that `Sushi` + `tiger` spells **Sushitiger**. Tiger was the only tail on the roster starting with `t`, so the species changed rather than the rule. A human reading a list of twelve names would never have caught this; the exhaustive test caught it on the first run.
 
 | # | Name | Snack token | Animal token | `head` | `tail` | Body archetype | Palette anchor |
 |---|---|---|---|---|---|---|---|
-| 1 | Taco Tiger | taco | tiger | `Taco` | `tiger` | quadruped, wide stance | warm ochre / shell-cream |
+| 1 | Taco Rhino | taco | rhino | `Taco` | `rhino` | quadruped, wide stance | warm ochre / shell-cream |
 | 2 | Sushi Pup | sushi | pup | `Sushi` | `pup` | quadruped, small | rice-white / salmon-coral |
 | 3 | Pizza Penguin | pizza | penguin | `Pizza` | `guin` | biped, upright | crust-gold / tomato-red |
 | 4 | Donut Duck | donut | duck | `Donut` | `duck` | biped, round | glaze-pink / sprinkle-multi |
@@ -79,7 +82,7 @@ That is the whole generator. It is deterministic, needs no syllable-splicing heu
 | `gen` | Condition | Affix | Example |
 |---|---|---|---|
 | 2 | `snack ≠ animal` species | *(none)* | Sushiwal |
-| 2 | same species both sides | `Prime ` | Prime Tacotiger |
+| 2 | same species both sides | `Prime ` | Prime Tacorhino |
 | 3 | — | one of `Mega `, `Ultra `, `Giga `, `Omni `, `Titan ` — chosen by seed | Giga Sushicroc |
 
 Gen 3 needs the affix or its names would collide with gen 2 (a gen-3 creature still carries one `head` and one `tail`). The affix also does double duty as the "Mega" label the brief asks for, and gives us five visual sub-themes for the gen-3 aura.
@@ -122,10 +125,13 @@ The generator can emit 876 strings today and more with every content update, so 
 Three lists, all in `src/shared/Config/NameSafety.luau`:
 
 1. **Profanity, multilingual.** Not just English — Swedish, Spanish, Portuguese, French, German, Russian, Turkish, Tagalog and Indonesian at minimum, since Roblox auto-translates and our audience is global. Substring matching, not word matching, because concatenation is exactly how accidental words appear.
+   **Plus an allowlist**, or the substring list is unusable: "Titan" contains "tit", "shell" contains "hell", "class" contains "ass". Allowlisted words are stripped before scanning. Only ever add a genuinely innocent word — never to make a failing test pass.
 2. **Brands and trademarks.** Snack names are the risk surface; a future seasonal species could easily collide.
 3. **Roblox-specific.** Terms likely to trip Roblox's own text filter, so a name never renders as `####` in the reveal banner.
 
 **The test enumerates the full cross-product, not a sample** — 876 strings is trivial to check exhaustively, and a sampled test would let a bad name ship on the day someone adds a species.
+
+**It has already earned its place.** On its first run it found `Sushitiger` — a name that would have appeared in a reveal banner, in front of children, with the game's own text-to-speech reading it aloud.
 
 When a collision is found, the fix is to change the offending `head`/`tail` token, not to add a runtime filter. The generator must stay pure and deterministic.
 
