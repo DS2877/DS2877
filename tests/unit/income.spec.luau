@@ -5,10 +5,7 @@ local Economy = require("../../src/shared/Config/Economy")
 
 h.suite("Income")
 
-local MUT: { [string]: number } = {}
-for name, spec in Economy.MUTATIONS do
-	MUT[name] = if type(spec) == "table" then (spec :: any).incomeMultiplier or 1 else spec
-end
+local MUT: { [string]: number } = Economy.MUTATIONS
 
 h.test("an empty base earns nothing", function()
 	h.expectEqual(Income.perSecond({}, Economy.BASE_INCOME, MUT, 1, 1), 0, "empty base")

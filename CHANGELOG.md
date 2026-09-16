@@ -4,6 +4,28 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### M1 vertical slice, first half · 2026-09-16
+
+**The loop runs.** Join, get a plot, buy an egg, watch it hatch, a Nomling lands on a pedestal and starts earning, leave, come back to your coins.
+
+**Added**
+- `Logic/Profile.luau` — the save schema and every legal mutation. `sanitize` never rejects: a corrupt profile is repaired, not refused, because refusing locks a player out of the game permanently.
+- `Logic/Income.luau` — per-second and offline accrual, the same formula the economy simulator uses.
+- `DataService` — DataStore wrapper with a **session lock**, atomic writes, retry with backoff, autosave and a parallel `BindToClose` flush.
+- `PlotService` — plot assignment, pedestal ring, Nomling rendering (placeholder visuals; the real builder is M2a).
+- `EggService` — buy and hatch. The roll happens **on claim, on the server**, never at purchase and never on the client.
+- `IncomeService` — time-based coin tick, so frame rate cannot change earnings.
+- `BaseHudController` — phone-first HUD: coins, egg button, incubator slots, all touch targets ≥ 56 px.
+- Three remotes declared in `shared/Net` first, implemented second.
+- 24 tests, including regressions for double-placement, corrupt saves and backwards clocks.
+
+**Fixed before it ever ran**
+- **stylua was checking zero files.** Built without `--features luau` it drops `.luau` from its glob and exits 0, so the format gate was green and inert since day one across CI and local runs. See D-018.
+- **A service ordering bug that would have killed the slice.** `PlotService` looked for the plaza in `init()`, but `PlazaService` builds it in `start()`, and every `init` runs before any `start`. Nobody would have been given a plot and nothing would have rendered.
+- `Income.format` returned a nine-character string past 10³³, overflowing the HUD.
+
+**Not done yet** — the analytics funnel and the FTUE script, both listed under M1 in `docs/ROADMAP.md`.
+
 ### First TEST deploy · 2026-09-16
 
 **Shipped**

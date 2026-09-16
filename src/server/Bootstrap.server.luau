@@ -18,7 +18,13 @@ local Net = require(Shared:WaitForChild("Net"))
 local SERVICE_ORDER = {
 	-- Remotes must exist before anything tries to resolve one.
 	"NetService",
+	-- The plaza builds the pads that PlotService then finds.
 	"PlazaService",
+	-- Everything below reads a profile, so the store comes first.
+	"DataService",
+	"PlotService",
+	"EggService",
+	"IncomeService",
 }
 
 type Service = {

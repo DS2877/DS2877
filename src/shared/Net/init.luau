@@ -45,6 +45,42 @@ local REMOTES: { [string]: RemoteSpec } = {
 		rateRefill = 1,
 		description = "Liveness check used by the M0 smoke test.",
 	},
+
+	--- Server -> client. The whole player-visible profile, pushed on join and
+	--- after every change. Small enough to send entire, which removes a whole
+	--- class of "client and server disagree" bugs.
+	ProfileSync = {
+		name = "ProfileSync",
+		kind = "event",
+		direction = "serverToClient",
+		rateCapacity = 0,
+		rateRefill = 0,
+		description = "Pushes the player's profile snapshot to their client.",
+	},
+
+	--- Client -> server. Buys one egg of the named tier.
+	--- The client sends only a tier key: never a price, never a rarity. Both
+	--- are decided server-side from Config (docs/TECH.md, brief 5.1).
+	BuyEgg = {
+		name = "BuyEgg",
+		kind = "function",
+		direction = "clientToServer",
+		rateCapacity = 4,
+		rateRefill = 0.5,
+		description = "Buys an egg of the given tier. Returns ok, reason.",
+	},
+
+	--- Client -> server. Claims a finished incubator.
+	--- The hatch roll happens here, on the server, when this is called -- never
+	--- on purchase and never on the client.
+	ClaimHatch = {
+		name = "ClaimHatch",
+		kind = "function",
+		direction = "clientToServer",
+		rateCapacity = 4,
+		rateRefill = 0.5,
+		description = "Claims a ready incubator and hatches it. Returns ok, reason.",
+	},
 }
 
 Net.REMOTES = REMOTES

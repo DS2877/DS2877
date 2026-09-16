@@ -8,6 +8,14 @@ Platform facts with source URLs and check dates live in `docs/VERIFY.md`.
 
 ## 2026-09-16 — Phase 2 (pipeline)
 
+### D-019 · M1 ships without ProfileStore and without React-Lua — both still approved
+**Decision.** `DataService` is a hand-written DataStore wrapper with its own session lock, and the HUD is plain Instances. Both approved dependencies (D-005, D-006) are deferred to their own change.
+**Why, per dependency.**
+- **ProfileStore:** the Wally registry returned HTTP 500 for every ProfileStore/ProfileService lookup on 2026-09-16 while other packages (`jsdotlua/react`, `jsdotlua/react-roblox`) resolved fine. Blocking the first playable slice on a registry outage buys nothing.
+- **React-Lua:** it resolves fine — this one is a judgement call. Four labels and two buttons do not need a reconciler, and adding one to a slice that is itself brand new means two untested things at once.
+**What was kept.** The wrapper keeps ProfileStore's two load-bearing behaviours: a **session lock** (without it, one player on two servers gets two profiles and the last save wins — a duplication exploit once stealing exists) and **atomic `UpdateAsync` writes**. Swapping ProfileStore in touches `DataService.luau` only.
+**Reverse at:** M2a for React-Lua, when the Fusion Book and reveal UI make hand-built Instances the wrong tool. ProfileStore as soon as the registry serves it — and before any feature that can duplicate value.
+
 ### D-018 · stylua is installed with `--features luau`, and the syntax is named at every call site
 **Decision.** Every install of stylua passes `--features luau`, and every invocation passes `--syntax Luau`.
 **Why.** `cargo install --locked stylua` builds *without* Luau support. That binary cannot parse `.luau` — and, far worse, drops `.luau` from its default glob, so `stylua --check src tests` **exits 0 having checked nothing**. The format gate was green in CI and in `scripts/check.sh` from day one while never reading a single file; formatting it, once fixed, touched 8 files and 374 lines.
