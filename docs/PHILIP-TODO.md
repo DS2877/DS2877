@@ -1,7 +1,7 @@
 # PHILIP-TODO
 
 Things only Philip can do. Claude keeps this current (brief §12, §11.11).
-Last updated: 2026-09-16 (M0 passed; M1 slice deployed and waiting on a phone playtest).
+Last updated: 2026-09-16 (street layout, belt, stealing and tutorial deployed after the first playtest).
 
 **Status key:** ⬜ not started · 🟡 in progress · ✅ done · ⏸️ not needed yet
 
@@ -143,28 +143,36 @@ so the next one takes a minute rather than an afternoon.
 
 ---
 
-## 📱 Playtest — M1 vertical slice (3 minutes)
+## 📱 Playtest — the street (3 minutes)
 
-The game loop is in. This is the M1 gate, and it is the first time there is
-anything to actually *play*.
-
-**Open `Fuse a Nomling TEST` on your iPhone**, then:
+Everything from your last round is addressed. Open **Fuse a Nomling TEST** on your iPhone.
 
 | # | Do this | Should happen |
 |---|---|---|
-| 1 | Look around after spawning | You are on your own plot, with a ring of **8 pedestals** |
-| 2 | Look top-left | A coin purse reading **0** and **0 / sec** |
-| 3 | Wait ~5 seconds | A green slot appears with a countdown — **you are given your first egg free** |
-| 4 | Tap the slot when it says **TAP TO HATCH!** | A coloured ball lands on a pedestal with its name and rarity |
-| 5 | Watch the purse | Coins start climbing. The rate matches the rarity you got |
-| 6 | Tap **Buy Egg** once you can afford 25 | A second egg starts incubating |
-| 7 | Leave, wait a minute, rejoin | Your Nomlings are still there and you were **paid for the time away** |
+| 1 | Look around | You are in **your own base**, facing a road. Your name is on the sign behind you |
+| 2 | Read the blue banner at the top | It tells you what to do next. It changes as you go |
+| 3 | Wait ~5 s, tap the green button | Your free first Nomling appears on a pedestal and starts earning |
+| 4 | Walk out to the **road** | A belt runs down the middle with Nomlings riding past |
+| 5 | Walk up to one | A **Buy** prompt appears with its price, rarity and any ✨ mutation ✨ |
+| 6 | Buy one you can afford | It lands on a pedestal in your base |
+| 7 | **Walk into another base** | You can. That was the thing that was broken |
+| 8 | Hold **Snatch** on one of their Nomlings | You pick it up, you slow down, the owner is told |
+| 9 | Run it back to your own base | It becomes yours. Let go too long and it flies home |
+| 10 | Tap the **?** button, top right | The full how-to-play, any time |
 
-### What to send back
+### What to tell me
 
-- A screenshot of the plot with a Nomling on it.
-- Whether the buttons are **reachable with one thumb** — that is the whole point of the layout.
-- Anything that reads wrong. The Nomlings are **coloured balls on purpose**; the real creature builder is M2a.
+- **Does the street read?** Can you tell whose base is whose from the road?
+- **Is the belt too fast or too slow?** It is one number (`BELT_SPEED`).
+- **Do mutated Nomlings stand out enough?** They glow and say the mutation name.
+- Anything that still doesn't explain itself.
+
+### Known, and deliberate
+
+- **The Nomlings are still coloured balls.** The real creature builder is M2a — that is the big visual milestone.
+- **There is nobody else in your server**, so you cannot actually steal from a person yet. Walk into an empty base to confirm you *can* get there; NPC snatchers are how this gets tested properly (GDD 5.8).
+- **The Laser Gate and the Vault are not built** — snatching currently has no counter-play. That is M2b.
+- **No fusion yet.** That is the whole differentiator and it is M2a, next.
 
 ### 📅 When you next have computer + Studio time
 
