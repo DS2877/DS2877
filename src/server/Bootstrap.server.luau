@@ -62,4 +62,10 @@ loadServices()
 runPhase("init")
 runPhase("start")
 
-print(string.format("[Bootstrap] %d services ready in %.0f ms", #services, (os.clock() - startedAt) * 1000))
+print(
+	string.format(
+		"[Bootstrap] %d services ready in %.0f ms",
+		#services,
+		(os.clock() - startedAt) * 1000
+	)
+)

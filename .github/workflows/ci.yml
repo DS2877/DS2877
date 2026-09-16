@@ -39,7 +39,7 @@ jobs:
           set -euo pipefail
           # Installed from crates.io so CI and cloud sessions build the exact
           # same versions from the same source. See docs/DECISIONS.md D-001.
-          cargo install --locked stylua --version "$STYLUA_VERSION"
+          cargo install --locked stylua --version "$STYLUA_VERSION" --features luau
           cargo install --locked selene --version "$SELENE_VERSION"
           cargo install --locked lune   --version "$LUNE_VERSION"
           cargo install --locked rojo   --version "$ROJO_VERSION"
@@ -47,13 +47,16 @@ jobs:
       - name: Confirm the toolchain is present
         run: |
           set -euo pipefail
-          stylua --version
+          # Naming the syntax is the guard: a stylua built without the luau
+          # feature rejects this flag outright instead of silently checking
+          # zero files.
+          stylua --syntax Luau --version
           selene --version
           lune --version
           rojo --version
 
       - name: Format check
-        run: stylua --check src tests
+        run: stylua --syntax Luau --check src tests
 
       - name: Lint
         run: selene src tests

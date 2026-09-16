@@ -129,7 +129,8 @@ local function buildPlots(parent: Instance)
 
 	for index = 1, PLOT_COUNT do
 		local angle = (index - 1) / PLOT_COUNT * math.pi * 2
-		local position = Vector3.new(math.cos(angle) * PLOT_RADIUS, -0.5, math.sin(angle) * PLOT_RADIUS)
+		local position =
+			Vector3.new(math.cos(angle) * PLOT_RADIUS, -0.5, math.sin(angle) * PLOT_RADIUS)
 
 		local pad = makePart({
 			Name = `Plot{index}`,

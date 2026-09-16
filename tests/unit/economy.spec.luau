@@ -66,7 +66,10 @@ end)
 h.test("every egg tier is reachable", function()
 	for eggKey, egg in Economy.EGGS do
 		h.expectTrue(egg.unlockRebirth >= 0, `{eggKey} has a negative unlock`)
-		h.expectTrue(egg.unlockRebirth <= 10, `{eggKey} unlocks at rebirth {egg.unlockRebirth}, likely unreachable`)
+		h.expectTrue(
+			egg.unlockRebirth <= 10,
+			`{eggKey} unlocks at rebirth {egg.unlockRebirth}, likely unreachable`
+		)
 		h.expectTrue(egg.hatch > 0, `{eggKey} hatches instantly`)
 	end
 end)

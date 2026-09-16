@@ -27,9 +27,9 @@ step() {
 }
 
 if [[ $FIX -eq 1 ]]; then
-  step "Format (writing)" stylua src tests
+  step "Format (writing)" stylua --syntax Luau src tests
 else
-  step "Format check" stylua --check src tests
+  step "Format check" stylua --syntax Luau --check src tests
 fi
 
 step "Lint" selene src tests
