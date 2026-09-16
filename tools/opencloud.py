@@ -20,6 +20,16 @@ import urllib.request
 
 BASE = "https://apis.roblox.com"
 
+# Status codes worth retrying. Roblox returns 409 with "Server is busy and
+# unable to process your upload request. Please try again in a couple minutes."
+# -- transient, and its own message tells you to retry. A deploy failing on that
+# is noise, not signal.
+RETRYABLE_STATUS = {409, 429, 500, 502, 503, 504}
+
+# Roblox says "a couple minutes", so the backoff climbs into that range rather
+# than giving up after a few seconds.
+RETRY_DELAYS = (5, 15, 40, 75)
+
 # Scopes this tooling needs, for the key Philip creates in Creator Hub.
 REQUIRED_SCOPES = [
     "universe.place:write",                        # publish places
@@ -51,33 +61,62 @@ def request(
     body: bytes | None = None,
     content_type: str = "application/json",
     timeout: int = 120,
+    retries: int = len(RETRY_DELAYS),
 ) -> dict:
+    """Call Open Cloud, retrying transient failures with backoff."""
     url = path if path.startswith("http") else f"{BASE}{path}"
-    req = urllib.request.Request(url, data=body, method=method)
-    req.add_header("x-api-key", api_key())
-    if body is not None:
-        req.add_header("Content-Type", content_type)
+    attempt = 0
 
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            raw = response.read()
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", "replace")[:500]
-        hint = ""
-        if exc.code in (401, 403):
-            hint = (
-                "\n  401/403 usually means the key lacks a scope or is not bound to "
-                f"this universe.\n  Needed: {', '.join(REQUIRED_SCOPES)}"
-            )
-        elif exc.code == 429:
-            hint = (
-                "\n  429 is a rate limit. Luau Execution allows only 5 task creations "
-                "per minute per API key owner -- run one task with many assertions, "
-                "not one task per test."
-            )
-        raise OpenCloudError(f"{method} {url} -> HTTP {exc.code}\n  {detail}{hint}") from None
-    except urllib.error.URLError as exc:
-        raise OpenCloudError(f"{method} {url} -> network error: {exc.reason}") from None
+    while True:
+        req = urllib.request.Request(url, data=body, method=method)
+        req.add_header("x-api-key", api_key())
+        if body is not None:
+            req.add_header("Content-Type", content_type)
+
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                raw = response.read()
+            break
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", "replace")[:500]
+
+            if exc.code in RETRYABLE_STATUS and attempt < retries:
+                delay = RETRY_DELAYS[attempt]
+                attempt += 1
+                print(
+                    f"  HTTP {exc.code} (transient) -- retry {attempt}/{retries} in {delay}s",
+                    flush=True,
+                )
+                time.sleep(delay)
+                continue
+
+            hint = ""
+            if exc.code in (401, 403):
+                hint = (
+                    "\n  401/403 usually means the key lacks a scope or is not bound to "
+                    f"this universe.\n  Needed: {', '.join(REQUIRED_SCOPES)}"
+                )
+            elif exc.code == 409:
+                hint = (
+                    "\n  409 means Roblox was busy and asked us to retry. We already "
+                    f"retried {retries} times over ~{sum(RETRY_DELAYS)}s, so this is a "
+                    "longer outage -- check status.roblox.com and re-run the job."
+                )
+            elif exc.code == 429:
+                hint = (
+                    "\n  429 is a rate limit. Luau Execution allows only 5 task creations "
+                    "per minute per API key owner -- run one task with many assertions, "
+                    "not one task per test."
+                )
+            raise OpenCloudError(f"{method} {url} -> HTTP {exc.code}\n  {detail}{hint}") from None
+        except urllib.error.URLError as exc:
+            if attempt < retries:
+                delay = RETRY_DELAYS[attempt]
+                attempt += 1
+                print(f"  network error -- retry {attempt}/{retries} in {delay}s", flush=True)
+                time.sleep(delay)
+                continue
+            raise OpenCloudError(f"{method} {url} -> network error: {exc.reason}") from None
 
     if not raw:
         return {}
@@ -145,5 +184,8 @@ def task_logs(task_path: str) -> list[str]:
 
 
 def die(message: str) -> None:
-    print(f"ERROR: {message}", file=sys.stderr)
+    # Flush stdout first, or the error lands above the context that explains it
+    # -- which is exactly how the first real failure read in the CI log.
+    sys.stdout.flush()
+    print(f"ERROR: {message}", file=sys.stderr, flush=True)
     sys.exit(1)
