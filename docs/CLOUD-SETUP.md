@@ -1,6 +1,8 @@
 # CLOUD-SETUP.md — What to paste into the Claude Code cloud environment
 
-Philip: this is task 5 in `docs/PHILIP-TODO.md`. Two fields to fill in, then you're done.
+Philip: this is task 5 in `docs/PHILIP-TODO.md`.
+
+⚠️ **Sections 5–7 were corrected on 2026-09-16** after the first version didn't match the real Roblox UI. Everything below is now checked against Roblox's own documentation.
 
 Settings live in the Claude Code web app under the environment for this repo.
 
@@ -94,24 +96,56 @@ Create one named **`production`** and add yourself as a **required reviewer**.
 
 ---
 
-## 5. API key scopes
+## 5. Creating the API key — the actual UI
 
-When you create the key in Creator Hub, grant exactly these — verified against Roblox's docs on 2026-09-16:
+⚠️ **Corrected 2026-09-16** after Philip found the earlier version didn't match reality. Re-verified against [Manage API keys](https://create.roblox.com/docs/en-us/cloud/auth/api-keys.md) and [Place publishing](https://create.roblox.com/docs/en-us/cloud/guides/usage-place-publishing.md).
 
-| Scope | For |
-|---|---|
-| `universe.place:write` | publishing places |
-| `universe.place.luau-execution-session:write` | running cloud tests |
-| `universe.place.luau-execution-session:read` | reading their results |
+You do **not** type scope strings anywhere. The UI asks you to pick an **API System**, then tick **operations** within it.
 
-Bind the key to **both** the TEST and PROD universes.
+1. Creator Dashboard → **[Credentials](https://create.roblox.com/dashboard/credentials?activeTab=ApiKeysTab)** → **API Keys** tab → **Create API Key**.
+2. Name it something like `NOMLING_PUBLISHING_KEY`.
+3. Under **Access Permissions** → **Select API System**, add **`universe-places`**, then add the **Write** operation and select the experience.
+   *(Roblox's own publishing guide says exactly this: "Add **universe-places** to Access Permissions. Add **Write** operation to your selected game.")*
+4. **Optional, for the automated smoke test:** add the API system whose name contains **luau-execution**, with read and write operations. If you can't find it, skip it — publishing works without it and the smoke test is a nice-to-have.
+5. Leave **Restrict IP addresses** unchecked (GitHub Actions has no fixed IP).
+6. **Save & Generate key**, then copy the key. It's shown once.
 
-Later milestones will need more (configs read/write, messaging publish, game passes and developer products write). Claude will ask when they're actually needed rather than requesting everything up front — a key that can only do what's in use is a smaller problem if it ever leaks.
-
-**Separate TEST and PROD keys** if the Creator Hub UI makes it convenient. Not worth fighting for if it doesn't.
+Later milestones need more systems (configs, messaging, game passes, developer products). Claude will ask when they're actually needed — a key that can only do what's in use is a smaller problem if it leaks.
 
 ---
 
-## 6. How to check it worked
+## 6. Finding the Universe ID and Place ID
+
+Both appear in a single URL, which is the quickest route:
+
+1. Creator Dashboard → **Creations** → click your experience's thumbnail.
+2. Click the place's thumbnail.
+3. Read the address bar:
+
+```
+https://create.roblox.com/dashboard/creations/experiences/1234567/places/7654321/configure
+                                                          ^^^^^^^              ^^^^^^^
+                                                          Universe ID          Place ID
+```
+
+Alternative for the Universe ID alone: on **Creations**, hover the experience thumbnail, click the **⋯** button, and choose **Copy Universe ID**.
+
+---
+
+## 7. Two things that are NOT needed yet
+
+**The Community (group) — costs 100 Robux, and it's optional for now.**
+Roblox charges 100 Robux to create a group, and it's made from Creator Dashboard → the **account switcher in the upper-left** → the **plus (+)** button — not from a "Communities" menu, which is what an earlier version of this document wrongly said. A personal-owned TEST experience works perfectly. Claude never spends money without asking (brief §11.3), so this is Philip's call, and it can wait until the PROD experience is created in December.
+
+⚠️ *Claude could not find documentation confirming that an experience can be transferred from a personal account to a group afterwards.* So if group ownership matters for the real game, create **PROD** inside the group when the time comes, rather than assuming TEST can be moved.
+
+**Avatar Settings / R15 Only — needs Studio, and is not urgent.**
+Roblox's docs place Avatar Settings inside **Studio** (File menu or the Avatar tab), and state the values are "not visible outside of the settings interface or accessible with scripts" — so Rojo cannot set it and neither can a script. It does not appear on the Creator Dashboard's configure page.
+
+⚠️ An earlier version of this document said "do this now, it can't be fixed later." **That was wrong.** The R15 requirement is about the higher DevEx rate, which only applies to Robux earned from *real players*. Nothing is earning anything until launch. So this moves to the **M4/M5 checklist**, to be done in the Studio session Philip already planned — well before December.
+
+---
+
+## 8. How to check it worked
 
 Open a new cloud session and ask Claude to run `./scripts/check.sh`. You should see format, lint, unit tests, parity, catalog and build all pass.

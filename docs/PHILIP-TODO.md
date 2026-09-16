@@ -1,7 +1,7 @@
 # PHILIP-TODO
 
 Things only Philip can do. Claude keeps this current (brief §12, §11.11).
-Last updated: 2026-09-16 (Phase 2 pipeline built).
+Last updated: 2026-09-16 (setup steps corrected against the real Roblox UI).
 
 **Status key:** ⬜ not started · 🟡 in progress · ✅ done · ⏸️ not needed yet
 
@@ -29,13 +29,19 @@ Last updated: 2026-09-16 (Phase 2 pipeline built).
 
 **Correction from Phase 0:** you need the full ID + 2FA stack only to reach **under-16** players. To launch to **16+** you need just an account in good standing that is **at least 2 days old**, age verification, and a completed Maturity & Compliance Questionnaire. So this is not a blocker for M5 — but do it now anyway, since M6 needs it and ID verification can take time.
 
-### ⬜ 3. Create the Community (group) and the two experiences
-- Create a Roblox Community (group) to own the game.
-- Inside it, create the **PROD** and **TEST** experiences.
-- Set **TEST** to Audience → **Limited** → **Playtesters**.
+### 🟡 3. Experiences — TEST done, rest deferred
+- ✅ **TEST experience created 2026-09-16** ("Fuse a Nomling TEST"), personal-owned. That is fine.
+- ⏸️ **Community (group): deferred.** Costs **100 Robux**, and Claude does not spend money without asking. Not needed for TEST. Created from Creator Dashboard → account switcher (upper-left) → **plus (+)**, *not* a "Communities" menu.
+  ⚠️ Claude could not find docs confirming an experience can be moved from a personal account into a group later. So if group ownership matters, create **PROD** inside the group in December rather than planning to move TEST.
+- ⏸️ **PROD experience: deferred** to M4/M5.
+- ⏸️ **TEST audience → Limited → Playtesters:** only needed once someone other than Philip needs access. He can play his own experience without it.
 
-⚠️ **Do this at creation time, in Avatar Settings on both places: set R15 Only.**
-Verified: the higher DevEx rate (0.0054 vs 0.0038 per Robux) requires player characters on an R15 rig for **100% of active playtime**. If a player can spawn as or swap to R6 at any point, the game is permanently ineligible. It costs nothing now and cannot be recovered later.
+### ⏸️ 3b. Set R15 Only — needs Studio, do it at M4
+⚠️ **Correcting an earlier instruction that said "do this now, it can't be fixed later."** That was wrong on both counts.
+
+Avatar Settings lives **inside Roblox Studio** (File menu / Avatar tab), and Roblox's docs say the values are "not accessible with scripts" — so Rojo cannot set it either. It is not on the Creator Dashboard.
+
+It is **not urgent**: the R15 requirement gates the higher DevEx rate (0.0054 vs 0.0038 per Robux), which only applies to Robux earned from real players. Nothing earns anything until launch. Do it in the Studio session already planned for M4, well before December.
 
 ### ⬜ 4. Open Cloud API keys
 Create keys with minimal scopes and store as the GitHub Actions secret `ROBLOX_API_KEY`.
@@ -112,12 +118,11 @@ Roblox earnings are taxable in Sweden. Talk to Skatteverket or an accountant onc
 
 Claude can build the whole pipeline without these, but **cannot publish anything to TEST until they exist**:
 
-1. **Create the Community and the two experiences** (task 3 above), then send Claude:
-   - TEST **universe ID** and **place ID**
-   - PROD **universe ID** and **place ID**
-   - ⚠️ Set **R15 Only** in Avatar Settings on both, at creation.
-2. **Create the Open Cloud API key** and set up the environment — **all the exact text is in [`docs/CLOUD-SETUP.md`](CLOUD-SETUP.md)**. Scopes needed: `universe.place:write`, `universe.place.luau-execution-session:write`, `universe.place.luau-execution-session:read`.
-3. **Create the `production` GitHub Environment** with yourself as a required reviewer. This is the gate that stops anything reaching PROD without you approving it.
+1. **Send Claude the TEST universe ID and place ID.** Both are in one URL — Creator Dashboard → Creations → click the experience → click the place, then read the address bar:
+   `.../experiences/<UNIVERSE_ID>/places/<PLACE_ID>/configure`
+2. **Create the Open Cloud API key.** Creator Dashboard → **Credentials** → API Keys → Create API Key. Add the **`universe-places`** API system with the **Write** operation on this experience. (You pick systems and operations from menus; you never type scope strings — the earlier instruction to do so was wrong.) Full walkthrough in [`docs/CLOUD-SETUP.md`](CLOUD-SETUP.md) §5.
+3. **Add to GitHub:** secret `ROBLOX_API_KEY`, variables `ROBLOX_TEST_UNIVERSE_ID` and `ROBLOX_TEST_PLACE_ID`.
+4. ⏸️ The `production` GitHub Environment gate can wait until there is a PROD experience to protect.
 
 ### 📅 When you next have computer + Studio time
 
