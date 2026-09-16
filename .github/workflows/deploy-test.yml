@@ -1,0 +1,41 @@
+name: Deploy TEST
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-test
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publish TEST so Philip can play it
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Rojo
+        run: cargo install --locked rojo --version 7.7.0
+
+      - name: Build
+        run: |
+          mkdir -p build
+          rojo build default.project.json --output build/nomling.rbxl
+
+      - name: Publish as Published
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          ROBLOX_TEST_UNIVERSE_ID: ${{ vars.ROBLOX_TEST_UNIVERSE_ID }}
+          ROBLOX_TEST_PLACE_ID: ${{ vars.ROBLOX_TEST_PLACE_ID }}
+        run: python3 tools/publish.py --env test --type Published --file build/nomling.rbxl
+
+      - name: Summary
+        run: |
+          {
+            echo "### TEST updated"
+            echo ""
+            echo "Open the TEST place on your phone to play the latest main."
+          } >> "$GITHUB_STEP_SUMMARY"

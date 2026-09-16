@@ -1,0 +1,83 @@
+# Changelog
+
+All notable changes to this project. Newest first.
+
+## [Unreleased]
+
+### Name generator (M2a, pure-logic half) · 2026-09-16
+
+**Added**
+- `src/shared/Config/Nomlings.luau` — the 12 base species with their head/tail tokens.
+- `src/shared/Logic/NameGen.luau` — deterministic name generation. The whole rule is `affix + head(A) + tail(B)`, which reproduces the brief's own Sushiwal example.
+- `src/shared/Config/NameSafety.luau` — multilingual profanity, brand and filter-risk blocklists, plus an allowlist.
+- 12 new tests, including an exhaustive sweep of all 876 names.
+- `tools/sample/names.luau` — prints a sample of what the generator produces.
+
+**The name-safety test found a real bug on its first run.**
+`Sushi` + `tiger` spells **Sushitiger** — a name that would have appeared in a reveal banner, in front of children, read aloud by the game's text-to-speech. Tiger was the only tail on the roster starting with `t`, so slot 1 became **Taco Rhino**. No human reading twelve names would have caught it.
+
+It also exposed a flaw in the blocklist itself: "Titan" contains "tit", "shell" contains "hell". A substring list needs an allowlist to be usable, so one was added — innocent words are stripped before scanning.
+
+
+### Phase 2 — M0 pipeline · 2026-09-16
+
+**Added**
+- Repo scaffold: `default.project.json`, `.luaurc`, `stylua.toml`, `selene.toml`, `wally.toml`, `rokit.toml`, committed `roblox.yml`.
+- Runtime skeleton: server and client bootstraps with explicit service ordering, `NetService` with per-player token buckets, `PlazaService` (eight plots, Egg Market, Fusion Lab, spawn), shared `Economy`, `Style`, `Net`, `Odds` and `TokenBucket` modules.
+- 19 unit tests under Lune, plus an economy parity test and a catalog validator.
+- Open Cloud tooling: `tools/publish.py`, `tools/run-cloud-tests.py`, shared `tools/opencloud.py`.
+- `tests/cloud/smoke.luau` — one task, many assertions, because task creation is capped at 5/minute per key.
+- Four GitHub Actions workflows, `scripts/setup-cloud.sh`, `scripts/check.sh`.
+- `CLAUDE.md`, `.claude/settings.json`, five subagents, five slash commands.
+- `docs/CLOUD-SETUP.md` — everything Philip needs to paste, in one page.
+
+**Verified by experiment**
+- The whole toolchain installs from crates.io: stylua 44 s, selene 54 s, wally 69 s, rojo 101 s, lune 172 s (~7.3 min cold, cached ~1 week).
+- `luau-lsp` is **not** on crates.io, so typechecking is CI-only.
+- `selene generate-roblox-std` cannot run here — it ignores the proxy CA — so `roblox.yml` is committed instead.
+
+**Fixed**
+- A real Luau syntax error the linter caught: `Net.REMOTES: {...} = {}`. Luau does not allow annotating a table field assignment; it needs a typed local.
+- Dead `ReplicatedStorage` require in the client bootstrap.
+
+**Guardrails**
+- `tools/publish.py` refuses PROD without `--i-have-approval`, which only the approval-gated workflow supplies.
+- The economy parity test fails on a one-ppm drift, verified deliberately.
+- The catalog validator rejects an odds-changing item with no disclosure metadata, and a server-wide boost that is not deterministic.
+
+### Phase 1 — Design pack · 2026-09-16
+
+**Added**
+- Full design pack: `GDD`, `NOMLINGS`, `ECONOMY`, `MONETIZATION`, `COMPLIANCE`, `TECH`, `CONFIG`, `ANALYTICS`, `ROADMAP`, `LIVEOPS`, `MARKETING`, `STORE-PAGE`, `RUNBOOKS`, `TITLES`, `RISKS`, `DECISIONS`.
+- `tools/simulate-economy/` — behaviour-model economy simulator and grid-search tuner. All four of the brief's pacing targets pass.
+- `tools/revenue-model/` — revenue scenarios for 1k/10k/100k DAU, with every assumption labelled by confidence.
+
+**Found**
+- **The brief's differentiation claim is false.** Steal An Egg, the most-played game on Roblox (~1.7M CCU), already has stealing, hatching, income pets, base upgrades, a Fuse Machine and seven mutations. Repositioned on procedural generation and World First.
+- **Rebirth was a dead end** — it resets coins and all Nomlings, leaving the player with no income and no bank. Fixed with a free restart egg.
+- **Fusion was an infinite upgrade treadmill** — unlimited concurrent fusions made income compound geometrically. Fixed with a single fusion slot.
+- **Flat egg prices broke the late game** — a heavy player reached 220 rebirths in 28 days. Fixed by scaling egg prices with rebirth count.
+- The fusion name space is **876 creatures / 6,132 book entries**, not "thousands" of creatures. World First split into Species and Mutation firsts.
+
+**Decided**
+- Toolchain installs via `cargo install --locked`; `toolchain-mirror.yml` dropped.
+- UI: React-Lua, with high-frequency values bypassing the reconciler. Data: ProfileStore. Both pending dependency approval.
+- Title stays "Fuse a Nomling"; Taco Cat becomes Taco Tiger.
+- No casino visual language anywhere — gambling imagery would force a Moderate rating and lose the Roblox Kids tier.
+- Launch re-planned to 8–12 December, all-ages to January. ✅ Approved 2026-09-16, along with React-Lua and ProfileStore.
+
+### Phase 0 — Orientation · 2026-09-16
+
+**Added**
+- `docs/00-kickoff-brief.md` — the brief, saved unchanged.
+- `docs/VERIFY.md` — every claim in brief §3 checked against official sources, with URLs and dates, plus environment detection.
+- `docs/PHILIP-TODO.md` — owner-only tasks.
+
+**Found**
+- Discovery ranking counts only organically-acquired users; recruitment and ranking are separate funnels.
+- Audience Expansion Rewards need a 100+ DAU average for 60 days.
+- "Highly engaged player" includes a platform-spend test.
+- Publishing to 16+ needs only an age check, a 2-day-old account and the questionnaire.
+- Private server price changes cancel every active subscription.
+- The 0.0054 DevEx rate requires R15 rigs for 100% of active playtime.
+- Luau Execution allows 5 task creations per minute per key.

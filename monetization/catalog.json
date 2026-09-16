@@ -1,0 +1,137 @@
+{
+  "$comment": [
+    "Source of truth for everything purchasable. Syncs to Roblox via Open Cloud",
+    "(tools/sync-catalog) and generates src/shared/Generated/CatalogIds.luau.",
+    "",
+    "riskTier encodes the currency firewall from docs/MONETIZATION.md section 2:",
+    "  1 = sells coins or changes odds        (hidden from PRI-restricted players)",
+    "  2 = multiplies coin income             (hidden from PRI-restricted players)",
+    "  3 = indirect or deterministic          (shown to everyone)",
+    "",
+    "PRICES HERE ARE NOT DISPLAYED. The game always fetches price from",
+    "MarketplaceService at runtime so Regional Pricing, Price Optimization and",
+    "Roblox Plus discounts render correctly. These values are what we ask Roblox",
+    "to set, nothing more."
+  ],
+  "version": 1,
+  "gamePasses": {
+    "vip": {
+      "name": "Nom Club VIP",
+      "description": "+1 Vault slot, offline earnings up to 4 hours, VIP skin and name tag, VIP lounge, and 2 free hatch skips every day.",
+      "priceRobux": 249,
+      "riskTier": 3
+    },
+    "coins2x": {
+      "name": "2x Coins",
+      "description": "Doubles the coins every Nomling earns, forever.",
+      "priceRobux": 399,
+      "riskTier": 2
+    },
+    "biggerBase": {
+      "name": "Bigger Base",
+      "description": "+6 pedestals, so six more Nomlings can earn at once.",
+      "priceRobux": 199,
+      "riskTier": 3
+    },
+    "turboIncubators": {
+      "name": "Turbo Incubators",
+      "description": "Eggs hatch 40% faster, plus one extra incubator.",
+      "priceRobux": 179,
+      "riskTier": 3
+    },
+    "fusionPro": {
+      "name": "Fusion Lab Pro",
+      "description": "A second fusion slot, and fusions finish 30% faster.",
+      "priceRobux": 249,
+      "riskTier": 3
+    },
+    "vaultPlus": {
+      "name": "Vault+",
+      "description": "+2 Vault slots. Vaulted Nomlings can never be snatched.",
+      "priceRobux": 149,
+      "riskTier": 3
+    },
+    "autoCollect": {
+      "name": "Auto-Collect",
+      "description": "Coins collect themselves. No more running to the pad.",
+      "priceRobux": 129,
+      "riskTier": 3
+    },
+    "luckyPaws": {
+      "name": "Lucky Paws",
+      "description": "Permanently improves your odds of rarer Nomlings by 25%. Live odds are always shown on the Odds panel.",
+      "priceRobux": 349,
+      "riskTier": 1,
+      "oddsEffect": {
+        "kind": "luckMultiplier",
+        "value": 1.25,
+        "disclosure": "Odds panel updates live while this is active."
+      }
+    },
+    "creatorKit": {
+      "name": "Creator Kit",
+      "description": "Photo filters, poses and backdrops for Creator Mode.",
+      "priceRobux": 79,
+      "riskTier": 3
+    }
+  },
+  "developerProducts": {
+    "starterPack": {
+      "name": "Starter Pack",
+      "description": "One time only: the exclusive Bonded Nomling Sprinkle Sprout, plus 5 hatch skips.",
+      "priceRobux": 49,
+      "riskTier": 3,
+      "oncePerPlayer": true
+    },
+    "skipHatchS": { "name": "Finish Egg (short)", "description": "Finish one egg right now.", "priceRobux": 15, "riskTier": 3 },
+    "skipHatchM": { "name": "Finish Egg (medium)", "description": "Finish one egg right now.", "priceRobux": 29, "riskTier": 3 },
+    "skipHatchL": { "name": "Finish Egg (long)", "description": "Finish one egg right now.", "priceRobux": 49, "riskTier": 3 },
+    "skipAll": { "name": "Finish All Eggs", "description": "Finish every egg in every incubator right now.", "priceRobux": 79, "riskTier": 3 },
+    "skipFusionS": { "name": "Finish Fusion (short)", "description": "Finish the fusion right now.", "priceRobux": 29, "riskTier": 3 },
+    "skipFusionL": { "name": "Finish Fusion (long)", "description": "Finish the fusion right now.", "priceRobux": 59, "riskTier": 3 },
+    "serverHatchRush": {
+      "name": "Hatch Rush (whole server)",
+      "description": "Everyone's eggs hatch twice as fast for 10 minutes. You get a thank-you banner.",
+      "priceRobux": 99,
+      "riskTier": 3,
+      "serverWide": true
+    },
+    "serverFusionFrenzy": {
+      "name": "Fusion Frenzy (whole server)",
+      "description": "Everyone's fusions finish twice as fast for 10 minutes.",
+      "priceRobux": 99,
+      "riskTier": 3,
+      "serverWide": true
+    },
+    "serverDisco": {
+      "name": "Disco Party (whole server)",
+      "description": "Party lights and a dance emote for everyone, 5 minutes. Purely cosmetic.",
+      "priceRobux": 49,
+      "riskTier": 3,
+      "serverWide": true
+    },
+    "coinPackS": { "name": "Coin Snack", "description": "Coins equal to 30 minutes of your current income.", "priceRobux": 49, "riskTier": 1 },
+    "coinPackM": { "name": "Coin Meal", "description": "Coins equal to 3 hours of your current income.", "priceRobux": 199, "riskTier": 1 },
+    "coinPackL": { "name": "Coin Feast", "description": "Coins equal to 12 hours of your current income.", "priceRobux": 599, "riskTier": 1 },
+    "luck15": {
+      "name": "Lucky 15",
+      "description": "Doubles your odds of rarer Nomlings for 15 minutes. Live odds are always shown on the Odds panel.",
+      "priceRobux": 59,
+      "riskTier": 1,
+      "oddsEffect": {
+        "kind": "luckMultiplier",
+        "value": 2.0,
+        "durationSeconds": 900,
+        "disclosure": "Odds panel updates live while this is active."
+      }
+    },
+    "adReward_skip": {
+      "name": "Free Hatch Skip",
+      "description": "Reward for watching a video. Finishes one egg.",
+      "priceRobux": 0,
+      "riskTier": 3,
+      "enabled": false,
+      "$comment": "Rewarded video reward. Stays disabled until the experience has 2,000+ unique monthly visitors and an approved questionnaire. Rewards MUST be developer products, never Robux."
+    }
+  }
+}

@@ -1,0 +1,11 @@
+std = "roblox"
+
+[rules]
+# Server authority matters more than terseness here; these keep real bugs loud
+# and stylistic noise quiet.
+global_usage = "deny"
+multiple_statements = "warn"
+shadowing = "warn"
+unbalanced_assignments = "deny"
+undefined_variable = "deny"
+unused_variable = "warn"

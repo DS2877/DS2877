@@ -1,0 +1,14 @@
+[package]
+name = "ds2877/fuse-a-nomling"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+# M0 ships with ZERO dependencies on purpose. React-Lua and ProfileStore are
+# approved (docs/DECISIONS.md D-005, D-006) but are not needed to publish an
+# empty plaza, and adding them now would put the Wally registry's reachability
+# on the critical path for the very first deploy. They land in M1, when the
+# first UI and the first save actually need them.
+[dependencies]
+
+[dev-dependencies]

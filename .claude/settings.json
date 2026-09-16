@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/*.key)",
+      "Read(**/*.pem)",
+      "Read(**/secrets/**)",
+      "Read(~/.roblox/**)",
+      "Bash(printenv:*)",
+      "Bash(env)"
+    ],
+    "allow": [
+      "Bash(./scripts/check.sh)",
+      "Bash(./scripts/check.sh --fix)",
+      "Bash(lune run:*)",
+      "Bash(selene:*)",
+      "Bash(stylua:*)",
+      "Bash(rojo build:*)",
+      "Bash(python3 tests/:*)",
+      "Bash(python3 tools/:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'missing=\"\"; for t in stylua selene lune rojo; do command -v $t >/dev/null 2>&1 || missing=\"$missing $t\"; done; if [ -n \"$missing\" ]; then echo \"Toolchain missing:$missing - run ./scripts/setup-cloud.sh (first run takes several minutes; see docs/TECH.md section 4).\"; else echo \"Toolchain ready. Run ./scripts/check.sh before pushing.\"; fi'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'f=\"$CLAUDE_FILE_PATH\"; case \"$f\" in *.luau|*.lua) command -v stylua >/dev/null 2>&1 && stylua \"$f\" 2>/dev/null || true ;; esac'"
+          }
+        ]
+      }
+    ]
+  }
+}

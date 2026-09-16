@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# A second push cancels the first: no point spending minutes on a stale commit.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ROJO_VERSION: "7.7.0"
+  SELENE_VERSION: "0.31.0"
+  STYLUA_VERSION: "2.5.2"
+  LUNE_VERSION: "0.10.5"
+
+jobs:
+  check:
+    name: Format, lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache cargo build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: toolchain-${{ env.ROJO_VERSION }}-${{ env.SELENE_VERSION }}-${{ env.STYLUA_VERSION }}-${{ env.LUNE_VERSION }}
+
+      - name: Install toolchain
+        run: |
+          set -euo pipefail
+          # Installed from crates.io so CI and cloud sessions build the exact
+          # same versions from the same source. See docs/DECISIONS.md D-001.
+          cargo install --locked stylua --version "$STYLUA_VERSION"
+          cargo install --locked selene --version "$SELENE_VERSION"
+          cargo install --locked lune   --version "$LUNE_VERSION"
+          cargo install --locked rojo   --version "$ROJO_VERSION"
+
+      - name: Format check
+        run: stylua --check src tests
+
+      - name: Lint
+        run: selene src tests
+
+      - name: Unit tests
+        run: lune run tests/unit/run
+
+      - name: Economy parity (Economy.luau vs the simulator)
+        run: python3 tests/parity/economy_parity.py
+
+      - name: Catalog validation
+        run: python3 tools/validate-catalog.py
+
+      - name: Economy simulator still hits its pacing targets
+        run: |
+          set -euo pipefail
+          cd tools/simulate-economy
+          python3 simulate.py --trials 10 | tee /tmp/sim.txt
+          if grep -q "FAIL" /tmp/sim.txt; then
+            echo "::error::The economy no longer hits the pacing targets in docs/ECONOMY.md"
+            exit 1
+          fi
+
+      - name: Build place
+        run: |
+          mkdir -p build
+          rojo build default.project.json --output build/nomling.rbxl
+          ls -lh build/nomling.rbxl
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: place
+          path: build/nomling.rbxl
+          retention-days: 7
+
+  publish-test:
+    name: Publish to TEST (Saved)
+    needs: check
+    runs-on: ubuntu-latest
+    # Skips cleanly until Philip has created the experiences and the secrets
+    # exist, so early PRs still go green on everything that can run.
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: place
+          path: build
+
+      - name: Check credentials are present
+        id: creds
+        # Read through env rather than interpolating `${{ }}` straight into the
+        # shell. Direct interpolation builds the secret into the command line,
+        # which both risks it surfacing in a log and makes an unset value
+        # indistinguishable from a quoting mistake. This also reports WHICH
+        # piece is missing, so a skip is diagnosable instead of ambiguous.
+        env:
+          API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          UNIVERSE_ID: ${{ vars.ROBLOX_TEST_UNIVERSE_ID }}
+          PLACE_ID: ${{ vars.ROBLOX_TEST_PLACE_ID }}
+        run: |
+          missing=""
+          [ -z "${API_KEY:-}" ] && missing="$missing ROBLOX_API_KEY(secret)"
+          [ -z "${UNIVERSE_ID:-}" ] && missing="$missing ROBLOX_TEST_UNIVERSE_ID(variable)"
+          [ -z "${PLACE_ID:-}" ] && missing="$missing ROBLOX_TEST_PLACE_ID(variable)"
+
+          if [ -z "$missing" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Credentials present. Universe $UNIVERSE_ID, place $PLACE_ID."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Skipping TEST publish. Missing:$missing"
+            echo "::warning::Secrets live under Settings > Secrets and variables > Actions > Secrets. Variables are the separate Variables tab on the same page -- putting an ID in the Secrets tab is the usual cause."
+          fi
+
+      - name: Publish as a Saved version
+        id: publish
+        if: steps.creds.outputs.ready == 'true'
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          ROBLOX_TEST_UNIVERSE_ID: ${{ vars.ROBLOX_TEST_UNIVERSE_ID }}
+          ROBLOX_TEST_PLACE_ID: ${{ vars.ROBLOX_TEST_PLACE_ID }}
+        run: python3 tools/publish.py --env test --type Saved --file build/nomling.rbxl
+
+      - name: Cloud smoke test
+        if: steps.creds.outputs.ready == 'true'
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          ROBLOX_TEST_UNIVERSE_ID: ${{ vars.ROBLOX_TEST_UNIVERSE_ID }}
+          ROBLOX_TEST_PLACE_ID: ${{ vars.ROBLOX_TEST_PLACE_ID }}
+        run: |
+          # One task, many assertions: task creation is capped at 5/minute per
+          # API key owner, so never split this into a task per test.
+          python3 tools/run-cloud-tests.py --env test --version "${{ steps.publish.outputs.version }}"

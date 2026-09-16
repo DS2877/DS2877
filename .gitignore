@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# Roblox toolchain
+tools/bin/
+Packages/
+*.rbxl
+*.rbxlx
+build/
