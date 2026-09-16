@@ -1,7 +1,7 @@
 # PHILIP-TODO
 
 Things only Philip can do. Claude keeps this current (brief §12, §11.11).
-Last updated: 2026-09-16 (Phase 0 answers recorded).
+Last updated: 2026-09-16 (Phase 1 complete).
 
 **Status key:** ⬜ not started · 🟡 in progress · ✅ done · ⏸️ not needed yet
 
@@ -102,9 +102,19 @@ Roblox earnings are taxable in Sweden. Talk to Skatteverket or an accountant onc
 
 ## Waiting on Philip right now
 
-1. **TEST and PROD universe + place IDs**, once the Community and experiences exist (task 3). Remember **R15 Only** in Avatar Settings on both.
-2. **The date your Roblox Plus subscription starts**, so the M6 all-ages date can be pinned.
-3. **Do you ever have computer + Studio time** (evenings, weekends), or should Claude plan for zero? See the note below — it changes how snatching gets tested and how the art pass works.
+### Decisions needed to start Phase 2
+
+1. **Approve the roadmap re-plan.** Launch moves from ~21–27 Nov to **8–12 Dec**, all-ages to January. Reasons and a cut list in `docs/ROADMAP.md`. Say yes, or pick from the cut list to keep November.
+2. **Approve two dependencies** (brief §11.7 says Claude asks first):
+   - **React-Lua** for UI — most documented and most predictable, which matters when you are debugging on a phone. `docs/TECH.md` §6.
+   - **ProfileStore** for player data — session locking and migrations. `docs/DECISIONS.md` D-006.
+3. **Read `docs/RISKS.md`.** It contains one finding that changes what we are making: the #1 game on Roblox already has our entire feature list. The design now leads on procedural generation and World First instead of fusion. Worth your disagreement if you have any.
+
+### Information needed
+
+4. **TEST and PROD universe + place IDs**, once the Community and experiences exist (task 3). Remember **R15 Only** in Avatar Settings on both.
+5. **The date your Roblox Plus subscription starts**, so the M6 all-ages date can be pinned.
+6. **Do you ever have computer + Studio time** (evenings, weekends), or should Claude plan for zero? See the note below — it changes how snatching gets tested and how the art pass works.
 
 ### Why the Studio question matters
 
