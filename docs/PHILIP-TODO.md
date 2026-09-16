@@ -36,12 +36,15 @@ Last updated: 2026-09-16 (setup steps corrected against the real Roblox UI).
 - ⏸️ **PROD experience: deferred** to M4/M5.
 - ⏸️ **TEST audience → Limited → Playtesters:** only needed once someone other than Philip needs access. He can play his own experience without it.
 
-### ⏸️ 3b. Set R15 Only — needs Studio, do it at M4
+### 🟡 3b. Set R15 Only — Philip has Studio on desktop, so do it now
+**Update 2026-09-16:** Philip turned out to be working in the Roblox Studio desktop app. Avatar Settings is right there: **Avatar tab → Avatar Settings → ⋯ → R15 Only**. Thirty seconds, free, and it clears the M4 task early.
+
+Also discovered at the same time: a place created in Studio exists only on the local machine until **File → Publish to Roblox**. That is the step that creates the experience on Roblox and produces the universe and place IDs.
 ⚠️ **Correcting an earlier instruction that said "do this now, it can't be fixed later."** That was wrong on both counts.
 
-Avatar Settings lives **inside Roblox Studio** (File menu / Avatar tab), and Roblox's docs say the values are "not accessible with scripts" — so Rojo cannot set it either. It is not on the Creator Dashboard.
+Avatar Settings lives **inside Roblox Studio** (File menu / Avatar tab), and Roblox's docs say the values are "not accessible with scripts" — so Rojo cannot set it either. It is not on the Creator Dashboard. That was why it was originally deferred.
 
-It is **not urgent**: the R15 requirement gates the higher DevEx rate (0.0054 vs 0.0038 per Robux), which only applies to Robux earned from real players. Nothing earns anything until launch. Do it in the Studio session already planned for M4, well before December.
+Fallback if it gets missed: the R15 requirement gates the higher DevEx rate (0.0054 vs 0.0038 per Robux), which only applies to Robux earned from real players, so the true deadline is launch — not today.
 
 ### ⬜ 4. Open Cloud API keys
 Create keys with minimal scopes and store as the GitHub Actions secret `ROBLOX_API_KEY`.
@@ -101,7 +104,7 @@ Roblox earnings are taxable in Sweden. Talk to Skatteverket or an accountant onc
 
 | Question | Answer |
 |---|---|
-| Weekly hours | ~8–10 h, **phone-only during business hours** (Sweden, CEST) |
+| Weekly hours | ~8–10 h, mostly phone during business hours (Sweden, CEST) — but **has Roblox Studio on a desktop** and will use it when needed |
 | Roblox Plus / Premium | None yet — **subscribing now** |
 | Community (group) name | "Nomling Games" (default accepted) |
 | Claude plan tier | **Pro** → environment API credential for Open Cloud is available |

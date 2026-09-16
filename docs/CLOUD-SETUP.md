@@ -96,6 +96,27 @@ Create one named **`production`** and add yourself as a **required reviewer**.
 
 ---
 
+## 4b. Before any of that: publish the place from Studio
+
+⚠️ **Added 2026-09-16.** Philip was working in the Roblox Studio desktop app, where a new place exists **only on his computer** until it is published. That is why there were no IDs to look up — the experience did not exist on Roblox yet.
+
+**In Studio, in this order:**
+
+1. **Avatar tab** (or **File** menu) → **Avatar Settings** → the **⋯** button → **R15 Only**.
+   Do this while Studio is open; it is free and takes seconds, and it is the setting that gates the higher DevEx rate.
+2. **File** → **Publish to Roblox**.
+3. In the **Publish Experience** window:
+   - **Name**: `Fuse a Nomling TEST`
+   - **Creator**: Philip's own account (Roblox recommends a group, but that costs 100 Robux and can wait for PROD)
+   - **Devices**: leave the defaults, but confirm **Phone** is ticked
+4. Click **Create**.
+
+New games default to **Private**, which means the creator can already play them. No audience change is needed for Philip to test.
+
+> ⚠️ **Do not build anything in Studio that you want to keep in this place.** From here on, CI publishes the Rojo-built place over the top of it on every deploy. Studio edits to the TEST place will be overwritten. Studio is for *looking* at what the pipeline produced, not for authoring content.
+
+---
+
 ## 5. Creating the API key — the actual UI
 
 ⚠️ **Corrected 2026-09-16** after Philip found the earlier version didn't match reality. Re-verified against [Manage API keys](https://create.roblox.com/docs/en-us/cloud/auth/api-keys.md) and [Place publishing](https://create.roblox.com/docs/en-us/cloud/guides/usage-place-publishing.md).
