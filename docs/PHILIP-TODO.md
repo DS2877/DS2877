@@ -1,7 +1,7 @@
 # PHILIP-TODO
 
 Things only Philip can do. Claude keeps this current (brief §12, §11.11).
-Last updated: 2026-09-16 (setup steps corrected against the real Roblox UI).
+Last updated: 2026-09-16 (TEST experience published; IDs recorded).
 
 **Status key:** ⬜ not started · 🟡 in progress · ✅ done · ⏸️ not needed yet
 
@@ -29,8 +29,19 @@ Last updated: 2026-09-16 (setup steps corrected against the real Roblox UI).
 
 **Correction from Phase 0:** you need the full ID + 2FA stack only to reach **under-16** players. To launch to **16+** you need just an account in good standing that is **at least 2 days old**, age verification, and a completed Maturity & Compliance Questionnaire. So this is not a blocker for M5 — but do it now anyway, since M6 needs it and ID verification can take time.
 
-### 🟡 3. Experiences — TEST done, rest deferred
-- ✅ **TEST experience created 2026-09-16** ("Fuse a Nomling TEST"), personal-owned. That is fine.
+### ✅ 3. TEST experience — PUBLISHED 2026-09-16
+
+| | |
+|---|---|
+| Name | **Fuse a Nomling TEST** |
+| **Universe ID** | **`10766688851`** |
+| **Place ID** | **`107785954354396`** |
+| Creator | McThad (personal account) |
+| Audience | Private — only Philip can enter, which is all TEST needs |
+
+*IDs are not secrets; they go in GitHub as **variables**, not secrets. Recorded here so a future session never has to ask again.*
+
+- ✅ **TEST experience published 2026-09-16**, personal-owned. That is fine.
 - ⏸️ **Community (group): deferred.** Costs **100 Robux**, and Claude does not spend money without asking. Not needed for TEST. Created from Creator Dashboard → account switcher (upper-left) → **plus (+)**, *not* a "Communities" menu.
   ⚠️ Claude could not find docs confirming an experience can be moved from a personal account into a group later. So if group ownership matters, create **PROD** inside the group in December rather than planning to move TEST.
 - ⏸️ **PROD experience: deferred** to M4/M5.
@@ -121,8 +132,7 @@ Roblox earnings are taxable in Sweden. Talk to Skatteverket or an accountant onc
 
 Claude can build the whole pipeline without these, but **cannot publish anything to TEST until they exist**:
 
-1. **Send Claude the TEST universe ID and place ID.** Both are in one URL — Creator Dashboard → Creations → click the experience → click the place, then read the address bar:
-   `.../experiences/<UNIVERSE_ID>/places/<PLACE_ID>/configure`
+1. ✅ **Done** — universe and place IDs captured above.
 2. **Create the Open Cloud API key.** Creator Dashboard → **Credentials** → API Keys → Create API Key. Add the **`universe-places`** API system with the **Write** operation on this experience. (You pick systems and operations from menus; you never type scope strings — the earlier instruction to do so was wrong.) Full walkthrough in [`docs/CLOUD-SETUP.md`](CLOUD-SETUP.md) §5.
 3. **Add to GitHub:** secret `ROBLOX_API_KEY`, variables `ROBLOX_TEST_UNIVERSE_ID` and `ROBLOX_TEST_PLACE_ID`.
 4. ⏸️ The `production` GitHub Environment gate can wait until there is a PROD experience to protect.

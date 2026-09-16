@@ -79,14 +79,14 @@ While you're in settings, CI needs these. It skips publishing cleanly until they
 |---|---|
 | `ROBLOX_API_KEY` | your Open Cloud API key |
 
-**Variables** (same page, Variables tab) — these are IDs, not secrets:
+**Variables** (same page, Variables tab) — these are IDs, not secrets, so they are safe to record:
 
 | Name | Value |
 |---|---|
-| `ROBLOX_TEST_UNIVERSE_ID` | TEST universe ID |
-| `ROBLOX_TEST_PLACE_ID` | TEST place ID |
-| `ROBLOX_PROD_UNIVERSE_ID` | PROD universe ID |
-| `ROBLOX_PROD_PLACE_ID` | PROD place ID |
+| `ROBLOX_TEST_UNIVERSE_ID` | `10766688851` |
+| `ROBLOX_TEST_PLACE_ID` | `107785954354396` |
+| `ROBLOX_PROD_UNIVERSE_ID` | *(not created yet — December)* |
+| `ROBLOX_PROD_PLACE_ID` | *(not created yet — December)* |
 
 **Environment** (Settings → Environments → New environment):
 
