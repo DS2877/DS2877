@@ -1,0 +1,62 @@
+{
+  "$comment": [
+    "Live config defaults. Every key is documented in docs/CONFIG.md with its",
+    "safe range and a risk marker.",
+    "",
+    "CONTRACT: typed defaults live in code (src/shared/Config/). This file is an",
+    "OVERRIDE. If it fails to load, the game runs normally on code defaults -- a",
+    "failed config fetch is not an outage.",
+    "",
+    "NEVER publish live config without Philip's explicit OK (brief 11.3).",
+    "Change one red-risk key at a time; see docs/CONFIG.md rollout rules."
+  ],
+  "version": 1,
+  "shop": {
+    "starterPackMinMinutes": 5,
+    "starterPackRequiresFirstFusion": true,
+    "maxUnsolicitedOffersPerSession": 1,
+    "plusPromptPerDay": 1,
+    "adRewardDailyCap": 5,
+    "adsEnabled": false
+  },
+  "snatch": {
+    "holdSeconds": 1.5,
+    "carrySlowdown": 0.3,
+    "carryTimeoutSeconds": 40,
+    "bubbleSeconds": 2,
+    "bubbleCooldownSeconds": 3,
+    "bubbleImmunitySeconds": 3,
+    "gateLockSeconds": 60,
+    "gateCooldownSeconds": 90,
+    "newcomerShieldSeconds": 1200,
+    "minIncomeRatio": 0.2,
+    "perTargetCooldownSeconds": 60,
+    "comebackEggEnabled": true
+  },
+  "weather": {
+    "intervalMinSeconds": 720,
+    "intervalMaxSeconds": 1200,
+    "durationSeconds": 90,
+    "announceLeadSeconds": 30
+  },
+  "eggs": {
+    "restockSeconds": 300,
+    "goldenEggCycleChance": 0.05
+  },
+  "events": {
+    "globalEventActive": false,
+    "globalEventType": "",
+    "bannerText": ""
+  },
+  "codes": {},
+  "admin": {
+    "allowlist": [],
+    "testToolsEnabled": false
+  },
+  "ui": {
+    "reducedMotionDefault": false,
+    "ttsEnabledDefault": true,
+    "revealSkippableAfterFirst": true,
+    "showWeatherOddsPanel": true
+  }
+}

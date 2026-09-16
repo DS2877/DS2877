@@ -48,15 +48,27 @@ Detect the surface with `CLAUDE_CODE_REMOTE`.
 
 ## 4. Toolchain
 
-**Decision: install via `cargo install --locked` with pinned versions.** Validated by experiment in Phase 0 — StyLua built in **44 seconds** in this environment. The brief's Option A (mirroring GitHub release binaries) is **not viable here**: `github.com/*/releases/*` and `codeload.github.com` return 403 from the egress proxy, while `index.crates.io` and `static.crates.io` are reachable.
+**Decision: install via `cargo install --locked` with pinned versions.** Validated by experiment — the full toolchain installs cleanly. Cold install measured twice: **440 s** and **573 s** (7–10 minutes; the machine is the variable, not the plan). Cached about a week, so this is a cold-start cost only. The brief's Option A (mirroring GitHub release binaries) is **not viable here**: `github.com/*/releases/*` and `codeload.github.com` return 403 from the egress proxy, while `index.crates.io` and `static.crates.io` are reachable.
 
 Needs `CARGO_HTTP_CAINFO=/root/.ccr/ca-bundle.crt` for TLS through the proxy.
 
-Tools: **Rojo** (builds `.rbxl` from source), **Wally** (packages), **StyLua** (format), **Selene** (lint), **luau-lsp** (types), **Lune** (scripts and pure tests).
+**Verified in Phase 2** — every tool below installs from crates.io at the pinned version:
 
-⚠️ **Phase 2 must verify each tool actually publishes an installable crate.** Only StyLua is confirmed. Any tool that does not gets a committed binary in `tools/bin/linux-x64/` as a per-tool fallback. Also measure total cold install time against the ~5-minute setup-script budget; the result is cached about a week, so the cold path is what matters.
+| Tool | Version | Purpose |
+|---|---|---|
+| Rojo | 7.7.0 | builds `.rbxl` from source |
+| Selene | 0.31.0 | lint |
+| StyLua | 2.5.2 | format |
+| Lune | 0.10.5 | scripts and pure tests |
+| Wally | 0.3.2 | packages |
 
-If the Wally registry is unreachable, commit `Packages/`.
+❌ **`luau-lsp` is not on crates.io** — it is a C++ project released as GitHub binaries, and those downloads are blocked. **Typechecking is therefore CI-only** (`docs/DECISIONS.md` D-014). Cloud sessions get format, lint, unit tests and parity as the fast inner loop.
+
+`scripts/setup-cloud.sh` installs in priority order, so a truncated run still leaves the tools that matter most. `rokit.toml` pins the same versions for GitHub Actions, where prebuilt binaries work.
+
+⚠️ **Selene's Roblox std is committed, not generated.** `selene generate-roblox-std` uses its own bundled cert roots and ignores the proxy CA, so it cannot run here. `roblox.yml` lists the globals the codebase actually uses; a newly-used global surfaces as an `undefined_variable` error (`docs/DECISIONS.md` D-017).
+
+If the Wally registry is unreachable, commit `Packages/`. M0 ships with zero dependencies, so this is not yet on the critical path.
 
 ---
 
@@ -81,8 +93,7 @@ The server validates, per call: type, range, **ownership**, **proximity**, and a
 
 ⚠️ Correcting the brief: Roblox does **not** officially recommend any third-party data library. The official guidance covers `DataStoreService` directly, so "confirm it is still the recommended library" has no official answer. ProfileStore is chosen on its merits — session locking (prevents duplication across servers, which is the bug that ruins economies), schema versioning with migrations, autosave, `BindToClose` handling, and active maintenance as the successor to ProfileService.
 
-Per brief §11.7 this is a dependency and needs Philip's explicit OK before it goes in.
-*Fallback if declined:* a hand-rolled wrapper over `DataStoreService` with our own session lock via `MemoryStoreService`. Meaningfully more risk for no saving.
+✅ **Approved by Philip on 2026-09-16** (brief §11.7 dependency approval). Lands in M1, when the first save actually needs it.
 
 Profile schema:
 
@@ -114,7 +125,9 @@ Perk ownership is one function: `Shop:hasPerk(player, key)` → true if they own
 
 ### Procedural generation
 
-`NomlingBuilder` (client) builds a model from a genome. `NameGen` produces deterministic names. `WorldGen` (Lune) generates the static plaza as `.rbxm` at build time; dynamic parts spawn at runtime.
+`NomlingBuilder` (client) builds a model from a genome. `NameGen` produces deterministic names.
+
+⚠️ **The M0 plaza is built in code**, not loaded from a `.rbxm` — `PlazaService` constructs it with `Instance.new`. The `worldgen/` Lune pipeline is deferred to M2, when the plaza gains real content; putting asset serialisation on the critical path for the first deploy bought risk with no payoff (`docs/DECISIONS.md` D-016).
 
 **The seed is derived from the genome, never from time or `Random.new()`.** The same genome must build the same creature on every client forever, or the Fusion Book, World First credit and every screenshot break.
 
@@ -131,7 +144,7 @@ The brief asked for React-Lua vs Vide vs Fusion with justification.
 | Performance | heaviest (reconciler) | light | ✅ lightest, fine-grained |
 | API stability | ✅ stable | has had breaking rewrites | young |
 
-**Choice: React-Lua.**
+**Choice: React-Lua.** ✅ Approved by Philip on 2026-09-16.
 
 The brief justifies it as "familiar to a web developer", but that criterion is weaker than it looks — **Claude writes almost all of this code, Philip reviews it.** The decisive reason is different: React-Lua has the most documentation and the most predictable behaviour, which matters enormously when the person debugging is on a phone, new to Luau, and cannot open Studio. Predictability beats raw speed here.
 
@@ -144,7 +157,7 @@ Without that rule, a coin counter would re-render the tree ~30×/second on a pho
 
 **Revisit trigger:** if GUI frame time exceeds **2 ms** on a mid-range phone during the M4 performance pass, reassess against Vide. The rule above should prevent that.
 
-Also a dependency — needs Philip's OK per §11.7.
+Lands in M1, with the first UI.
 
 **Components:** Button, Toast, Modal, OddsPanel, Shop, Inventory, FusionBook, Leaderboards, Daily, Settings, AdminPanel. Touch-first, safe areas via `ScreenInsets`.
 

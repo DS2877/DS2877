@@ -1,0 +1,95 @@
+--!strict
+--[[
+	The single declaration of every remote in the game.
+
+	NOTHING creates a RemoteEvent or RemoteFunction outside this module. One
+	place to read means one place to audit -- which is the only way the
+	"validate type, range, ownership and proximity" rule in docs/TECH.md stays
+	true as the game grows.
+
+	For Philip: a RemoteEvent is roughly a websocket message. The client can
+	send anything it likes, including things our UI would never send, so the
+	server treats every payload as hostile input.
+
+	M0 declares no gameplay remotes yet -- only Ping, which exists so the
+	smoke test can prove the transport works end to end.
+]]
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+export type Direction = "clientToServer" | "serverToClient" | "bidirectional"
+
+export type RemoteSpec = {
+	name: string,
+	kind: "event" | "function",
+	direction: Direction,
+	--- Burst allowance per player.
+	rateCapacity: number,
+	--- Sustained calls per second per player.
+	rateRefill: number,
+	description: string,
+}
+
+local Net = {}
+
+--- Every remote, with its rate limit. Add here first, implement second.
+--- (Declared as a local so it can carry a type annotation -- Luau does not
+--- allow annotating a table field assignment directly.)
+local REMOTES: { [string]: RemoteSpec } = {
+	Ping = {
+		name = "Ping",
+		kind = "function",
+		direction = "clientToServer",
+		rateCapacity = 3,
+		rateRefill = 1,
+		description = "Liveness check used by the M0 smoke test.",
+	},
+}
+
+Net.REMOTES = REMOTES
+
+local FOLDER_NAME = "Net"
+
+local folder: Folder? = nil
+
+--- Server only. Creates the remote instances declared above.
+function Net.build(): Folder
+	assert(RunService:IsServer(), "Net.build() is server-only")
+
+	local existing = ReplicatedStorage:FindFirstChild(FOLDER_NAME)
+	if existing then
+		return existing :: Folder
+	end
+
+	local created = Instance.new("Folder")
+	created.Name = FOLDER_NAME
+
+	for _, spec in Net.REMOTES do
+		local remote: Instance = if spec.kind == "event"
+			then Instance.new("RemoteEvent")
+			else Instance.new("RemoteFunction")
+		remote.Name = spec.name
+		remote.Parent = created
+	end
+
+	created.Parent = ReplicatedStorage
+	folder = created
+	return created
+end
+
+--- Resolves a declared remote by name. Errors on anything undeclared, which
+--- makes a typo a startup failure rather than a silent no-op.
+function Net.get(name: string): Instance
+	assert(Net.REMOTES[name] ~= nil, `remote '{name}' is not declared in shared/Net`)
+
+	local container = folder or ReplicatedStorage:WaitForChild(FOLDER_NAME, 10)
+	assert(container ~= nil, "Net folder never replicated")
+	folder = container :: Folder
+
+	local remote = container:WaitForChild(name, 10)
+	assert(remote ~= nil, `remote '{name}' never replicated`)
+	return remote
+end
+
+return Net

@@ -7,3 +7,4 @@ tools/bin/
 Packages/
 *.rbxl
 *.rbxlx
+build/

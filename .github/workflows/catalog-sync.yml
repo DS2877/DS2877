@@ -1,0 +1,39 @@
+name: Catalog sync
+
+on:
+  pull_request:
+    paths: ["monetization/catalog.json"]
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Actually apply changes to Roblox (otherwise dry run)"
+        type: boolean
+        default: false
+
+jobs:
+  sync:
+    name: Validate and sync the catalog
+    runs-on: ubuntu-latest
+    # Applying catalog changes needs Philip's explicit OK (brief 11.3), so a
+    # real apply only ever happens via manual dispatch with apply=true.
+    environment: ${{ (github.event_name == 'workflow_dispatch' && inputs.apply) && 'production' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate
+        run: python3 tools/validate-catalog.py
+
+      - name: Dry run
+        if: ${{ github.event_name == 'pull_request' || !inputs.apply }}
+        run: |
+          echo "Dry run only. No changes sent to Roblox."
+          python3 tools/validate-catalog.py
+
+      - name: Apply
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply }}
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          ROBLOX_PROD_UNIVERSE_ID: ${{ vars.ROBLOX_PROD_UNIVERSE_ID }}
+        run: |
+          echo "::error::tools/sync-catalog.py is not implemented yet -- catalog sync lands in M3."
+          exit 1

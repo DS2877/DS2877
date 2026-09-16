@@ -1,0 +1,48 @@
+name: Deploy PROD
+
+on:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publish PROD
+    runs-on: ubuntu-latest
+    # The `production` GitHub Environment must list Philip as a required
+    # reviewer. This is the enforcement point for brief 11.3: never publish
+    # PROD without his explicit OK. Do not remove it to unblock a release.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Rojo
+        run: cargo install --locked rojo --version 7.7.0
+
+      - name: Build
+        run: |
+          mkdir -p build
+          rojo build default.project.json --output build/nomling.rbxl
+
+      - name: Publish
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          ROBLOX_PROD_UNIVERSE_ID: ${{ vars.ROBLOX_PROD_UNIVERSE_ID }}
+          ROBLOX_PROD_PLACE_ID: ${{ vars.ROBLOX_PROD_PLACE_ID }}
+        run: |
+          # --i-have-approval is supplied only here, after the environment
+          # approval gate above has passed.
+          python3 tools/publish.py --env prod --type Published \
+            --file build/nomling.rbxl --i-have-approval
+
+      - name: Release notes
+        run: |
+          {
+            echo "### PROD released: ${{ github.ref_name }}"
+            echo ""
+            echo "See CHANGELOG.md."
+          } >> "$GITHUB_STEP_SUMMARY"

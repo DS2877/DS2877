@@ -1,0 +1,17 @@
+# Toolchain for GitHub Actions, where GitHub release downloads work.
+#
+# Cloud sessions CANNOT use this: the egress proxy blocks github.com releases
+# and codeload.github.com (403). They install from crates.io instead, via
+# scripts/setup-cloud.sh. Versions in the two files must match, and
+# tests/unit/toolchain.spec.luau asserts they do.
+[tools]
+rojo = "rojo-rbx/rojo@7.7.0"
+selene = "Kampfkarren/selene@0.31.0"
+stylua = "JohnnyMorganz/StyLua@2.5.2"
+wally = "UpliftGames/wally@0.3.2"
+lune = "lune-org/lune@0.10.5"
+
+# luau-lsp is NOT on crates.io -- it is a C++ project released as GitHub
+# binaries. That makes typechecking CI-only; cloud sessions get format, lint
+# and unit tests as the fast inner loop. See docs/DECISIONS.md D-014.
+luau-lsp = "JohnnyMorganz/luau-lsp@1.51.1"

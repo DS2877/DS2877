@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-Phase 1.1. **This is a proposed re-plan and needs Philip's OK**, because it moves the launch date.
+Phase 1.1. ✅ **Approved by Philip on 2026-09-16.** The cut list at the end stays available if the date ever needs pulling back.
 
 ---
 
@@ -16,9 +16,9 @@ The brief targets M5 launch on **~21–27 Nov**, ten weeks from kickoff. Three t
 
 ---
 
-## Proposed schedule
+## Schedule
 
-| Milestone | Brief | **Proposed** | Change |
+| Milestone | Brief | **Agreed** | Change |
 |---|---|---|---|
 | M0 Setup | Sep 27 | **Sep 27** | unchanged |
 | M1 Vertical slice | Oct 11 | **Oct 11** | unchanged |

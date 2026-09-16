@@ -4,6 +4,32 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### Phase 2 — M0 pipeline · 2026-09-16
+
+**Added**
+- Repo scaffold: `default.project.json`, `.luaurc`, `stylua.toml`, `selene.toml`, `wally.toml`, `rokit.toml`, committed `roblox.yml`.
+- Runtime skeleton: server and client bootstraps with explicit service ordering, `NetService` with per-player token buckets, `PlazaService` (eight plots, Egg Market, Fusion Lab, spawn), shared `Economy`, `Style`, `Net`, `Odds` and `TokenBucket` modules.
+- 19 unit tests under Lune, plus an economy parity test and a catalog validator.
+- Open Cloud tooling: `tools/publish.py`, `tools/run-cloud-tests.py`, shared `tools/opencloud.py`.
+- `tests/cloud/smoke.luau` — one task, many assertions, because task creation is capped at 5/minute per key.
+- Four GitHub Actions workflows, `scripts/setup-cloud.sh`, `scripts/check.sh`.
+- `CLAUDE.md`, `.claude/settings.json`, five subagents, five slash commands.
+- `docs/CLOUD-SETUP.md` — everything Philip needs to paste, in one page.
+
+**Verified by experiment**
+- The whole toolchain installs from crates.io: stylua 44 s, selene 54 s, wally 69 s, rojo 101 s, lune 172 s (~7.3 min cold, cached ~1 week).
+- `luau-lsp` is **not** on crates.io, so typechecking is CI-only.
+- `selene generate-roblox-std` cannot run here — it ignores the proxy CA — so `roblox.yml` is committed instead.
+
+**Fixed**
+- A real Luau syntax error the linter caught: `Net.REMOTES: {...} = {}`. Luau does not allow annotating a table field assignment; it needs a typed local.
+- Dead `ReplicatedStorage` require in the client bootstrap.
+
+**Guardrails**
+- `tools/publish.py` refuses PROD without `--i-have-approval`, which only the approval-gated workflow supplies.
+- The economy parity test fails on a one-ppm drift, verified deliberately.
+- The catalog validator rejects an odds-changing item with no disclosure metadata, and a server-wide boost that is not deterministic.
+
 ### Phase 1 — Design pack · 2026-09-16
 
 **Added**
@@ -23,7 +49,7 @@ All notable changes to this project. Newest first.
 - UI: React-Lua, with high-frequency values bypassing the reconciler. Data: ProfileStore. Both pending dependency approval.
 - Title stays "Fuse a Nomling"; Taco Cat becomes Taco Tiger.
 - No casino visual language anywhere — gambling imagery would force a Moderate rating and lose the Roblox Kids tier.
-- Launch re-planned to 8–12 December, all-ages to January. **Needs approval.**
+- Launch re-planned to 8–12 December, all-ages to January. ✅ Approved 2026-09-16, along with React-Lua and ProfileStore.
 
 ### Phase 0 — Orientation · 2026-09-16
 

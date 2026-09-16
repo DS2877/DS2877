@@ -2,8 +2,8 @@
 
 A phone-first Roblox game: hatch silly snack-animal creatures called **Nomlings**, fuse two of them into a creature that has never existed, and guard your base from friendly snatchers.
 
-> **Status:** Phase 1 (design pack) complete. No game code yet.
-> **Next:** Phase 2 — repo scaffold, toolchain, CI/CD, empty plaza on TEST.
+> **Status:** Phase 2 (M0 pipeline) built. Empty plaza builds and passes every local check.
+> **Blocked on:** the TEST place existing so it can actually be published — see [`docs/CLOUD-SETUP.md`](docs/CLOUD-SETUP.md).
 
 ## What makes it different
 
@@ -38,6 +38,7 @@ Every other pet game on Roblox has an index of pets you can read. Ours generates
 | Doc | What it is |
 |---|---|
 | [`docs/TECH.md`](docs/TECH.md) | Architecture, library decisions, testing, CI/CD. |
+| [`docs/CLOUD-SETUP.md`](docs/CLOUD-SETUP.md) | **Philip:** exactly what to paste into the cloud environment and GitHub. |
 | [`docs/CONFIG.md`](docs/CONFIG.md) | Live config reference and rollout rules. |
 | [`docs/ANALYTICS.md`](docs/ANALYTICS.md) | Events, funnels, KPIs. |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Milestones. **Proposed re-plan — needs approval.** |

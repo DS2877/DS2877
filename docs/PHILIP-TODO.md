@@ -1,7 +1,7 @@
 # PHILIP-TODO
 
 Things only Philip can do. Claude keeps this current (brief §12, §11.11).
-Last updated: 2026-09-16 (Phase 1 complete).
+Last updated: 2026-09-16 (Phase 2 pipeline built).
 
 **Status key:** ⬜ not started · 🟡 in progress · ✅ done · ⏸️ not needed yet
 
@@ -9,7 +9,7 @@ Last updated: 2026-09-16 (Phase 1 complete).
 
 ## 🔥 Time-critical — the clock is running
 
-### 🟡 1. Start Roblox Plus (or confirm an existing Premium subscription)
+### ✅ 1. Start Roblox Plus — DONE 2026-09-16
 
 **Why now:** publishing to under-16 audiences requires an active Plus or Premium subscription **for 2 consecutive months** at the moment you publish for all ages. Starting today (2026-09-16) clears that bar around **2026-11-16**, comfortably before the M6 all-ages target of 2026-12-12. Every week of delay eats that buffer.
 
@@ -17,7 +17,7 @@ Last updated: 2026-09-16 (Phase 1 complete).
 
 **Alternative:** a one-time refundable per-game publishing fee instead of the subscription. It is auto-refunded 90 days after the game becomes Kids/Select eligible — or 90 days after payment if it never gets there. Not refunded if the game is permanently removed for Community Standards violations.
 
-→ **Answered 2026-09-16: Philip is subscribing to Roblox Plus now.** Two-month bar clears ~2026-11-16. *Tell Claude the day it actually starts so the M6 date can be pinned.*
+→ ✅ **Subscribed 2026-09-16.** The 2-consecutive-month bar clears **~16 November 2026**, comfortably before the M6 all-ages publish in January. Nothing further needed here — just don't cancel before mid-November.
 
 ---
 
@@ -44,8 +44,9 @@ Create keys with minimal scopes and store as the GitHub Actions secret `ROBLOX_A
 🆕 **You're on Claude Pro, so you also get the better option:** add an environment **API credential** for `apis.roblox.com` (header name `x-api-key`, no prefix) in the cloud environment settings. Cloud sessions can then call Open Cloud directly — Claude never sees the key, and publishing to TEST stops depending on a GitHub Actions round-trip. Claude will give you this text in Phase 2 too.
 
 ### ⬜ 5. Cloud environment setup
-Set the network allowlist and setup script for the Claude Code cloud environment.
-*Claude will hand you the exact text to paste in Phase 2.*
+**→ Everything you need is now written out in [`docs/CLOUD-SETUP.md`](CLOUD-SETUP.md).**
+
+That one page covers all of tasks 4 and 5: the network allowlist, the setup script line, the optional API credential, the GitHub secret and variables, the `production` environment gate, and the exact API key scopes.
 
 **Phase 0 finding:** this session already reaches `create.roblox.com`, `devforum.roblox.com`, `apis.roblox.com`, `api.github.com` and the crates.io endpoints. GitHub **release-binary** downloads are blocked, so the toolchain will be installed via `cargo install` instead — no allowlist change needed for that.
 
@@ -102,24 +103,26 @@ Roblox earnings are taxable in Sweden. Talk to Skatteverket or an accountant onc
 
 ## Waiting on Philip right now
 
-### Decisions needed to start Phase 2
+### ✅ All Phase 1 gates cleared 2026-09-16
+- Roadmap re-plan approved — launch **8–12 Dec**, all-ages January.
+- React-Lua and ProfileStore approved.
+- Studio time: available later in the project when needed.
 
-1. **Approve the roadmap re-plan.** Launch moves from ~21–27 Nov to **8–12 Dec**, all-ages to January. Reasons and a cut list in `docs/ROADMAP.md`. Say yes, or pick from the cut list to keep November.
-2. **Approve two dependencies** (brief §11.7 says Claude asks first):
-   - **React-Lua** for UI — most documented and most predictable, which matters when you are debugging on a phone. `docs/TECH.md` §6.
-   - **ProfileStore** for player data — session locking and migrations. `docs/DECISIONS.md` D-006.
-3. **Read `docs/RISKS.md`.** It contains one finding that changes what we are making: the #1 game on Roblox already has our entire feature list. The design now leads on procedural generation and World First instead of fusion. Worth your disagreement if you have any.
+### 🔴 Blocking Phase 2 completion
 
-### Information needed
+Claude can build the whole pipeline without these, but **cannot publish anything to TEST until they exist**:
 
-4. **TEST and PROD universe + place IDs**, once the Community and experiences exist (task 3). Remember **R15 Only** in Avatar Settings on both.
-5. **The date your Roblox Plus subscription starts**, so the M6 all-ages date can be pinned.
-6. **Do you ever have computer + Studio time** (evenings, weekends), or should Claude plan for zero? See the note below — it changes how snatching gets tested and how the art pass works.
+1. **Create the Community and the two experiences** (task 3 above), then send Claude:
+   - TEST **universe ID** and **place ID**
+   - PROD **universe ID** and **place ID**
+   - ⚠️ Set **R15 Only** in Avatar Settings on both, at creation.
+2. **Create the Open Cloud API key** and set up the environment — **all the exact text is in [`docs/CLOUD-SETUP.md`](CLOUD-SETUP.md)**. Scopes needed: `universe.place:write`, `universe.place.luau-execution-session:write`, `universe.place.luau-execution-session:read`.
+3. **Create the `production` GitHub Environment** with yourself as a required reviewer. This is the gate that stops anything reaching PROD without you approving it.
 
-### Why the Studio question matters
+### 📅 When you next have computer + Studio time
 
-Phone-only means no Roblox Studio, and two parts of the plan assumed it:
-- **Multi-client playtesting.** Snatching is player-vs-player; it needs two clients at once. Without Studio, Claude will build scripted NPC "test snatchers" and server-side simulation instead, and you verify on your phone against a bot.
-- **Visual review.** Claude cannot see the game without Studio viewport captures. Your phone screenshots become the only art feedback channel, so the art pass (M4) will lean on you sending pictures.
+Two moments where it is worth most, in order:
+1. **M2a (late October) — the procedural creature review.** This is the project's biggest risk (`docs/RISKS.md` risk 2): the whole pitch is that generated creatures look good, and screenshots are a slow way to judge that. An hour with Studio open then is worth more than an hour at any other point.
+2. **M4 (early December) — the art and performance pass.**
 
-Both are solvable and Claude is planning for zero Studio time by default. If you *do* get occasional computer time, say so — it makes M2 and M4 cheaper.
+Claude is still planning for zero Studio by default — NPC snatch tests and a contact-sheet tool so you can judge 50 creatures from one screenshot. Studio time makes those better, not necessary.

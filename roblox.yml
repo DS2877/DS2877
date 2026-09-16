@@ -1,0 +1,84 @@
+# Minimal Roblox standard library for selene.
+#
+# WHY THIS IS COMMITTED: `selene generate-roblox-std` fetches the Roblox API
+# dump over TLS with its own bundled cert roots, ignoring the agent proxy's CA
+# (SSL_CERT_FILE, CURL_CA_BUNDLE and REQUESTS_CA_BUNDLE all fail). So cloud
+# sessions cannot generate it, and lint would be unavailable in the exact
+# environment where most work happens.
+#
+# This file lists the globals this codebase actually uses. It is deliberately
+# small: selene only needs to know a name exists to stop reporting it as an
+# undefined variable. Add entries as the codebase grows -- a missing one shows
+# up immediately as an `undefined_variable` error, which is a clear signal
+# rather than a silent gap.
+#
+# .github/workflows/selene-std.yml regenerates the full upstream file on demand
+# where the network permits it.
+---
+base: luau
+
+globals:
+  game:
+    property: new-fields
+  workspace:
+    property: new-fields
+  script:
+    property: new-fields
+  Instance:
+    property: new-fields
+  Enum:
+    property: new-fields
+  Color3:
+    property: new-fields
+  Vector3:
+    property: new-fields
+  Vector2:
+    property: new-fields
+  CFrame:
+    property: new-fields
+  UDim:
+    property: new-fields
+  UDim2:
+    property: new-fields
+  Rect:
+    property: new-fields
+  Random:
+    property: new-fields
+  Ray:
+    property: new-fields
+  NumberRange:
+    property: new-fields
+  NumberSequence:
+    property: new-fields
+  ColorSequence:
+    property: new-fields
+  BrickColor:
+    property: new-fields
+  TweenInfo:
+    property: new-fields
+  Font:
+    property: new-fields
+  PhysicalProperties:
+    property: new-fields
+  task:
+    property: new-fields
+  typeof:
+    args:
+      - type: "any"
+  warn:
+    args:
+      - type: "..."
+  tick:
+    args: []
+  time:
+    args: []
+  DateTime:
+    property: new-fields
+  buffer:
+    property: new-fields
+  utf8:
+    property: new-fields
+  bit32:
+    property: new-fields
+  debug:
+    property: new-fields

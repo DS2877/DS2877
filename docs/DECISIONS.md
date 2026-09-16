@@ -6,6 +6,35 @@ Platform facts with source URLs and check dates live in `docs/VERIFY.md`.
 
 ---
 
+## 2026-09-16 — Phase 2 (pipeline)
+
+### D-017 · Selene's Roblox standard library is committed, not generated
+**Decision.** `roblox.yml` is a hand-maintained minimal std file, committed to the repo.
+**Why.** `selene generate-roblox-std` fetches the Roblox API dump over TLS using its own bundled cert roots and ignores the agent proxy's CA — `SSL_CERT_FILE`, `CURL_CA_BUNDLE` and `REQUESTS_CA_BUNDLE` were all tried and all failed. Without a committed file, lint is unavailable in the exact environment where most work happens.
+**Cost.** The file lists only the globals the codebase actually uses, so a newly-used global surfaces as an `undefined_variable` error. That is a clear signal rather than a silent gap, and adding an entry takes seconds.
+**Reverse if:** selene gains an offline generation path, or starts honouring the system trust store.
+
+### D-016 · The M0 plaza is built in code, not loaded from a `.rbxm`
+**Decision.** `PlazaService` constructs the plaza with `Instance.new`. The `worldgen/` Lune pipeline the brief describes is deferred.
+**Why.** Putting an asset-serialisation pipeline on the critical path for the very first deploy buys risk with no payoff while the plaza is eight pads and two props.
+**Reverse at:** M2, when the plaza gains real content. `worldgen/` remains the destination.
+
+### D-015 · M0 ships with zero Wally dependencies
+**Decision.** `wally.toml` declares no dependencies. React-Lua and ProfileStore — both approved — land in M1.
+**Why.** Publishing an empty plaza needs neither, and adding them now would put the Wally registry's reachability on the critical path for the first deploy. One risk at a time.
+
+### D-014 · Typechecking is CI-only
+**Decision.** No `luau-lsp` in cloud sessions. Cloud gets format, lint, unit tests and parity; CI adds typecheck.
+**Why.** Confirmed by experiment: `luau-lsp` is not published to crates.io (it is a C++ project released as GitHub binaries), and GitHub release downloads are blocked by the egress proxy. Committing a ~30 MB binary to git was the alternative and is worse.
+**Cost.** Type errors surface in CI rather than before the push. Acceptable — CI is fast and the inner loop still catches most problems.
+
+### D-014a · Toolchain timings, measured
+Cold `cargo install` on a 4-core runner, measured twice: **440 s** and **573 s** total (7–10 min) — over the brief's ~5-minute setup budget either way. Per-tool on the faster run: stylua 44 s, selene 54 s, wally 69 s, rojo 101 s, lune 172 s. `scripts/setup-cloud.sh` therefore installs in priority order (format, lint, tests, then build, then packages) so a truncated run still leaves the important tools. Results cache for about a week.
+
+### D-013a · An economy parity test guards the simulator
+**Decision.** `tests/parity/economy_parity.py` parses `src/shared/Config/Economy.luau` and asserts it matches `tools/simulate-economy/config.py`, curve for curve.
+**Why.** The pacing claims in `docs/ECONOMY.md` are only true while the game and the simulator agree. Nothing else would catch the drift, and it would be silent. Verified to fail on a one-ppm change and a single-digit constant change.
+
 ## 2026-09-16 — Phase 1
 
 ### D-013 · World First stores `UserId`, never a display name
@@ -16,7 +45,7 @@ Platform facts with source URLs and check dates live in `docs/VERIFY.md`.
 ### D-012 · Launch moves to 8–12 December; M2 splits in two
 **Decision.** Re-plan the roadmap: M2a (fusion & discovery, Oct 25), M2b (weather, snatching, rebirth, Nov 8), M3 Nov 22, M4 Dec 5, M5 Dec 8–12, M6 January. M0 and M1 keep the brief's dates.
 **Why.** No Studio, 8–10 h/week phone-only, 2–4 days review latency per gate, and the brief's M2 is two milestones of work. Holiday traffic makes December a better launch window than late November anyway.
-**Needs Philip's OK — this moves the launch date.** Cut list in `docs/ROADMAP.md`.
+✅ **Approved by Philip on 2026-09-16.** Cut list in `docs/ROADMAP.md` remains available if the date needs pulling back.
 
 ### D-011 · Reposition on generation, not fusion
 **Decision.** The pitch is "the creatures are generated, not listed." Marketing never leads with fusion.
@@ -43,13 +72,13 @@ Platform facts with source URLs and check dates live in `docs/VERIFY.md`.
 **Why.** Lands the casual player's 1st rebirth at 30 min and 10th at day 18 — both mid-window against the brief's targets — while a heavy player reaches ~33 rebirths in 28 days rather than spiralling.
 **Reverse if:** any income, egg-pricing or fusion change. Re-run `tune.py`.
 
-### D-006 · Data layer: ProfileStore (pending Philip's OK)
-**Decision.** ProfileStore, subject to brief §11.7 dependency approval.
+### D-006 · Data layer: ProfileStore — ✅ approved 2026-09-16
+**Decision.** ProfileStore. Approved by Philip on 2026-09-16 (brief §11.7 dependency approval).
 **Why.** ⚠️ Correcting the brief: Roblox does **not** officially recommend any third-party data library, so "confirm it is still the recommended library" has no official answer. Chosen on merits: session locking (prevents cross-server duplication), schema versioning with migrations, autosave, `BindToClose`, active maintenance.
 **Fallback if declined:** hand-rolled `DataStoreService` wrapper with a `MemoryStoreService` lock. More risk, no saving.
 
-### D-005 · UI library: React-Lua (pending Philip's OK)
-**Decision.** React-Lua, with a hard rule that high-frequency values bypass the reconciler.
+### D-005 · UI library: React-Lua — ✅ approved 2026-09-16
+**Decision.** React-Lua, with a hard rule that high-frequency values bypass the reconciler. Approved by Philip on 2026-09-16.
 **Why.** The brief's criterion — familiar to a web developer — is weak here, since Claude writes the code and Philip reviews it. The decisive reason is that React-Lua has the most documentation and the most predictable behaviour, which matters when the person debugging is on a phone, new to Luau, and cannot open Studio. The performance cost is handled by keeping coin counters and timers out of the tree.
 **Reverse if:** GUI frame time exceeds 2 ms on a mid-range phone at M4 → reassess against Vide.
 
