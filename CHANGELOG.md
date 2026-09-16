@@ -24,7 +24,10 @@ All notable changes to this project. Newest first.
 - **A service ordering bug that would have killed the slice.** `PlotService` looked for the plaza in `init()`, but `PlazaService` builds it in `start()`, and every `init` runs before any `start`. Nobody would have been given a plot and nothing would have rendered.
 - `Income.format` returned a nine-character string past 10³³, overflowing the HUD.
 
-**Not done yet** — the analytics funnel and the FTUE script, both listed under M1 in `docs/ROADMAP.md`.
+**The starter egg, which the model assumed and the game did not.**
+A new profile had 0 coins, 0 income and no way to afford the cheapest egg — soft-locked on the first screen, the exact failure `REBIRTH_GRANTS_FREE_EGG` fixes for rebirth (D-008). The economy simulator had *always* granted a free starting egg, as an unnamed line inside `simulate.py`, so every pacing number in `docs/ECONOMY.md` already depended on it. It is now `STARTER_EGG` in both config files, used by both, with the grant written as a state test (`isStranded`) so it also rescues anyone already stranded by the previous build.
+
+**Not done yet** — the analytics funnel and the rest of the FTUE, both listed under M1 in `docs/ROADMAP.md`.
 
 ### First TEST deploy · 2026-09-16
 

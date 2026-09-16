@@ -1,7 +1,7 @@
 # PHILIP-TODO
 
 Things only Philip can do. Claude keeps this current (brief §12, §11.11).
-Last updated: 2026-09-16 (TEST published, version 4 — M0 is waiting on Philip's phone playtest).
+Last updated: 2026-09-16 (M0 passed; M1 slice deployed and waiting on a phone playtest).
 
 **Status key:** ⬜ not started · 🟡 in progress · ✅ done · ⏸️ not needed yet
 
@@ -135,27 +135,36 @@ Roblox earnings are taxable in Sweden. Talk to Skatteverket or an accountant onc
 3. ✅ **Done** — GitHub secret `ROBLOX_API_KEY` and variables `ROBLOX_TEST_UNIVERSE_ID`, `ROBLOX_TEST_PLACE_ID` all set.
 4. ⏸️ The `production` GitHub Environment gate can wait until there is a PROD experience to protect.
 
-#### ✅ 5. The TEST publish worked — 2026-09-16 18:32
+#### ✅ 5. TEST publishing works — 2026-09-16
 
-`Fuse a Nomling TEST` is live at **version 4**, with the M0 plaza in it. Nothing is
-blocking Phase 2 any more.
+`Fuse a Nomling TEST` publishes on demand. The 409 that blocked it for 2½ hours
+cleared on its own; the ruled-out table is in [`docs/RUNBOOKS.md`](RUNBOOKS.md) §9a
+so the next one takes a minute rather than an afternoon.
 
-The HTTP 409 that blocked it for 2½ hours cleared on its own — the successful publish
-went through on the first attempt with nothing changed. Everything on our side had
-already been ruled out; the write-up and the ruled-out table are kept in
-[`docs/RUNBOOKS.md`](RUNBOOKS.md) §9a so the next one takes a minute rather than
-an afternoon.
+---
 
-**→ Your turn: the 3-minute playtest.** This is the M0 gate.
+## 📱 Playtest — M1 vertical slice (3 minutes)
 
-1. On your iPhone, open the Roblox app and go to your profile.
-2. **Create** (or your experiences list) → **Fuse a Nomling TEST** → play.
-3. Check, in order:
-   - [ ] You spawn on a round stone plaza.
-   - [ ] Eight square plots are arranged in a ring around you.
-   - [ ] There is a **market stall** on one side (orange canopy) and a **kitchen counter** with a screen on the other. Neither should look like a casino — if either does, that is a bug worth reporting.
-   - [ ] Walk a full lap. It should stay smooth — no stutter, no parts popping in late.
-4. Send a screenshot either way. With no Studio, screenshots are the only way I see the game.
+The game loop is in. This is the M1 gate, and it is the first time there is
+anything to actually *play*.
+
+**Open `Fuse a Nomling TEST` on your iPhone**, then:
+
+| # | Do this | Should happen |
+|---|---|---|
+| 1 | Look around after spawning | You are on your own plot, with a ring of **8 pedestals** |
+| 2 | Look top-left | A coin purse reading **0** and **0 / sec** |
+| 3 | Wait ~5 seconds | A green slot appears with a countdown — **you are given your first egg free** |
+| 4 | Tap the slot when it says **TAP TO HATCH!** | A coloured ball lands on a pedestal with its name and rarity |
+| 5 | Watch the purse | Coins start climbing. The rate matches the rarity you got |
+| 6 | Tap **Buy Egg** once you can afford 25 | A second egg starts incubating |
+| 7 | Leave, wait a minute, rejoin | Your Nomlings are still there and you were **paid for the time away** |
+
+### What to send back
+
+- A screenshot of the plot with a Nomling on it.
+- Whether the buttons are **reachable with one thumb** — that is the whole point of the layout.
+- Anything that reads wrong. The Nomlings are **coloured balls on purpose**; the real creature builder is M2a.
 
 ### 📅 When you next have computer + Studio time
 

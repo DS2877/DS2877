@@ -183,3 +183,40 @@ h.test("sanitize round-trips a healthy save unchanged", function()
 	h.expectEqual(restored.pedestals["3"], n.id, "pedestal 3")
 	h.expectEqual(restored.nomlings[1].rarity, "epic", "rarity")
 end)
+
+h.test("REGRESSION: a new player cannot be stranded on the first screen", function()
+	-- The mirror of the rebirth soft-lock (docs/DECISIONS.md D-008). A fresh
+	-- profile has no coins and no income, and every egg costs coins, so without
+	-- the starter grant the player can never take a single action. The economy
+	-- simulator has always assumed this egg exists.
+	local data = Profile.new(NOW)
+	h.expectTrue(Profile.isStranded(data), "a fresh profile is stranded without a grant")
+	h.expectTrue(Economy.STARTER_EGG ~= nil, "STARTER_EGG must exist or the FTUE dead-ends")
+
+	local granted = Profile.grantStarterEgg(data, Economy.STARTER_EGG, NOW + 5)
+	h.expectTrue(granted, "the grant must apply to a fresh profile")
+	h.expectTrue(not Profile.isStranded(data), "the grant must un-strand the player")
+end)
+
+h.test("the starter egg is granted once, not on every join", function()
+	local data = Profile.new(NOW)
+	h.expectTrue(Profile.grantStarterEgg(data, "basic", NOW + 5), "first grant")
+	h.expectTrue(
+		not Profile.grantStarterEgg(data, "basic", NOW + 5),
+		"second grant must be refused"
+	)
+	h.expectEqual(#data.incubators, 1, "only one starting egg")
+end)
+
+h.test("a player who spent down to zero is not stranded", function()
+	-- Someone with a Nomling earning, or an egg on the way, still has a path
+	-- forward and must not collect a second free egg.
+	local withNomling = Profile.new(NOW)
+	local n = Profile.addNomling(withNomling, creature("taco", "rhino", "common"), CAP)
+	assert(n, "addNomling returned nil")
+	h.expectTrue(not Profile.isStranded(withNomling), "owning a Nomling is not stranded")
+
+	local withEgg = Profile.new(NOW)
+	table.insert(withEgg.incubators, { eggKey = "basic", readyAt = NOW + 10 })
+	h.expectTrue(not Profile.isStranded(withEgg), "an incubating egg is not stranded")
+end)

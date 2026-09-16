@@ -129,6 +129,13 @@ Economy.EGGS = {
 --- inside 15 seconds (docs/GDD.md section 4).
 Economy.FIRST_EGG_HATCH_SECONDS = 5
 
+--- A new player is GIVEN this egg, already incubating.
+--- The simulator has always assumed it, so every pacing number in
+--- docs/ECONOMY.md depends on it. Without it a new profile has 0 coins and 0
+--- income and cannot afford the cheapest egg -- soft-locked on the first
+--- screen, the same failure REBIRTH_GRANTS_FREE_EGG fixes for rebirth (D-008).
+Economy.STARTER_EGG = "basic"
+
 --- Egg prices scale with rebirth count. Without this the shop stops being a
 --- sink and income runs away -- the simulator showed a heavy player reaching
 --- 220 rebirths in 28 days. See docs/ECONOMY.md section 5.

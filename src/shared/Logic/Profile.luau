@@ -292,6 +292,30 @@ function Profile.unplace(data: Data, index: number): string?
 	return id
 end
 
+--- True when the profile has nothing at all: no coins, no creatures, no egg on
+--- the way. Such a player cannot earn and cannot buy, so they are stuck on the
+--- first screen forever.
+---
+--- Deliberately a state test rather than an "is this a new profile?" flag. It
+--- also catches anyone ALREADY stranded by an earlier build, and it cannot
+--- hand a second free egg to someone who simply spent down to zero -- they
+--- still have a Nomling earning, or an egg incubating.
+function Profile.isStranded(data: Data): boolean
+	return data.coins <= 0
+		and #data.nomlings == 0
+		and #data.incubators == 0
+		and next(data.pedestals) == nil
+end
+
+--- Gives a starting egg, already incubating. Returns whether it was given.
+function Profile.grantStarterEgg(data: Data, eggKey: string, readyAt: number): boolean
+	if not Profile.isStranded(data) then
+		return false
+	end
+	table.insert(data.incubators, { eggKey = eggKey, readyAt = readyAt })
+	return true
+end
+
 function Profile.placedNomlings(data: Data): { Nomling }
 	local result: { Nomling } = {}
 	for _, id in data.pedestals do

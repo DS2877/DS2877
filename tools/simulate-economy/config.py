@@ -117,6 +117,16 @@ EGGS = {
 # a reveal inside 15 seconds (brief 4.6).
 FIRST_EGG_HATCH_SECONDS = 5
 
+# A new player is GIVEN this egg, already incubating. The simulator has always
+# assumed it -- every pacing number in docs/ECONOMY.md was derived with it --
+# but it was an unnamed line in simulate.py rather than a constant, and the game
+# never implemented it. A new profile therefore had 0 coins and 0 income and
+# could not afford the cheapest egg: soft-locked on the first screen.
+#
+# Same failure as rebirth (D-008), same fix. Set to None for no starting egg,
+# and expect the FTUE to need a coin grant instead.
+STARTER_EGG = "basic"
+
 # Egg prices scale with rebirth count. Without this, eggs become free relative
 # to late-game income, the shop stops being a sink, and income runs away — the
 # simulator showed heavy players reaching 220 rebirths in 28 days.

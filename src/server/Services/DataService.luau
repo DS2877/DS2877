@@ -184,6 +184,21 @@ local function load(player: Player)
 		return
 	end
 
+	-- The FTUE grant. The economy simulator has always assumed a new player
+	-- starts with an egg already incubating, so every pacing number in
+	-- docs/ECONOMY.md depends on it; the game simply never did it, leaving a
+	-- new profile with 0 coins, 0 income and no way to afford the cheapest egg.
+	if Economy.STARTER_EGG then
+		local granted = Profile.grantStarterEgg(
+			data,
+			Economy.STARTER_EGG,
+			os.time() + Economy.FIRST_EGG_HATCH_SECONDS
+		)
+		if granted then
+			print(`[DataService] {player.Name} starts with a free {Economy.STARTER_EGG} egg`)
+		end
+	end
+
 	sessions[player] = { data = data, active = true, lastSave = os.clock() }
 	for _, fn in onLoaded do
 		local ok, err = pcall(fn, player, data)
