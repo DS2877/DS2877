@@ -1,6 +1,6 @@
 """Shared Open Cloud client.
 
-Endpoints and scope names verified against Roblox documentation on 2026-09-16:
+Endpoints and permission names verified against Roblox documentation on 2026-09-16:
   https://create.roblox.com/docs/en-us/cloud/guides/usage-place-publishing.md
   https://create.roblox.com/docs/cloud/reference/features/luau-execution.md
 
@@ -30,12 +30,25 @@ RETRYABLE_STATUS = {409, 429, 500, 502, 503, 504}
 # than giving up after a few seconds.
 RETRY_DELAYS = (5, 15, 40, 75)
 
-# Scopes this tooling needs, for the key Philip creates in Creator Hub.
-REQUIRED_SCOPES = [
-    "universe.place:write",                        # publish places
-    "universe.place.luau-execution-session:write",  # run cloud tests
-    "universe.place.luau-execution-session:read",
+# Permissions this tooling needs on the key Philip creates in Creator Hub.
+#
+# You do NOT type scope strings anywhere -- Creator Hub asks you to pick an
+# "API System" and then tick its operations, so these are written the way they
+# actually appear in that UI. Verified against
+# https://create.roblox.com/docs/en-us/cloud/guides/usage-place-publishing
+# on 2026-09-16, which says: "Add universe-places to Access Permissions" and
+# "Add Write operation to your selected game."
+REQUIRED_PERMISSIONS = [
+    ("universe-places", "Write", "publish a place -- required"),
+    ("universe.place.luau-execution-session", "Read and Write", "cloud tests -- M1"),
 ]
+
+
+def _permission_help() -> str:
+    return "\n".join(
+        f"    {system} -> {operation}  ({why})"
+        for system, operation, why in REQUIRED_PERMISSIONS
+    )
 
 
 class OpenCloudError(RuntimeError):
@@ -93,14 +106,22 @@ def request(
             hint = ""
             if exc.code in (401, 403):
                 hint = (
-                    "\n  401/403 usually means the key lacks a scope or is not bound to "
-                    f"this universe.\n  Needed: {', '.join(REQUIRED_SCOPES)}"
+                    "\n  401/403 usually means the key lacks a permission, or is bound to "
+                    "a different experience.\n  In Creator Hub -> Credentials -> API Keys, "
+                    f"the key needs:\n{_permission_help()}"
                 )
             elif exc.code == 409:
                 hint = (
-                    "\n  409 means Roblox was busy and asked us to retry. We already "
-                    f"retried {retries} times over ~{sum(RETRY_DELAYS)}s, so this is a "
-                    "longer outage -- check status.roblox.com and re-run the job."
+                    f"\n  409 after {retries} retries over ~{sum(RETRY_DELAYS)}s. Roblox's "
+                    "message says 'server is busy', but a 409 that persists across hours is "
+                    "usually the place, not the platform. Checked in that order:\n"
+                    "    1. Is Roblox Studio open on that place? Close it fully and retry.\n"
+                    "    2. Is collaborative editing (Team Create) on for the place?\n"
+                    "    3. Does File -> Publish to Roblox from Studio also fail? If it does,\n"
+                    "       this is not an Open Cloud problem -- check status.roblox.com.\n"
+                    "  A mismatched universe/place pair does NOT produce this error; you can\n"
+                    "  confirm the pair with the public endpoint\n"
+                    "    GET https://apis.roblox.com/universes/v1/places/<placeId>/universe"
                 )
             elif exc.code == 429:
                 hint = (
@@ -124,6 +145,42 @@ def request(
         return json.loads(raw)
     except json.JSONDecodeError:
         return {"raw": raw.decode("utf-8", "replace")}
+
+
+def check_place_pair(universe_id: str, place_id: str) -> str | None:
+    """Confirm a place really belongs to a universe. Needs no API key.
+
+    The GitHub variables holding these IDs are typed by hand, and a mismatched
+    pair fails several minutes into a deploy with an error that does not say so.
+    This asks the public mapping endpoint first, which takes about a second.
+
+    Returns an error string if the pair is definitely wrong, otherwise None --
+    including when the check itself could not run, because an unreachable
+    lookup service is no reason to block a publish.
+    """
+    url = f"{BASE}/universes/v1/places/{place_id}/universe"
+    try:
+        with urllib.request.urlopen(url, timeout=20) as response:
+            payload = json.loads(response.read())
+    except Exception:
+        return None
+
+    # A place that does not exist answers 200 with a null universeId, so the
+    # null case is a real finding rather than a failed lookup.
+    actual = payload.get("universeId")
+    ids_hint = (
+        "  Check ROBLOX_TEST_UNIVERSE_ID and ROBLOX_TEST_PLACE_ID -- both IDs\n"
+        "  appear in the Creator Hub URL for the experience."
+    )
+
+    if actual is None:
+        return f"no place with ID {place_id} exists.\n{ids_hint}"
+    if str(actual) != str(universe_id):
+        return (
+            f"place {place_id} belongs to universe {actual}, not {universe_id}.\n"
+            f"{ids_hint}"
+        )
+    return None
 
 
 def publish_place(universe_id: str, place_id: str, rbxl_path: str, version_type: str) -> dict:

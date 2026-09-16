@@ -246,7 +246,14 @@ Source: [Luau Execution](https://create.roblox.com/docs/cloud/reference/features
   - ✅ `SerializationService` can deserialize RBXM — relevant to the `worldgen/` plan.
 - ✅ **`Roblox/place-ci-cd-demo` is real** and is cited by Roblox's own docs as the reference implementation.
 - ✅ Open Cloud features confirmed present: Publish (place publishing), Configs (experience configs), Messaging, **Developer products** and **Game passes** APIs, Assets, Analytics, Private servers, AdConfiguration, ItemConfiguration.
-- ❓ Not yet checked in detail (defer to Phase 2, when we actually wire them): whether the Developer Products / Game Passes APIs are still beta and multipart/form-data; exact API-key scope names in Creator Hub; Messaging payload limits.
+- ✅ **Place publishing**, checked live in Phase 2 against [Place publishing](https://create.roblox.com/docs/en-us/cloud/guides/usage-place-publishing) on 2026-09-16:
+  - The API-key permission is the **`universe-places`** API system with the **Write** operation, added for the specific experience. You pick these from menus in Creator Hub — **scope strings are never typed**, so any instruction that tells you to type one is wrong.
+  - `.rbxl` uploads must send `Content-Type: application/octet-stream`.
+  - `POST /universes/v1/{universeId}/places/{placeId}/versions?versionType=Saved|Published`.
+  - 🆕 The docs list **no error codes at all** for this endpoint — nothing about 409. So the 409 decision tree in `docs/RUNBOOKS.md` §9a is derived from live testing, not documentation, and should be treated accordingly.
+  - 🆕 **`GET /universes/v1/places/{placeId}/universe` needs no API key** and returns the owning `universeId` (or `null` for a place that does not exist). Cheap preflight; `tools/publish.py` now runs it before every upload.
+  - 🆕 An invalid key returns **401 `Invalid API Key`** immediately — useful for telling a credential problem apart from a place problem without burning a deploy.
+- ❓ Not yet checked in detail (defer to when we actually wire them): whether the Developer Products / Game Passes APIs are still beta and multipart/form-data; the Creator Hub permission name for Luau Execution; Messaging payload limits.
 - ❓ **Studio MCP server** and **AudioTextToSpeech** rate limits not verified this phase. `AudioTextToSpeech` exists as an engine class with a [tutorial](https://create.roblox.com/docs/en-us/tutorials/use-case-tutorials/audio/add-text-to-speech.md) and a [beta DevForum announcement](https://devforum.roblox.com/t/beta-text-to-speech-api-from-text-to-voice-content-instantly/3792085). Since the brief already specifies a sound-effect fallback when rate-limited, this is not blocking — verify in Phase 4 (M2) when we build the reveal.
 
 ### One brief assumption that did not survive: ProfileStore

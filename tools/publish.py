@@ -68,6 +68,10 @@ def main() -> int:
     print(f"  place       : {place}")
     print(f"  versionType : {args.type}")
 
+    mismatch = opencloud.check_place_pair(universe, place)
+    if mismatch:
+        opencloud.die(mismatch)
+
     try:
         result = opencloud.publish_place(universe, place, args.file, args.type)
     except opencloud.OpenCloudError as exc:
