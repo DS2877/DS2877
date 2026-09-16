@@ -29,9 +29,6 @@ jobs:
           path: ~/.cargo/bin/rojo
           key: rojo-bin-${{ runner.os }}-${{ env.ROJO_VERSION }}
 
-      - uses: Swatinem/rust-cache@v2
-        if: steps.rojo-cache.outputs.cache-hit != 'true'
-
       - name: Install Rojo
         if: steps.rojo-cache.outputs.cache-hit != 'true'
         run: cargo install --locked rojo --version "$ROJO_VERSION"

@@ -33,12 +33,6 @@ jobs:
           path: ~/.cargo/bin
           key: toolchain-bin-${{ runner.os }}-${{ env.ROJO_VERSION }}-${{ env.SELENE_VERSION }}-${{ env.STYLUA_VERSION }}-${{ env.LUNE_VERSION }}
 
-      - name: Cache cargo build artifacts
-        if: steps.toolchain-cache.outputs.cache-hit != 'true'
-        uses: Swatinem/rust-cache@v2
-        with:
-          key: toolchain-${{ env.ROJO_VERSION }}-${{ env.SELENE_VERSION }}-${{ env.STYLUA_VERSION }}-${{ env.LUNE_VERSION }}
-
       - name: Install toolchain
         if: steps.toolchain-cache.outputs.cache-hit != 'true'
         run: |

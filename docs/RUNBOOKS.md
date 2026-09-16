@@ -190,6 +190,17 @@ survives hours is not load — it is the place.
 `tools/opencloud.py` retries a 409 four times over ~135 s, so a genuine busy signal
 never reaches the log. Anything that survives that is this list.
 
+**How it ended on 2026-09-16.** The next attempt, at 18:32, published as version 4 on
+the **first try** — the retry never fired and nothing about the request had changed.
+So the cause was on Roblox's side of the place, not in our pipeline, and it cleared on
+its own. Two honest conclusions:
+
+- The ruled-out table above is still worth keeping. It is what makes the *next* 409
+  answerable in a minute instead of three hours.
+- A 409 that clears without explanation means the next one might too. **Re-run the
+  deploy once before investigating** — the retry now does this automatically within a
+  single run, so a 409 in the log is already a failure that survived ~135 s.
+
 ---
 
 ## 10. Escalation
