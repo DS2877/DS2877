@@ -164,6 +164,10 @@ function EggService.snapshot(data: Profile.Data): { [string]: any }
 		coins = data.coins,
 		rebirths = data.rebirths,
 		nomlings = #data.nomlings,
+		-- The tutorial reads these to work out which step the player is on,
+		-- so progress survives a rejoin instead of restarting the lesson.
+		hatched = data.stats.hatched,
+		playtime = data.stats.playtime,
 		placed = data.pedestals,
 		incubators = data.incubators,
 		prices = prices,

@@ -20,5 +20,7 @@ require("./economy.spec")
 require("./namegen.spec")
 require("./profile.spec")
 require("./income.spec")
+require("./world.spec")
+require("./snatch.spec")
 
 process.exit(h.report())

@@ -233,6 +233,13 @@ function BaseHudController.start()
 		refresh()
 	end)
 
+	local notify = Net.get("Notify") :: RemoteEvent
+	notify.OnClientEvent:Connect(function(text)
+		if type(text) == "string" then
+			showToast(text)
+		end
+	end)
+
 	task.spawn(function()
 		while true do
 			task.wait(0.2)

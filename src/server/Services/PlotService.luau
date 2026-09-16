@@ -20,15 +20,16 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Economy = require(Shared:WaitForChild("Config"):WaitForChild("Economy"))
 local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 local Style = require(Shared:WaitForChild("Style"))
+local World = require(Shared:WaitForChild("Config"):WaitForChild("World"))
 
 local DataService = require(script.Parent:WaitForChild("DataService"))
 
 local PlotService = {}
 PlotService.Name = "PlotService"
 
-local PEDESTAL_HEIGHT = 3
+local PEDESTAL_HEIGHT = World.PEDESTAL_HEIGHT
 local PEDESTAL_SIZE = Vector3.new(4, PEDESTAL_HEIGHT, 4)
-local PLOT_COUNT = 8
+local PLOT_COUNT = World.BASE_COUNT
 
 type Plot = {
 	index: number,
@@ -39,6 +40,15 @@ type Plot = {
 }
 
 local plots: { Plot } = {}
+
+--- Set by StealService. Called for every rendered Nomling so it can attach a
+--- snatch prompt. A hook rather than a require, because StealService already
+--- requires this module and the other direction would be a cycle.
+local decorate: ((model: Model, owner: Player, nomlingId: string) -> ())? = nil
+
+function PlotService.onNomlingRendered(fn: (Model, Player, string) -> ())
+	decorate = fn
+end
 
 local function pedestalPositions(pad: BasePart): { CFrame }
 	-- A ring inside the pad, facing outward from the pad's centre. Laid out in
@@ -59,7 +69,7 @@ local function buildPedestals(plot: Plot)
 	local folder = Instance.new("Folder")
 	folder.Name = `Pedestals_{plot.index}`
 
-	for i, cframe in pedestalPositions(plot.pad) do
+	for i, cframe in pedestalPositions(plot.index) do
 		local post = Instance.new("Part")
 		post.Name = `Pedestal{i}`
 		post.Anchored = true
@@ -121,6 +131,16 @@ local function buildNomlingModel(nomling: Profile.Nomling): Model
 	return model
 end
 
+--- The plot a point is standing in, or nil for the road.
+function PlotService.plotAt(x: number, z: number): Plot?
+	for _, plot in plots do
+		if World.isInsideBase(plot.index, x, z) then
+			return plot
+		end
+	end
+	return nil
+end
+
 function PlotService.plotFor(player: Player): Plot?
 	for _, plot in plots do
 		if plot.owner == player then
@@ -155,6 +175,12 @@ function PlotService.render(player: Player)
 		model:PivotTo(pedestal.CFrame * CFrame.new(0, PEDESTAL_HEIGHT / 2 + 1.4, 0))
 		model.Parent = plot.pad
 		plot.models[nomlingId] = model
+		if decorate then
+			local ok, err = pcall(decorate, model, player, nomlingId)
+			if not ok then
+				warn(`[PlotService] decorate failed for {nomlingId}: {err}`)
+			end
+		end
 	end
 end
 
@@ -170,16 +196,48 @@ function PlotService.firstFreePedestal(data: Profile.Data): number?
 	return nil
 end
 
+--- The sign over the back wall. It is how you tell whose base you are standing
+--- in, which matters a great deal once people are stealing from each other.
+local function setSign(plot: Plot, text: string)
+	local base = plot.pad.Parent
+	local post = base and base:FindFirstChild("Sign")
+	local gui = post and post:FindFirstChild("OwnerSign")
+	local label = gui and gui:FindFirstChild("Text")
+	if label and label:IsA("TextLabel") then
+		label.Text = text
+	end
+end
+
+local function moveToBase(player: Player, plot: Plot)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return
+	end
+	local x, z, side = World.spawnCFrame(plot.index)
+	-- Face the road, so the first thing a new player sees is the belt.
+	root.CFrame = CFrame.new(Vector3.new(x, 4, z), Vector3.new(x - side * 40, 4, z))
+end
+
 local function assign(player: Player)
 	for _, plot in plots do
 		if not plot.owner then
 			plot.owner = player
 			plot.pad:SetAttribute("OwnerUserId", player.UserId)
+			setSign(plot, `{player.DisplayName}'s Base`)
 			PlotService.render(player)
+			moveToBase(player, plot)
+			-- A respawn puts them back on the road spawn, so send them home again.
+			player.CharacterAdded:Connect(function()
+				task.wait(0.4)
+				if plot.owner == player then
+					moveToBase(player, plot)
+				end
+			end)
 			return
 		end
 	end
-	warn(`[PlotService] no free plot for {player.Name}; {PLOT_COUNT} plots, all taken`)
+	warn(`[PlotService] no free base for {player.Name}; all {PLOT_COUNT} are taken`)
 end
 
 local function release(player: Player)
@@ -193,6 +251,7 @@ local function release(player: Player)
 	end
 	plot.owner = nil
 	plot.pad:SetAttribute("OwnerUserId", nil)
+	setSign(plot, "EMPTY BASE")
 end
 
 function PlotService.init()
@@ -208,15 +267,16 @@ end
 --- have rendered. SERVICE_ORDER puts PlazaService first, so by the time this
 --- runs the pads are there.
 function PlotService.start()
-	local plaza = Workspace:FindFirstChild("Plaza")
-	local folder = plaza and plaza:FindFirstChild("Plots")
+	local street = Workspace:FindFirstChild("Street")
+	local folder = street and street:FindFirstChild("Bases")
 	if not folder then
-		warn("[PlotService] no Plots folder; is PlazaService before PlotService in SERVICE_ORDER?")
+		warn("[PlotService] no Bases folder; is WorldService before PlotService in SERVICE_ORDER?")
 		return
 	end
 
 	for i = 1, PLOT_COUNT do
-		local pad = folder:FindFirstChild(`Plot{i}`)
+		local base = folder:FindFirstChild(`Base{i}`)
+		local pad = base and base:FindFirstChild("Pad")
 		if pad and pad:IsA("BasePart") then
 			local plot: Plot = { index = i, pad = pad, owner = nil, pedestals = {}, models = {} }
 			buildPedestals(plot)

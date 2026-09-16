@@ -70,6 +70,29 @@ local REMOTES: { [string]: RemoteSpec } = {
 		description = "Buys an egg of the given tier. Returns ok, reason.",
 	},
 
+	--- Server -> client. A short message for the player: someone took a
+	--- Nomling, a snatch failed, an egg is ready. Never used for state.
+	Notify = {
+		name = "Notify",
+		kind = "event",
+		direction = "serverToClient",
+		rateCapacity = 0,
+		rateRefill = 0,
+		description = "A one-line toast for the player.",
+	},
+
+	--- Client -> server. Buys the Nomling with this id off the belt.
+	--- The id is a server-issued handle, not a description of the creature --
+	--- the client cannot ask for a rarity, a mutation or a price.
+	BuyFromBelt = {
+		name = "BuyFromBelt",
+		kind = "function",
+		direction = "clientToServer",
+		rateCapacity = 6,
+		rateRefill = 1,
+		description = "Buys a Nomling off the delivery belt. Returns ok, reason.",
+	},
+
 	--- Client -> server. Claims a finished incubator.
 	--- The hatch roll happens here, on the server, when this is called -- never
 	--- on purchase and never on the client.

@@ -54,7 +54,7 @@ export type Data = {
 	incubators: { Incubator },
 	--- os.time() of the last save. Drives offline income.
 	lastSeen: number,
-	stats: { hatched: number, placed: number, coinsEarned: number },
+	stats: { hatched: number, placed: number, coinsEarned: number, playtime: number },
 	--- Monotonic, so a Nomling id is never reused within a profile.
 	nextId: number,
 }
@@ -68,7 +68,7 @@ function Profile.new(now: number): Data
 		pedestals = {},
 		incubators = {},
 		lastSeen = now,
-		stats = { hatched = 0, placed = 0, coinsEarned = 0 },
+		stats = { hatched = 0, placed = 0, coinsEarned = 0, playtime = 0 },
 		nextId = 1,
 	}
 end
@@ -114,6 +114,9 @@ function Profile.sanitize(raw: any, now: number, inventoryCap: number, pedestalC
 		hatched = math.floor(num(stats.hatched, 0, 0)),
 		placed = math.floor(num(stats.placed, 0, 0)),
 		coinsEarned = num(stats.coinsEarned, 0, 0),
+		-- Drives the newcomer shield, so it must never come back negative:
+		-- that would leave a veteran permanently unsnatchable.
+		playtime = num(stats.playtime, 0, 0),
 	}
 
 	-- Nomlings. An entry missing an id, a snack or an animal cannot be rendered

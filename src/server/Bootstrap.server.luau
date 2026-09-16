@@ -18,13 +18,21 @@ local Net = require(Shared:WaitForChild("Net"))
 local SERVICE_ORDER = {
 	-- Remotes must exist before anything tries to resolve one.
 	"NetService",
-	-- The plaza builds the pads that PlotService then finds.
-	"PlazaService",
-	-- Everything below reads a profile, so the store comes first.
-	"DataService",
+	-- The street builds the base pads that PlotService then finds.
+	"WorldService",
+	-- These only REGISTER a DataService.onLoaded callback in their start(),
+	-- so they must all run before DataService's.
 	"PlotService",
 	"EggService",
+	"ConveyorService",
 	"IncomeService",
+	"StealService",
+	-- DataService LAST. Its start() loads any player already in the server and
+	-- fires onLoaded immediately -- with it third in this list, that fired
+	-- before the three services above had subscribed, so the first player on a
+	-- fresh server got no base, no HUD and no offline pay. Ordering by
+	-- "who subscribes" rather than "who sounds foundational".
+	"DataService",
 }
 
 type Service = {
