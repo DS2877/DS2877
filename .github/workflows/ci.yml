@@ -91,12 +91,28 @@ jobs:
 
       - name: Check credentials are present
         id: creds
+        # Read through env rather than interpolating `${{ }}` straight into the
+        # shell. Direct interpolation builds the secret into the command line,
+        # which both risks it surfacing in a log and makes an unset value
+        # indistinguishable from a quoting mistake. This also reports WHICH
+        # piece is missing, so a skip is diagnosable instead of ambiguous.
+        env:
+          API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          UNIVERSE_ID: ${{ vars.ROBLOX_TEST_UNIVERSE_ID }}
+          PLACE_ID: ${{ vars.ROBLOX_TEST_PLACE_ID }}
         run: |
-          if [ -n "${{ secrets.ROBLOX_API_KEY }}" ] && [ -n "${{ vars.ROBLOX_TEST_UNIVERSE_ID }}" ]; then
+          missing=""
+          [ -z "${API_KEY:-}" ] && missing="$missing ROBLOX_API_KEY(secret)"
+          [ -z "${UNIVERSE_ID:-}" ] && missing="$missing ROBLOX_TEST_UNIVERSE_ID(variable)"
+          [ -z "${PLACE_ID:-}" ] && missing="$missing ROBLOX_TEST_PLACE_ID(variable)"
+
+          if [ -z "$missing" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Credentials present. Universe $UNIVERSE_ID, place $PLACE_ID."
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipping TEST publish -- ROBLOX_API_KEY secret or ROBLOX_TEST_UNIVERSE_ID variable not set yet (docs/PHILIP-TODO.md tasks 3 and 4)."
+            echo "::warning::Skipping TEST publish. Missing:$missing"
+            echo "::warning::Secrets live under Settings > Secrets and variables > Actions > Secrets. Variables are the separate Variables tab on the same page -- putting an ID in the Secrets tab is the usual cause."
           fi
 
       - name: Publish as a Saved version
