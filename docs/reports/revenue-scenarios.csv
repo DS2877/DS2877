@@ -1,0 +1,4 @@
+dau,payers,gross_spend_robux,direct_earned_robux,daily_engagement_robux,plus_signup_robux,plus_private_server_robux,private_servers_robux,rewarded_video_robux,total_earned_robux,audience_expansion_usd,total_usd_month,usd_per_dau_month
+1000,30.0,18000.0,12600.0,2700.0,375.0,80.0,138.6,145.8,16039.4,50.4,111.35,0.11
+10000,300.0,180000.0,126000.0,27000.0,3750.0,800.0,1386.0,1458.0,160394.0,504.0,1113.5,0.11
+100000,3000.0,1800000.0,1260000.0,270000.0,37500.0,8000.0,13860.0,14580.0,1603940.0,5040.0,11134.97,0.11
