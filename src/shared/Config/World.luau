@@ -27,6 +27,25 @@ World.STREET_WIDTH = 52
 --- The delivery belt, down the centre of the road.
 World.BELT_WIDTH = 18
 World.BELT_HEIGHT = 1.2
+
+--- How high above the belt surface a Nomling rides.
+---
+--- Not decoration: a creature at belt level sits along the bottom edge of a
+--- phone screen, which is exactly where the button bar is. Lifting it puts it
+--- in the middle of the frame where it can be seen, wanted and raced for.
+World.BELT_RIDE_HEIGHT = 3.2
+
+--- Where the arrivals board stands, along the street.
+---
+--- The arrival end, a little past the player spawn: this is where Nomlings
+--- join the belt and where every player appears, so it is the one spot the
+--- whole server walks past. The board used to sit at z = 0, 240 studs away,
+--- which is how a leaderboard can exist for days without anyone seeing it.
+World.BOARD_Z = -World.STREET_LENGTH / 2 + 46
+
+--- Belt Nomlings render this much larger than the same creature on a pedestal.
+--- The belt is the shop window; it has to read from across the street.
+World.BELT_DISPLAY_SCALE = 1.55
 --- Studs per second a Nomling travels. Slow enough to read the sign and decide,
 --- fast enough that a bad one clears quickly.
 World.BELT_SPEED = 9

@@ -154,11 +154,14 @@ rather than assumption:
 | `assets` → Read + Write | 8 audio assets uploaded and through moderation |
 | `universe.place.luau-execution-session` → R+W | cloud smoke test runs, 25/25 |
 
-**Quota spent: 9 of 10 this month** (one canary plus the set of eight). Audio
-cannot be updated in place, so re-running the upload mints *new* assets and
-spends more — the ids in `src/shared/Config/Audio.luau` are final unless a
-sound is deliberately re-rendered. Doing task 2 (age check / ID verification)
-raises the ceiling to 100/month.
+**Philip confirmed he is age-verified on 2026-09-17, so the audio ceiling is
+100 uploads/month, not 10.** Nine are spent (a canary plus the set of eight),
+which leaves plenty — re-rendering a sound and uploading it again is now a
+normal thing to do rather than something to ration.
+
+Audio still cannot be updated in place: a re-upload mints a NEW asset and the
+id in `src/shared/Config/Audio.luau` has to be changed to match. That is a
+bookkeeping rule now, not a budget one.
 
 <details>
 <summary>What the job was, for the record</summary>

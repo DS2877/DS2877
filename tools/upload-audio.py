@@ -195,13 +195,14 @@ def upload_all(directory: str, user_id: str, group_id: str | None) -> int:
 
 
 #: Roblox caps audio uploads per creator per month: 100 if the account is
-#: ID-verified, 10 if it is not. This project has 8 files, so an un-verified
-#: account can afford ONE clean run and almost nothing else -- and audio is
-#: "not available for updating", so a bad upload is a wasted slot rather than
-#: something to fix in place. Upload one small file first and confirm it lands
-#: before spending the rest. Checked 2026-09-17:
+#: ID-verified, 10 if it is not. Philip confirmed ID-verified on 2026-09-17, so
+#: the ceiling here is 100 and a re-render is affordable.
+#:
+#: Audio is still "not available for updating": a re-upload mints a NEW asset
+#: and Config/Audio.luau has to be pointed at it. Bookkeeping, not budget.
 #: create.roblox.com/docs/cloud/guides/usage-assets
 UNVERIFIED_MONTHLY_AUDIO_LIMIT = 10
+VERIFIED_MONTHLY_AUDIO_LIMIT = 100
 
 
 def main() -> int:

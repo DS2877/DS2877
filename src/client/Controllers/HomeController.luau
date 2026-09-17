@@ -65,7 +65,10 @@ local function buildBeacon(pad: BasePart): BasePart
 	column.CastShadow = false
 	column.Size = Vector3.new(3, BEAM_HEIGHT, 3)
 	column.CFrame = pad.CFrame * CFrame.new(0, BEAM_HEIGHT / 2, 0)
-	column.Color = Style.PALETTE.nomMint
+	-- Your base's own sweet colour, not a fixed mint. Each plot is a different
+	-- colour now, so a beam that matches turns "somewhere over there" into
+	-- "the peach one" -- and the beam stops being the only way to tell.
+	column.Color = pad.Color
 	column.Material = Enum.Material.Neon
 	column.Transparency = 0.72
 	-- Client-only: parenting under Camera keeps it out of anything that walks
@@ -98,7 +101,7 @@ local function buildBeacon(pad: BasePart): BasePart
 	distance.BackgroundTransparency = 1
 	distance.Font = Enum.Font.GothamBold
 	distance.TextScaled = true
-	distance.TextColor3 = Style.PALETTE.nomMint
+	distance.TextColor3 = pad.Color
 	distance.TextStrokeTransparency = 0.3
 	distance.Text = ""
 	distance.Parent = sign

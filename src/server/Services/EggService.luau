@@ -198,7 +198,12 @@ function EggService.snapshot(data: Profile.Data): { [string]: any }
 			Economy.rebirthMultiplier(data.rebirths),
 			-- The live weather factor, so the HUD's rate matches what the
 			-- player is actually being paid during an event.
-			WeatherService.factor()
+			WeatherService.factor(),
+			-- Pocket money, so the HUD's rate matches what IncomeService pays.
+			-- Two places computing income from the same module must pass the
+			-- same arguments or the purse ticks at a rate the player is not
+			-- actually earning.
+			Economy.STIPEND_PER_SECOND
 		),
 		rebirths = data.rebirths,
 		nomlings = #data.nomlings,
@@ -225,6 +230,11 @@ function EggService.snapshot(data: Profile.Data): { [string]: any }
 		hatched = data.stats.hatched,
 		playtime = data.stats.playtime,
 		placed = data.pedestals,
+		-- A COUNT as well as the map. `placed` is a pedestal-index -> id
+		-- table, so any client that wants "how many are out?" either walks it
+		-- or, as the HUD first did, compares a table against a number and
+		-- throws. One number on the wire is cheaper than both.
+		placedCount = #Profile.placedNomlings(data),
 		incubators = data.incubators,
 		prices = prices,
 		-- The best tier this player has unlocked, so the buy button follows

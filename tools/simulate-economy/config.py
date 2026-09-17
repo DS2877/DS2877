@@ -225,6 +225,24 @@ OFFLINE_EFFICIENCY = 0.25
 OFFLINE_CAP_SECONDS = 2 * 3600
 OFFLINE_CAP_SECONDS_VIP = 4 * 3600
 
+# ---------------------------------------------------------------------------
+# Pocket money
+# ---------------------------------------------------------------------------
+# Paid per second ONLY while a player's placed Nomlings earn nothing at all.
+#
+# Without it, losing everything is a dead end rather than a setback: income is
+# zero, every egg costs coins, and nothing in the game generates the first one.
+# Profile.isStranded() grants a starter egg, but only at load and only when the
+# profile is completely empty -- a player robbed down to nothing mid-session
+# falls straight through it.
+#
+# It pays ONLY at zero, so it never touches normal play and cannot be farmed:
+# a single common earns 1/s and is already worth more than sitting still. At
+# 2/s a Basic egg is about thirteen seconds away, which reads as a rescue
+# rather than a grind. It is multiplied by the rebirth multiplier like any
+# other income, so it stays proportionate once egg prices have scaled.
+STIPEND_PER_SECOND = 2
+
 
 def expected_income(egg_key: str) -> float:
     """Expected coins/second from one Nomling hatched from this egg."""

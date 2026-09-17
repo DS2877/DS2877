@@ -665,7 +665,12 @@ local function refresh(delta: number)
 	coinLabel.Text = Income.format(displayedCoins)
 
 	local rate = snap.perSecond or 0
-	rateLabel.Text = `{Income.format(rate)} / sec`
+	-- Name the pocket money when that is all it is. An unexplained trickle of
+	-- coins with an empty base reads as a bug; "pocket money" reads as the
+	-- game helping you back up, which is what it is.
+	rateLabel.Text = if (snap.placedCount or 0) <= 0 and rate > 0
+		then `{Income.format(rate)} /s pocket money`
+		else `{Income.format(rate)} / sec`
 
 	-- Price and name the tier the button actually buys. Reading `prices.basic`
 	-- while buying `bestEgg` meant that after a Re-Nom the button advertised
@@ -675,7 +680,18 @@ local function refresh(delta: number)
 	local price = snap.prices and snap.prices[tier]
 	local affordable = price ~= nil and target >= price
 	eggLabel.Text = if price then (Style.EGG_LABEL[tier] or "Buy Egg") else "Egg locked"
-	eggPrice.Text = if price then Income.format(price) else ""
+	-- SAY THE GAP, not just the price. From a playtest: "I'm not sure if the
+	-- button works or not since I start with 0 coins." A greyed button and a
+	-- price you cannot afford look exactly like a broken button -- the player
+	-- has to do the subtraction themselves to find out which it is. Showing
+	-- what is missing turns a dead end into a countdown.
+	if not price then
+		eggPrice.Text = ""
+	elseif affordable then
+		eggPrice.Text = Income.format(price)
+	else
+		eggPrice.Text = `need {Income.format(price - target)} more`
+	end
 	eggButton.BackgroundColor3 = if affordable
 		then Style.PALETTE.nomOrange
 		else Color3.fromRGB(176, 158, 146)

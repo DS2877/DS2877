@@ -105,6 +105,7 @@ def main() -> int:
         ("OFFLINE_EFFICIENCY", C.OFFLINE_EFFICIENCY),
         ("OFFLINE_CAP_SECONDS", C.OFFLINE_CAP_SECONDS),
         ("OFFLINE_CAP_SECONDS_VIP", C.OFFLINE_CAP_SECONDS_VIP),
+        ("STIPEND_PER_SECOND", C.STIPEND_PER_SECOND),
     ]:
         if luau_name not in sc:
             failures.append(f"{luau_name}: missing from Economy.luau")

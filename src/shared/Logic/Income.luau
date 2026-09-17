@@ -40,16 +40,31 @@ function Income.forOne(
 end
 
 --- Coins per second for the whole base.
+---
+--- `stipendPerSecond` is pocket money, and it pays ONLY when the placed
+--- Nomlings earn nothing at all. A player robbed down to nothing otherwise has
+--- zero income, and every way out of that costs coins -- a dead end rather
+--- than a setback. Paying only at zero keeps it out of normal play entirely:
+--- a single common already earns more than sitting still, so there is nothing
+--- to farm here.
+---
+--- It goes through the same multipliers as real income, so it stays
+--- proportionate to a rebirthed player's egg prices instead of becoming
+--- irrelevant.
 function Income.perSecond(
 	earners: { Earner },
 	baseIncome: { [string]: number },
 	mutationMultiplier: { [string]: number },
 	rebirthMultiplier: number,
-	weatherFactor: number
+	weatherFactor: number,
+	stipendPerSecond: number?
 ): number
 	local total = 0
 	for _, earner in earners do
 		total += Income.forOne(earner, baseIncome, mutationMultiplier)
+	end
+	if total <= 0 then
+		total = stipendPerSecond or 0
 	end
 	return total * rebirthMultiplier * weatherFactor
 end

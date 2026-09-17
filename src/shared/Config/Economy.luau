@@ -206,6 +206,17 @@ Economy.OFFLINE_EFFICIENCY = 0.25
 Economy.OFFLINE_CAP_SECONDS = 7200
 Economy.OFFLINE_CAP_SECONDS_VIP = 14400
 
+--- Coins per second while a player's placed Nomlings earn NOTHING.
+---
+--- Losing everything has to be a setback, not a dead end. Income zero plus
+--- every egg costing coins is a profile that can never act again, and
+--- Profile.isStranded() only rescues a completely empty profile at load time
+--- -- a player robbed down to nothing mid-session falls through it.
+---
+--- Pays only at zero, so it never touches normal play and cannot be farmed:
+--- one common earns 1/s and already beats standing still.
+Economy.STIPEND_PER_SECOND = 2
+
 function Economy.rebirthCost(rebirths: number): number
 	return math.floor(Economy.REBIRTH_COST_BASE * Economy.REBIRTH_COST_GROWTH ^ rebirths)
 end

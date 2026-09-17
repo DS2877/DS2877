@@ -152,7 +152,17 @@ local function build(anchor: BasePart)
 	end
 
 	local palette = paletteFor(genome)
-	local scale = NomlingSpec.scaleFor(genome)
+	-- DisplayScale lets the anchor's owner say how big this one should read,
+	-- on top of the size the genome gives it. The belt sets it: from a
+	-- playtest, "I can hardly see them behind the buy button... it should be
+	-- obvious to everyone what nomlings are coming to make them fight for it."
+	-- A creature nobody can see is not something anybody competes for.
+	--
+	-- It is presentation only. Nothing about price, rarity or income reads
+	-- this, so a client that tampered with it would win itself a bigger
+	-- picture and nothing else.
+	local display = tonumber(anchor:GetAttribute("DisplayScale")) or 1
+	local scale = NomlingSpec.scaleFor(genome) * display
 	local specs = NomlingSpec.build(genome)
 
 	local model = Instance.new("Model")

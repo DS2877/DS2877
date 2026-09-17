@@ -41,12 +41,16 @@ local function buildRoad(parent: Instance)
 	local road = Instance.new("Folder")
 	road.Name = "Road"
 
+	-- MATTE, not SmoothPlastic. SmoothPlastic takes a specular highlight along
+	-- its whole length, and on a 520-stud road that reads as wet tarmac rather
+	-- than a toy street. Plastic keeps the flat candy colour and drops the
+	-- shine. Warmer, too: the old lilac-grey was the last of the moody palette.
 	part({
 		Name = "Asphalt",
 		Size = Vector3.new(World.STREET_WIDTH, 1, World.STREET_LENGTH),
 		CFrame = CFrame.new(0, -0.5, 0),
-		Color = Color3.fromRGB(196, 186, 206),
-		Material = Enum.Material.SmoothPlastic,
+		Color = Color3.fromRGB(214, 206, 222),
+		Material = Enum.Material.Plastic,
 	}, road)
 
 	-- Pavement either side, slightly raised, in a lighter stone. The step is
@@ -57,8 +61,8 @@ local function buildRoad(parent: Instance)
 			Name = "Pavement",
 			Size = Vector3.new(6, 1.35, World.STREET_LENGTH),
 			CFrame = CFrame.new(side * (World.KERB_X + 2), -0.325, 0),
-			Color = Color3.fromRGB(252, 240, 214),
-			Material = Enum.Material.SmoothPlastic,
+			Color = Color3.fromRGB(255, 245, 224),
+			Material = Enum.Material.Plastic,
 		}, road)
 		part({
 			Name = "Kerb",
@@ -308,11 +312,17 @@ local function buildBase(index: number, parent: Instance): BasePart
 	local model = Instance.new("Model")
 	model.Name = `Base{index}`
 
+	-- Each base gets its own sweet colour, so the street has eight landmarks
+	-- instead of eight identical lawns. Wrapped rather than clamped, so adding
+	-- a ninth base later gets a colour instead of an error.
+	local padColour = Style.BASE_PAD[(index - 1) % #Style.BASE_PAD + 1]
+	local edgeColour = Style.BASE_EDGE[(index - 1) % #Style.BASE_EDGE + 1]
+
 	local pad = part({
 		Name = "Pad",
 		Size = Vector3.new(World.BASE_DEPTH, 1, World.BASE_WIDTH),
 		CFrame = CFrame.new(cx, -0.5, cz),
-		Color = Style.PALETTE.plotPad,
+		Color = padColour,
 		Material = Enum.Material.Grass,
 	}, model)
 	pad:SetAttribute("BaseIndex", index)
@@ -330,8 +340,8 @@ local function buildBase(index: number, parent: Instance): BasePart
 			Name = "SideWall",
 			Size = Vector3.new(World.BASE_DEPTH, 3, 1.5),
 			CFrame = CFrame.new(cx, 1.5, cz + edge * World.BASE_WIDTH / 2),
-			Color = Style.PALETTE.plotEdge,
-			Material = Enum.Material.SmoothPlastic,
+			Color = edgeColour,
+			Material = Enum.Material.Plastic,
 		}, model)
 	end
 
@@ -579,17 +589,22 @@ function WorldService.start()
 	local boardPost = part({
 		Name = "LeaderboardPost",
 		Size = Vector3.new(1.4, 16, 1.4),
-		CFrame = CFrame.new(-World.KERB_X - 4, 8, 0),
+		-- AT THE ARRIVAL END, beside the spawn, not halfway down the street.
+		-- It used to stand at z = 0, which is 240 studs from where players
+		-- appear -- a board nobody walks past is a board nobody has seen, and
+		-- Philip reported exactly that. This is also where Nomlings join the
+		-- belt, so the countdown on it is about the thing right next to it.
+		CFrame = CFrame.new(-World.KERB_X - 4, 8, World.BOARD_Z),
 		Color = Style.PALETTE.nomCocoa,
 		Material = Enum.Material.Wood,
 	}, street)
 
 	local board = part({
 		Name = "Leaderboard",
-		Size = Vector3.new(0.6, 13, 20),
-		CFrame = CFrame.new(-World.KERB_X - 4, 17, 0),
+		Size = Vector3.new(0.6, 17, 20),
+		CFrame = CFrame.new(-World.KERB_X - 4, 19, World.BOARD_Z),
 		Color = Style.PALETTE.nomCream,
-		Material = Enum.Material.SmoothPlastic,
+		Material = Enum.Material.Plastic,
 		CanCollide = false,
 	}, street)
 	local _ = boardPost
@@ -597,7 +612,7 @@ function WorldService.start()
 	local boardGui = Instance.new("SurfaceGui")
 	boardGui.Name = "Board"
 	boardGui.Face = Enum.NormalId.Right
-	boardGui.CanvasSize = Vector2.new(400, 260)
+	boardGui.CanvasSize = Vector2.new(400, 360)
 	boardGui.LightInfluence = 0
 	boardGui.Parent = board
 
@@ -620,7 +635,7 @@ function WorldService.start()
 
 	local rows = Instance.new("Frame")
 	rows.Name = "Rows"
-	rows.Size = UDim2.new(1, -16, 1, -56)
+	rows.Size = UDim2.new(1, -16, 0, 190)
 	rows.Position = UDim2.new(0, 8, 0, 52)
 	rows.BackgroundTransparency = 1
 	rows.Parent = backing
@@ -628,6 +643,47 @@ function WorldService.start()
 	local rowLayout = Instance.new("UIListLayout")
 	rowLayout.Padding = UDim.new(0, 4)
 	rowLayout.Parent = rows
+
+	-- --- the ticker ---
+	-- Countdowns, which is what turns a scoreboard into a reason to stay. A
+	-- leaderboard says who is winning; a countdown says something is about to
+	-- happen and you can still be here for it. LeaderboardService fills these.
+	local ticker = Instance.new("Frame")
+	ticker.Name = "Ticker"
+	ticker.Size = UDim2.new(1, -16, 0, 104)
+	ticker.Position = UDim2.new(0, 8, 0, 248)
+	ticker.BackgroundColor3 = Style.PALETTE.plazaStone
+	ticker.BorderSizePixel = 0
+	ticker.Parent = backing
+
+	local tickerCorner = Instance.new("UICorner")
+	tickerCorner.CornerRadius = UDim.new(0, 10)
+	tickerCorner.Parent = ticker
+
+	local tickerLayout = Instance.new("UIListLayout")
+	tickerLayout.Padding = UDim.new(0, 2)
+	tickerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	tickerLayout.Parent = ticker
+
+	local tickerPad = Instance.new("UIPadding")
+	tickerPad.PaddingTop = UDim.new(0, 6)
+	tickerPad.PaddingLeft = UDim.new(0, 10)
+	tickerPad.PaddingRight = UDim.new(0, 10)
+	tickerPad.Parent = ticker
+
+	for order, name in { "Delivery", "Weather", "Best" } do
+		local line = Instance.new("TextLabel")
+		line.Name = name
+		line.LayoutOrder = order
+		line.Size = UDim2.new(1, 0, 0, 30)
+		line.BackgroundTransparency = 1
+		line.Font = Enum.Font.FredokaOne
+		line.TextScaled = true
+		line.TextXAlignment = Enum.TextXAlignment.Left
+		line.TextColor3 = Style.PALETTE.ink
+		line.Text = ""
+		line.Parent = ticker
+	end
 
 	local bases = Instance.new("Folder")
 	bases.Name = "Bases"

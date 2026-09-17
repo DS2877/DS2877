@@ -91,3 +91,46 @@ h.test("the display never runs out of units", function()
 		h.expectTrue(#text > 0 and #text <= 8, `10^{power} formatted as '{text}'`)
 	end
 end)
+
+h.test("REGRESSION: losing everything is a setback, not a dead end", function()
+	-- A player robbed down to nothing has zero income, and every way out of
+	-- that costs coins. Profile.isStranded() only rescues a completely empty
+	-- profile at LOAD, so a mid-session wipe falls straight through it and the
+	-- account can never act again. Pocket money is what closes that.
+	local stipend = Economy.STIPEND_PER_SECOND
+	h.expectTrue(stipend > 0, "there must be some income at zero")
+	h.expectEqual(
+		Income.perSecond({}, Economy.BASE_INCOME, MUT, 1, 1, stipend),
+		stipend,
+		"an empty base earns pocket money"
+	)
+end)
+
+h.test("pocket money never pays on top of real income", function()
+	-- It is a floor, not a bonus. If it stacked, every base would quietly earn
+	-- more than the simulator models and the pacing targets would drift.
+	local one = { { rarity = "common" } }
+	local stipend = Economy.STIPEND_PER_SECOND
+	local withStipend = Income.perSecond(one, Economy.BASE_INCOME, MUT, 1, 1, stipend)
+	local without = Income.perSecond(one, Economy.BASE_INCOME, MUT, 1, 1, 0)
+	h.expectEqual(withStipend, without, "one common earns the same either way")
+end)
+
+h.test("one common still beats standing still", function()
+	-- If pocket money outearned a real Nomling, the optimal play would be to
+	-- own nothing, which is the opposite of the game.
+	local one = Income.perSecond({ { rarity = "common" } }, Economy.BASE_INCOME, MUT, 1, 1, 0)
+	h.expectTrue(
+		one >= Economy.STIPEND_PER_SECOND / 2,
+		`a common earns {one}/s against {Economy.STIPEND_PER_SECOND}/s of pocket money`
+	)
+end)
+
+h.test("pocket money scales with rebirth like everything else", function()
+	-- Egg prices scale with rebirth count, so a flat stipend would become
+	-- meaningless to the players most able to lose a lot at once.
+	local stipend = Economy.STIPEND_PER_SECOND
+	local plain = Income.perSecond({}, Economy.BASE_INCOME, MUT, 1, 1, stipend)
+	local rebirthed = Income.perSecond({}, Economy.BASE_INCOME, MUT, 4, 1, stipend)
+	h.expectEqual(rebirthed, plain * 4, "the rebirth multiplier applies")
+end)

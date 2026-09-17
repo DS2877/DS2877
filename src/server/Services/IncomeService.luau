@@ -41,7 +41,8 @@ function IncomeService.perSecond(data: Profile.Data): number
 		Economy.BASE_INCOME,
 		MUTATION_MULTIPLIER,
 		Economy.rebirthMultiplier(data.rebirths),
-		WeatherService.factor()
+		WeatherService.factor(),
+		Economy.STIPEND_PER_SECOND
 	)
 end
 

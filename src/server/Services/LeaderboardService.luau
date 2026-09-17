@@ -24,24 +24,96 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Income = require(Shared:WaitForChild("Logic"):WaitForChild("Income"))
 local Style = require(Shared:WaitForChild("Style"))
 
+local ConveyorService = require(script.Parent:WaitForChild("ConveyorService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local IncomeService = require(script.Parent:WaitForChild("IncomeService"))
+local WeatherService = require(script.Parent:WaitForChild("WeatherService"))
 
 local LeaderboardService = {}
 LeaderboardService.Name = "LeaderboardService"
 
 local SHOWN = 5
-local REFRESH_SECONDS = 4
+--- The standings move slowly; the countdowns do not. One second is the coarsest
+--- tick that still lets a number visibly fall, which is the whole point of
+--- putting a countdown on a board.
+local REFRESH_SECONDS = 1
 
 local rowsFrame: Frame? = nil
+local tickerFrame: Frame? = nil
 
-local function findRows(): Frame?
+local function findBacking(): Frame?
 	local street = Workspace:FindFirstChild("Street")
 	local board = street and street:FindFirstChild("Leaderboard")
 	local gui = board and board:FindFirstChild("Board")
 	local backing = gui and gui:FindFirstChildWhichIsA("Frame")
+	return backing
+end
+
+local function findRows(): Frame?
+	local backing = findBacking()
 	local rows = backing and backing:FindFirstChild("Rows")
 	return if rows and rows:IsA("Frame") then rows else nil
+end
+
+local function findTicker(): Frame?
+	local backing = findBacking()
+	local ticker = backing and backing:FindFirstChild("Ticker")
+	return if ticker and ticker:IsA("Frame") then ticker else nil
+end
+
+--- "1m 20s", "14s". Minutes only when there are any, because "0m 14s" on a
+--- board read from ten studs away is three characters of noise.
+local function countdown(seconds: number): string
+	local whole = math.max(0, math.floor(seconds + 0.5))
+	if whole >= 60 then
+		return `{whole // 60}m {whole % 60}s`
+	end
+	return `{whole}s`
+end
+
+--- The three lines under the standings. Each one answers "why should I still
+--- be here in a minute?", which a leaderboard on its own never does.
+local function refreshTicker()
+	local ticker = tickerFrame
+	if not ticker then
+		return
+	end
+
+	local delivery = ticker:FindFirstChild("Delivery")
+	if delivery and delivery:IsA("TextLabel") then
+		local seconds = ConveyorService.secondsUntilNext()
+		delivery.Text = if seconds
+			then `🚚 Next Nomling in {countdown(seconds)}`
+			else "🚚 Belt starting up..."
+	end
+
+	local weather = ticker:FindFirstChild("Weather")
+	if weather and weather:IsA("TextLabel") then
+		local activeKind, remaining = WeatherService.current()
+		if activeKind then
+			weather.Text = `⛅ {activeKind} for {countdown(remaining)}`
+		else
+			local seconds = WeatherService.secondsUntilNext()
+			weather.Text = if seconds
+				then `⛅ Weather in {countdown(seconds)}`
+				else "⛅ Weather: later today"
+		end
+	end
+
+	-- The best thing currently ON the belt, named and priced. This is the line
+	-- that is meant to make people race: "it should be obvious to everyone what
+	-- nomlings are coming to make them fight for it."
+	local best = ticker:FindFirstChild("Best")
+	if best and best:IsA("TextLabel") then
+		local incoming = ConveyorService.incoming(1)
+		local top = incoming[1]
+		if top then
+			local mark = if top.mutated then "✨ " else ""
+			best.Text = `{mark}Best on belt: {top.label} · 💰 {Income.format(top.price)}`
+		else
+			best.Text = "Belt is empty right now"
+		end
+	end
 end
 
 local function makeRow(parent: Frame, order: number): Frame
@@ -91,6 +163,8 @@ local function makeRow(parent: Frame, order: number): Frame
 end
 
 local function refresh()
+	refreshTicker()
+
 	local rows = rowsFrame
 	if not rows then
 		return
@@ -140,6 +214,7 @@ function LeaderboardService.start()
 		local deadline = os.clock() + 20
 		while os.clock() < deadline do
 			rowsFrame = findRows()
+			tickerFrame = findTicker()
 			if rowsFrame then
 				break
 			end

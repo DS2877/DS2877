@@ -36,6 +36,10 @@ local rng = Random.new()
 
 local activeKind: string? = nil
 local activeUntil = 0
+--- os.clock() when the next event is expected. The board counts down to it,
+--- which is the difference between "weather happens sometimes" and a reason to
+--- still be here in four minutes.
+local nextEventAt = 0
 
 --- The live income multiplier. IncomeService asks every tick.
 function WeatherService.factor(): number
@@ -52,6 +56,16 @@ function WeatherService.current(): (string?, number)
 		return nil, 0
 	end
 	return activeKind, activeUntil - os.clock()
+end
+
+--- Seconds until the next event, or nil before the opening quiet period has
+--- even been scheduled. Never negative: a due event that has not fired yet
+--- reads as 0 rather than counting upwards into nonsense.
+function WeatherService.secondsUntilNext(): number?
+	if nextEventAt <= 0 then
+		return nil
+	end
+	return math.max(0, nextEventAt - os.clock())
 end
 
 local function announce(phase: string, kind: string, seconds: number)
@@ -133,6 +147,7 @@ function WeatherService.start()
 	task.spawn(function()
 		-- A quiet opening, so a joining player is not immediately hit with a
 		-- banner they have no context for.
+		nextEventAt = os.clock() + 120
 		task.wait(120)
 		while true do
 			local ok, err = pcall(runEvent)
@@ -141,7 +156,9 @@ function WeatherService.start()
 				activeKind = nil
 				activeUntil = 0
 			end
-			task.wait(rng:NextNumber(Economy.WEATHER_INTERVAL_MIN, Economy.WEATHER_INTERVAL_MAX))
+			local gap = rng:NextNumber(Economy.WEATHER_INTERVAL_MIN, Economy.WEATHER_INTERVAL_MAX)
+			nextEventAt = os.clock() + gap
+			task.wait(gap)
 		end
 	end)
 end

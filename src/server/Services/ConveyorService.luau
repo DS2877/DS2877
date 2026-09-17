@@ -58,6 +58,8 @@ type Item = {
 local items: { Item } = {}
 local nextId = 1
 local beltFolder: Folder? = nil
+--- os.clock() when the next Nomling is due on the belt, for the arrivals board.
+local nextSpawnAt = 0
 
 local MUTATION_NAMES: { string } = {}
 for name in Economy.MUTATIONS do
@@ -86,6 +88,10 @@ local function buildAnchor(item: Item): BasePart
 	anchor.CanCollide = false
 	anchor.Transparency = 1
 	anchor.Size = Vector3.new(4, 4.5, 4)
+	-- Half again as big as one on a pedestal. The belt is the shop window and
+	-- the thing players are meant to race each other to; at pedestal size they
+	-- were disappearing behind the bottom bar.
+	anchor:SetAttribute("DisplayScale", World.BELT_DISPLAY_SCALE)
 
 	for key, value in Genome.attributes(nomling :: any, Nomlings.BY_ID :: any, nil) do
 		anchor:SetAttribute(key, value)
@@ -180,7 +186,7 @@ local function spawnItem()
 	}
 	nextId += 1
 	item.model = buildAnchor(item)
-	item.model.CFrame = CFrame.new(0, World.BELT_HEIGHT + 0.6, item.z)
+	item.model.CFrame = CFrame.new(0, World.BELT_HEIGHT + World.BELT_RIDE_HEIGHT, item.z)
 	item.model.Parent = folder
 	table.insert(items, item)
 end
@@ -271,6 +277,46 @@ function ConveyorService.buy(player: Player, id: unknown): (boolean, string?)
 	return true, nil
 end
 
+--- Seconds until the next Nomling joins the belt, or nil before the belt has
+--- started. Clamped at zero so a due-but-not-yet-spawned item reads as "now".
+function ConveyorService.secondsUntilNext(): number?
+	if nextSpawnAt <= 0 then
+		return nil
+	end
+	return math.max(0, nextSpawnAt - os.clock())
+end
+
+--- What is riding the belt right now, best first, for the arrivals board.
+--- Returns copies of the fields the board shows, never the Item itself: the
+--- board has no business holding a reference to something buy() mutates.
+function ConveyorService.incoming(limit: number): {
+	{
+		label: string,
+		price: number,
+		mutated: boolean,
+		rarity: string,
+	}
+}
+	local out = {}
+	for _, item in items do
+		if not item.claimed then
+			table.insert(out, {
+				label = `{item.nomling.snack} {item.nomling.animal}`,
+				price = item.price,
+				mutated = item.nomling.mutation ~= nil,
+				rarity = item.nomling.rarity,
+			})
+		end
+	end
+	table.sort(out, function(a, b)
+		return a.price > b.price
+	end)
+	while #out > limit do
+		table.remove(out)
+	end
+	return out
+end
+
 function ConveyorService.init()
 	local remote = Net.get("BuyFromBelt") :: RemoteFunction
 	remote.OnServerInvoke = function(player, id)
@@ -292,6 +338,7 @@ function ConveyorService.start()
 
 	task.spawn(function()
 		while true do
+			nextSpawnAt = os.clock() + World.BELT_SPAWN_SECONDS
 			task.wait(World.BELT_SPAWN_SECONDS)
 			spawnItem()
 		end
@@ -314,7 +361,8 @@ function ConveyorService.start()
 				if item.z >= finish then
 					removeItem(item)
 				else
-					item.model.CFrame = CFrame.new(0, World.BELT_HEIGHT + 0.6, item.z)
+					item.model.CFrame =
+						CFrame.new(0, World.BELT_HEIGHT + World.BELT_RIDE_HEIGHT, item.z)
 				end
 			end
 		end

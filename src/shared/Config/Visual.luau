@@ -46,8 +46,14 @@ Visual.LIGHTING = {
 	outdoorAmbient = { 172, 182, 204 },
 	-- Soft. Hard-edged shadows look serious.
 	shadowSoftness = 0.62,
-	environmentDiffuseScale = 0.7,
-	environmentSpecularScale = 0.3,
+	environmentDiffuseScale = 0.75,
+	-- NEARLY OFF. From a playtest: "the ground are a bit too shiny". Specular
+	-- is what makes a big flat surface read as wet, and a street is the
+	-- biggest flat surface in the game -- under Future lighting it was
+	-- catching the sky across its whole length. Diffuse goes up by the same
+	-- breath so the world does not get darker in exchange, because the point
+	-- is matte and bright, not matte and dull.
+	environmentSpecularScale = 0.06,
 	fogEnd = 1_000_000, -- Atmosphere replaces legacy fog entirely
 }
 

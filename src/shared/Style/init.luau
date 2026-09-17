@@ -71,6 +71,39 @@ Style.RARITY = {
 	secret = { color = Color3.fromRGB(250, 250, 255), label = "Secret", icon = "sparkle" },
 }
 
+--- One candy colour per base, indexed by base number.
+---
+--- Eight identical green plots is a street with no landmarks: from halfway
+--- down the road every base looks the same, which is how "I can't find my
+--- base" happens even with your name on the sign. Colour is the fastest
+--- landmark there is, and a row of eight different sweets is also simply more
+--- fun to look at than a row of eight lawns -- the ask was to make it more
+--- appealing to children, and this is most of that for one table.
+---
+--- Paired with a darker edge so each plot still reads as a raised platform
+--- rather than a flat sticker.
+Style.BASE_PAD = {
+	Color3.fromRGB(180, 232, 180), -- apple
+	Color3.fromRGB(180, 216, 255), -- blueberry
+	Color3.fromRGB(255, 214, 176), -- peach
+	Color3.fromRGB(246, 196, 240), -- bubblegum
+	Color3.fromRGB(255, 236, 168), -- lemon
+	Color3.fromRGB(184, 236, 230), -- mint ice
+	Color3.fromRGB(226, 202, 255), -- grape
+	Color3.fromRGB(255, 198, 196), -- strawberry
+}
+
+Style.BASE_EDGE = {
+	Color3.fromRGB(128, 194, 128),
+	Color3.fromRGB(124, 168, 218),
+	Color3.fromRGB(226, 160, 112),
+	Color3.fromRGB(206, 138, 198),
+	Color3.fromRGB(224, 194, 104),
+	Color3.fromRGB(126, 194, 188),
+	Color3.fromRGB(174, 146, 216),
+	Color3.fromRGB(222, 142, 140),
+}
+
 --- Egg display names, so no UI ever shows a config key to a player. Lives here
 --- rather than in Config/Economy because it is presentation, and Economy is
 --- parity-checked against the simulator, which knows nothing about words.
