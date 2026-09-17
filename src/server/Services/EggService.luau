@@ -26,6 +26,9 @@ local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
+-- Safe at the top: FusionService requires DataService, FeedbackService,
+-- NetService and PlotService, none of which require this module back.
+local FusionService = require(script.Parent:WaitForChild("FusionService"))
 local NetService = require(script.Parent:WaitForChild("NetService"))
 local PlotService = require(script.Parent:WaitForChild("PlotService"))
 
@@ -188,6 +191,24 @@ function EggService.snapshot(data: Profile.Data): { [string]: any }
 		),
 		rebirths = data.rebirths,
 		nomlings = #data.nomlings,
+		-- The actual roster, so the fusion picker can show what the player
+		-- owns. Trimmed to what the UI draws: no seeds, no ids beyond the
+		-- handle it needs to send back.
+		roster = (function()
+			local list = {}
+			for _, n in data.nomlings do
+				table.insert(list, {
+					id = n.id,
+					snack = n.snack,
+					animal = n.animal,
+					gen = n.gen,
+					mutation = n.mutation,
+					rarity = n.rarity,
+					placed = Profile.pedestalOf(data, n.id) ~= nil,
+				})
+			end
+			return list
+		end)(),
 		-- The tutorial reads these to work out which step the player is on,
 		-- so progress survives a rejoin instead of restarting the lesson.
 		hatched = data.stats.hatched,
@@ -196,6 +217,9 @@ function EggService.snapshot(data: Profile.Data): { [string]: any }
 		incubators = data.incubators,
 		prices = prices,
 		now = os.time(),
+		-- Filled in by EggService.sync, which can see FusionService. The
+		-- snapshot builder itself stays free of that dependency.
+		fusion = nil,
 	}
 end
 
@@ -204,8 +228,11 @@ function EggService.sync(player: Player)
 	if not data then
 		return
 	end
+	local snapshot = EggService.snapshot(data)
+	snapshot.fusion = FusionService.statusFor(player)
+
 	local remote = Net.get("ProfileSync") :: RemoteEvent
-	remote:FireClient(player, EggService.snapshot(data))
+	remote:FireClient(player, snapshot)
 end
 
 function EggService.init()

@@ -15,6 +15,7 @@ local CONTROLLER_ORDER = {
 	"AudioController",
 	"JuiceController",
 	"NomlingRenderController",
+	"FusionController",
 }
 
 type Controller = {

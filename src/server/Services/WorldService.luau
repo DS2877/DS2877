@@ -396,6 +396,134 @@ local function buildBase(index: number, parent: Instance): BasePart
 	return pad
 end
 
+--- The two landmarks at either end of the street, so the road runs BETWEEN
+--- somewhere and somewhere else instead of just ending.
+---
+--- HARD RULE (docs/COMPLIANCE.md 1): no casino visual language anywhere. The
+--- Egg Market is a market stall and the Fusion Lab is a KITCHEN. No wheels, no
+--- reels, no levers, nothing that spins. Gambling imagery forces a Moderate
+--- maturity rating, which loses the Roblox Kids tier outright -- the cheapest
+--- compliance win available and the easiest to lose in an art pass.
+local function buildLandmark(parent: Instance, name: string, z: number, facing: number)
+	local model = Instance.new("Model")
+	model.Name = name
+
+	local width = 46
+	local depth = 24
+	local height = 20
+
+	part({
+		Name = "Floor",
+		Size = Vector3.new(width, 1, depth),
+		CFrame = CFrame.new(0, -0.5, z),
+		Color = Style.PALETTE.plazaStone,
+		Material = Enum.Material.Concrete,
+	}, model)
+
+	part({
+		Name = "Back",
+		Size = Vector3.new(width, height, 1.5),
+		CFrame = CFrame.new(0, height / 2, z + facing * depth / 2),
+		Color = Style.PALETTE.nomCream,
+		Material = Enum.Material.SmoothPlastic,
+	}, model)
+
+	for _, side in { -1, 1 } do
+		part({
+			Name = "Side",
+			Size = Vector3.new(1.5, height, depth),
+			CFrame = CFrame.new(side * width / 2, height / 2, z),
+			Color = Style.PALETTE.nomCream,
+			Material = Enum.Material.SmoothPlastic,
+		}, model)
+	end
+
+	-- A pitched roof, built from two tilted slabs. Two parts, and the building
+	-- stops reading as a box.
+	for _, side in { -1, 1 } do
+		part({
+			Name = "Roof",
+			Size = Vector3.new(width * 0.56, 1.2, depth + 4),
+			CFrame = CFrame.new(side * width * 0.24, height + 3.4, z)
+				* CFrame.Angles(0, 0, math.rad(side * -22)),
+			Color = if name == "FusionLab" then Style.PALETTE.nomMint else Style.PALETTE.nomOrange,
+			Material = Enum.Material.Fabric,
+			CanCollide = false,
+		}, model)
+	end
+
+	-- The counter you walk up to.
+	part({
+		Name = "Counter",
+		Size = Vector3.new(width * 0.7, 4.5, 4),
+		CFrame = CFrame.new(0, 2.25, z - facing * (depth / 2 - 5)),
+		Color = Style.PALETTE.nomCocoa,
+		Material = Enum.Material.Wood,
+	}, model)
+
+	local signPost = part({
+		Name = "SignAnchor",
+		Size = Vector3.new(1, 1, 1),
+		CFrame = CFrame.new(0, height + 8, z),
+		Color = Style.PALETTE.nomCream,
+		Material = Enum.Material.SmoothPlastic,
+		CanCollide = false,
+		Transparency = 1,
+	}, model)
+
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "Sign"
+	gui.Size = UDim2.fromScale(30, 8)
+	gui.MaxDistance = 400
+	gui.Parent = signPost
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.FredokaOne
+	label.TextScaled = true
+	label.TextColor3 = Style.PALETTE.nomCream
+	label.TextStrokeTransparency = 0.2
+	label.Text = if name == "FusionLab" then "🧪 FUSION KITCHEN" else "🥚 EGG MARKET"
+	label.Parent = gui
+
+	if name == "FusionLab" then
+		-- A reveal stage: a lit plinth the new creature appears on. This is
+		-- where the whole game points.
+		local stage = part({
+			Name = "RevealStage",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(1.6, 14, 14),
+			CFrame = CFrame.new(0, 0.8, z + facing * 2) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = Style.PALETTE.nomBlue,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+		}, model)
+
+		local glow = Instance.new("PointLight")
+		glow.Brightness = 2.4
+		glow.Range = 30
+		glow.Color = Style.PALETTE.nomBlue
+		glow.Parent = stage
+
+		-- Cooking pots on the counter. A kitchen, not a machine.
+		for i = -1, 1 do
+			part({
+				Name = "Pot",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(3.2, 3.6, 3.6),
+				CFrame = CFrame.new(i * 9, 6.2, z - facing * (depth / 2 - 5))
+					* CFrame.Angles(0, 0, math.rad(90)),
+				Color = Style.PALETTE.shadow,
+				Material = Enum.Material.Metal,
+				CanCollide = false,
+			}, model)
+		end
+	end
+
+	model.Parent = parent
+end
+
 function WorldService.start()
 	local existing = Workspace:FindFirstChild("Street")
 	if existing then
@@ -410,6 +538,10 @@ function WorldService.start()
 	buildLamps(street)
 	buildPlanters(street)
 	buildBackdrop(street)
+
+	local landmarkZ = World.STREET_LENGTH / 2 + 16
+	buildLandmark(street, "FusionLab", landmarkZ, 1)
+	buildLandmark(street, "EggMarket", -landmarkZ, -1)
 
 	local bases = Instance.new("Folder")
 	bases.Name = "Bases"

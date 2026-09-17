@@ -105,6 +105,49 @@ local REMOTES: { [string]: RemoteSpec } = {
 		description = "Buys a Nomling off the delivery belt. Returns ok, reason.",
 	},
 
+	--- Client -> server. Starts a fusion from two owned Nomling ids.
+	--- The client names two things it owns; the server decides everything
+	--- about what comes out.
+	StartFusion = {
+		name = "StartFusion",
+		kind = "function",
+		direction = "clientToServer",
+		rateCapacity = 3,
+		rateRefill = 0.4,
+		description = "Fuses two owned Nomlings. Returns ok, reason.",
+	},
+
+	--- Client -> server. Claims a finished fusion.
+	ClaimFusion = {
+		name = "ClaimFusion",
+		kind = "function",
+		direction = "clientToServer",
+		rateCapacity = 3,
+		rateRefill = 0.4,
+		description = "Claims a finished fusion. Returns ok, reason.",
+	},
+
+	--- Server -> client. THE REVEAL. Carries the new creature's genome, its
+	--- name, and whether this player is the first person anywhere to make it.
+	FusionReveal = {
+		name = "FusionReveal",
+		kind = "event",
+		direction = "serverToClient",
+		rateCapacity = 0,
+		rateRefill = 0,
+		description = "Announces a finished fusion to the player who made it.",
+	},
+
+	--- Server -> everyone. A World First, announced across the server.
+	WorldFirst = {
+		name = "WorldFirst",
+		kind = "event",
+		direction = "serverToClient",
+		rateCapacity = 0,
+		rateRefill = 0,
+		description = "Broadcasts a World First discovery to the whole server.",
+	},
+
 	--- Client -> server. Claims a finished incubator.
 	--- The hatch roll happens here, on the server, when this is called -- never
 	--- on purchase and never on the client.

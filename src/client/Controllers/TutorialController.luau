@@ -52,6 +52,19 @@ local STEPS: { Step } = {
 		end,
 	},
 	{
+		text = "Tap 🧪 FUSE and combine two Nomlings — you'll get one nobody has ever seen",
+		done = function(snap)
+			-- Cleared once they own something gen 2 or better, which only
+			-- fusing can produce.
+			for _, entry in (snap.roster or {}) do
+				if (entry.gen or 1) >= 2 then
+					return true
+				end
+			end
+			return false
+		end,
+	},
+	{
 		text = "Now the fun part: walk into someone else's base and hold SNATCH",
 		done = function(snap)
 			return (snap.playtime or 0) > 300
@@ -63,6 +76,8 @@ local HELP_LINES = {
 	"🥚  Your base is behind you. Nomlings on pedestals earn coins every second.",
 	"🛻  The BELT runs down the middle of the street. Walk up to a Nomling and buy it.",
 	"✨  A mutated Nomling glows and earns several times more. Grab those.",
+	"🧪  The FUSION KITCHEN combines two Nomlings into one that has never existed.",
+	"🏆  Be the first player anywhere to make one and your name goes on it forever.",
 	"😈  Walk into another player's base and hold SNATCH to take one of theirs.",
 	"🏃  Carrying makes you slower. Get it back to YOUR base to keep it.",
 	"🛡️  Brand-new players cannot be snatched from, and neither can you at first.",

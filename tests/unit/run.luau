@@ -23,5 +23,6 @@ require("./income.spec")
 require("./world.spec")
 require("./snatch.spec")
 require("./nomlingspec.spec")
+require("./fusion.spec")
 
 process.exit(h.report())
