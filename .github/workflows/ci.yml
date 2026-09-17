@@ -67,6 +67,9 @@ jobs:
       - name: Economy parity (Economy.luau vs the simulator)
         run: python3 tests/parity/economy_parity.py
 
+      - name: Kid-safe content
+        run: python3 tools/validate-kid-safe.py
+
       - name: Catalog validation
         run: python3 tools/validate-catalog.py
 

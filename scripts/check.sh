@@ -36,6 +36,7 @@ step "Lint" selene src tests
 step "Unit tests" lune run tests/unit/run
 step "Economy parity" python3 tests/parity/economy_parity.py
 step "Catalog validation" python3 tools/validate-catalog.py
+step "Kid-safe content" python3 tools/validate-kid-safe.py
 step "Rojo build" rojo build default.project.json --output /tmp/nomling-check.rbxl
 
 printf '\n'
