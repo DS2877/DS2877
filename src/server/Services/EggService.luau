@@ -157,7 +157,7 @@ function EggService.claim(player: Player, slot: unknown): (boolean, string?)
 	if not stored then
 		return refuse("Your Nomling book is full.")
 	end
-	local isNew = BookService.record(data, stored)
+	local isNew = BookService.record(data, stored, player)
 
 	table.remove(data.incubators, index)
 

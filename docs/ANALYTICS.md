@@ -39,8 +39,15 @@ logic split into the pure, Lune-tested `src/shared/Logic/Funnel.luau`.
 | ✅ | `snatch_succeeded`, `rebirth` |
 | ✅ | `coins_source` / `coins_sink` (offline, egg, belt, rebirth) |
 | ✅ | `snatch_attempted` (with `blocked_reason`), `gate_raised` |
-| ⬜ | `weather_started`, `mutation_gained`, `snatch_defended` |
+| ✅ | `weather_started`, `mutation_gained`, `snatch_defended`, `comeback_egg_granted` |
+| ✅ | `fusion_book_milestone`, `nomling_placed` with `is_vault` |
+| ⬜ | `coins_collected` — income accrues continuously, so there is no collect step to log |
 | ⬜ | everything under §4 monetisation — the features do not exist yet (M3) |
+
+**Session length, playtime and retention are NOT custom events.** Roblox reports
+them natively (§5: Analytics → Engagement / Retention), and duplicating them here
+would cost cardinality budget for numbers we already have. `ftue_spawned` at 0 s
+is what ties a session to the funnel.
 
 **Three properties the funnel guarantees**, each tested in
 `tests/unit/funnel.spec.luau` because each is a bug that would otherwise surface
@@ -103,12 +110,17 @@ Logged via `AnalyticsService` onboarding funnel, one step per FTUE beat (`docs/G
 | `snatch_succeeded` | `rarity`, `carry_seconds` |
 | `snatch_defended` | `method` (bubble/gate/timeout) |
 | `gate_raised` | `base_index` |
+| `snatch_defended` value | 1 per save; `method` is `bubble` (a player intervened) or `timeout` (the thief ran out of time) |
 | `comeback_egg_granted` | `egg_tier` |
 | `rebirth` | `rebirth_number`, `playtime_seconds`, `coins_at_rebirth` |
 | `quest_completed` | `quest_id`, `quest_type` |
 | `daily_claimed` | `day_index`, `used_grace` |
 | `invite_sent` / `invite_accepted` | `-` / `referrer_present` |
 | `code_redeemed` | `code` |
+
+**`fusion_book_milestone` is sparse on purpose** — 1, 5, 10, 25, 50, 100, 250, 500, 1000. The question is how far down the collection curve people get; an event per entry would be thousands of rows saying nothing, and would blow the cardinality budget for a number a handful of buckets answers better.
+
+**`is_vault` on `nomling_placed` is the reversal condition for D-024 made measurable.** A vaulted Nomling gives up its income and its chance at a mutation, and the decision record says: if the Vault sits *empty* the cost is too high. This field is the only way to know.
 
 **`gate_raised` answers whether the Laser Gate is a real decision or a reflex.** The Gate is up 60 s in every 90 (D-025), so a player who simply mashes it whenever it is ready will show a raise rate near the cap with no correlation to `snatch_attempted` on their base. If that is what the data says, the cooldown is doing the deciding rather than the player, and the numbers need to change.
 

@@ -4,6 +4,33 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### The rest of the analytics · 2026-09-17
+
+Six events that `docs/ANALYTICS.md` has specified since Phase 1 and nothing
+emitted, so §1b's "what is actually wired" table now has one ⬜ left in §3 and it
+is one we are choosing not to build.
+
+- **`weather_started`** and **`mutation_gained`**, per player. Weather is the
+  free content engine and mutations are the most valuable thing the server hands
+  out, and neither was measured at all. Per player because Roblox custom events
+  are per player — there is no server-wide event — which also answers the
+  question that matters: is anyone PRESENT for weather, or does it keep firing
+  into an empty street?
+- **`snatch_defended`**, with `method` = `bubble` or `timeout`. Together with
+  `snatch_attempted`'s `blocked_reason` this is the whole picture of whether the
+  fair-play rules protect victims or merely frustrate attackers.
+- **`comeback_egg_granted`**, the loss softener. Being robbed has to hand you
+  something; this is how we find out whether it lands.
+- **`fusion_book_milestone`**, at 1, 5, 10, 25, 50, 100, 250, 500, 1000.
+  Deliberately sparse: the question is how far down the collection curve people
+  get, and an event per entry would be thousands of rows saying nothing.
+- **`is_vault` on `nomling_placed`.** D-024's reversal condition says the Vault
+  is wrong if it sits empty. This field is the only way to know.
+
+**Session length and retention are deliberately NOT custom events.** Roblox
+reports both natively (§5), and duplicating them would spend cardinality budget
+on numbers we already have.
+
 ### Offline pay was a salary for owning nothing · 2026-09-17
 
 **Reported:** *"The 2/sec continues while not in game and should not, my

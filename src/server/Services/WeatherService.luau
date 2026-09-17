@@ -25,6 +25,7 @@ local Net = require(Shared:WaitForChild("Net"))
 local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 local Weather = require(Shared:WaitForChild("Config"):WaitForChild("Weather"))
 
+local AnalyticsService = require(script.Parent:WaitForChild("AnalyticsService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
 local PlotService = require(script.Parent:WaitForChild("PlotService"))
@@ -133,6 +134,13 @@ local function applyMutations(kind: string)
 				rarity = "legendary",
 				mutation = spec.mutation,
 			})
+			-- The VALUE is how many this player gained, so Roblox aggregates a
+			-- meaningful total; the mutation goes in a field because it has five
+			-- distinct values and fields are cardinality-limited.
+			AnalyticsService.report(player, "mutation_gained", gained, {
+				mutation = spec.mutation,
+				weather_type = kind,
+			})
 		end
 	end
 end
@@ -148,6 +156,18 @@ local function runEvent()
 	activeKind = kind
 	activeUntil = os.clock() + Economy.WEATHER_DURATION
 	announce("started", kind, Economy.WEATHER_DURATION)
+
+	-- Per player, because Roblox custom events are per player -- there is no
+	-- server-wide event. Once every 12-20 minutes each, which is cheap, and it
+	-- is the only way to learn whether people are PRESENT for weather or
+	-- whether it keeps firing into an empty street.
+	local event = Economy.WEATHER[kind]
+	for _, player in Players:GetPlayers() do
+		AnalyticsService.report(player, "weather_started", if event then event.mult else 1, {
+			weather_type = kind,
+		})
+	end
+
 	applyMutations(kind)
 
 	task.wait(Economy.WEATHER_DURATION)

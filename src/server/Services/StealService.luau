@@ -156,7 +156,7 @@ local function deposit(carry: Carry)
 		return
 	end
 	Profile.place(thiefData, stored.id, free, Economy.PEDESTALS_BASE)
-	BookService.record(thiefData, stored)
+	BookService.record(thiefData, stored, carry.thief)
 
 	AnalyticsService.report(carry.thief, "snatch_succeeded", 1, {
 		rarity = carry.nomling.rarity,
@@ -180,6 +180,9 @@ local function deposit(carry: Carry)
 			total = Snatch.COMEBACK_HATCH_SECONDS,
 		})
 		notify(carry.victim, "You were snatched! A Comeback Egg is hatching for you.")
+		AnalyticsService.report(carry.victim, "comeback_egg_granted", 1, {
+			egg_tier = Snatch.COMEBACK_EGG,
+		})
 	else
 		notify(carry.victim, "You were snatched!")
 	end
@@ -324,6 +327,10 @@ function StealService.bubbleNear(position: Vector3, firedBy: Player): (boolean, 
 		return false, nil
 	end
 	local carry = best :: Carry
+	AnalyticsService.report(carry.victim, "snatch_defended", 1, {
+		method = "bubble",
+		rarity = carry.nomling.rarity,
+	})
 	returnHome(carry, "Bubbled! You dropped it. 💙")
 	notify(carry.victim, "Someone bubbled the thief — your Nomling is home! 💙")
 	FeedbackService.fire(carry.victim, "purchase", position, { rarity = carry.nomling.rarity })
@@ -381,6 +388,12 @@ function StealService.start()
 			for thief, carry in carrying do
 				-- Timed out, or the carrier disconnected mid-run.
 				if os.clock() - carry.startedAt > Snatch.CARRY_TIMEOUT_SECONDS then
+					-- The timeout IS a defence: the victim kept their creature
+					-- because the thief could not get it home in time.
+					AnalyticsService.report(carry.victim, "snatch_defended", 1, {
+						method = "timeout",
+						rarity = carry.nomling.rarity,
+					})
 					returnHome(carry, "It wriggled free and went home!")
 					continue
 				end

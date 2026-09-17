@@ -258,7 +258,7 @@ function ConveyorService.buy(player: Player, id: unknown): (boolean, string?)
 
 	Profile.place(data, stored.id, free, Economy.PEDESTALS_BASE)
 
-	if BookService.record(data, stored) then
+	if BookService.record(data, stored, player) then
 		FeedbackService.fire(player, "hatch", item.model.Position, {
 			rarity = item.nomling.rarity,
 			mutation = item.nomling.mutation,

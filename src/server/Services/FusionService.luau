@@ -249,7 +249,7 @@ function FusionService.claim(player: Player): (boolean, string?)
 	end
 	-- Recorded before the reveal fires, so the reveal can say whether this is
 	-- a page the player has never filled in.
-	local isNewToBook = BookService.record(data, stored)
+	local isNewToBook = BookService.record(data, stored, player)
 	PlotService.render(player)
 
 	-- The World First claim happens after the creature is safely theirs, so a

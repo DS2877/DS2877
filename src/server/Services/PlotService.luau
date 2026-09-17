@@ -27,8 +27,10 @@ local Net = require(Shared:WaitForChild("Net"))
 local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 
 local DataService = require(script.Parent:WaitForChild("DataService"))
--- NetService only owns the rate limiter and requires nothing back, so this is
--- safe at the top even though PlotService is required by half the server.
+-- Neither of these requires anything back from the server, so both are safe at
+-- the top even though PlotService is required by half of it: AnalyticsService
+-- owns only the funnel and the Roblox API, NetService only the rate limiter.
+local AnalyticsService = require(script.Parent:WaitForChild("AnalyticsService"))
 local NetService = require(script.Parent:WaitForChild("NetService"))
 
 local PlotService = {}
@@ -281,6 +283,15 @@ function PlotService.vault(player: Player, nomlingId: unknown): (boolean, string
 		end
 		return false, reason
 	end
+
+	-- `is_vault` is the field docs/ANALYTICS.md 3 already spec'd on
+	-- nomling_placed, and it is the only way to learn whether anybody uses the
+	-- Vault at all -- which is the exact reversal condition written into D-024.
+	local nomling = Profile.findNomling(data, nomlingId)
+	AnalyticsService.report(player, "nomling_placed", 1, {
+		rarity = if nomling then nomling.rarity else "unknown",
+		is_vault = "true",
+	})
 
 	PlotService.render(player)
 	return true, "In the fridge — safe, but it stops earning."

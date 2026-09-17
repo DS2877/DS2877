@@ -23,6 +23,7 @@ local Net = require(Shared:WaitForChild("Net"))
 local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 
+local AnalyticsService = require(script.Parent:WaitForChild("AnalyticsService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 
 local BookService = {}
@@ -48,12 +49,40 @@ end
 
 --- Records a creature. Returns true only the first time, so a caller can
 --- celebrate a genuinely new discovery and stay quiet about a duplicate.
-function BookService.record(data: Profile.Data, nomling: Profile.Nomling): boolean
+--- Discovery counts worth an event. Sparse and widening on purpose: the
+--- interesting question is how far down the collection curve people get, and an
+--- event per entry would be thousands of rows saying nothing.
+local MILESTONES = { 1, 5, 10, 25, 50, 100, 250, 500, 1000 }
+
+--- Records a discovery. Returns whether it was new.
+---
+--- `player` is optional only because the milestone event needs one and the
+--- profile does not. Every caller has one; passing it is how the Fusion Book's
+--- progress becomes measurable at all.
+function BookService.record(data: Profile.Data, nomling: Profile.Nomling, player: Player?): boolean
 	local key = BookService.keyFor(nomling)
 	if not key then
 		return false
 	end
-	return Profile.discover(data, key)
+	local before = Profile.bookCount(data)
+	local isNew = Profile.discover(data, key)
+	if not isNew or not player then
+		return isNew
+	end
+
+	local after = before + 1
+	for _, milestone in MILESTONES do
+		if after == milestone then
+			AnalyticsService.report(
+				player,
+				"fusion_book_milestone",
+				after,
+				{ milestone = tostring(milestone) }
+			)
+			break
+		end
+	end
+	return isNew
 end
 
 --- Totals, derived from the roster rather than hardcoded, so adding a species
