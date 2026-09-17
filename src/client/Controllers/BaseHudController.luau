@@ -667,9 +667,14 @@ local function refresh(delta: number)
 	local rate = snap.perSecond or 0
 	rateLabel.Text = `{Income.format(rate)} / sec`
 
-	local price = snap.prices and snap.prices.basic
+	-- Price and name the tier the button actually buys. Reading `prices.basic`
+	-- while buying `bestEgg` meant that after a Re-Nom the button advertised
+	-- 25 coins and charged 1200 -- the same hardcoded-"basic" bug that made
+	-- five of the six tiers unreachable, left behind in the display half.
+	local tier = (snap.bestEgg :: string?) or "basic"
+	local price = snap.prices and snap.prices[tier]
 	local affordable = price ~= nil and target >= price
-	eggLabel.Text = if price then "Buy Egg" else "Egg locked"
+	eggLabel.Text = if price then (Style.EGG_LABEL[tier] or "Buy Egg") else "Egg locked"
 	eggPrice.Text = if price then Income.format(price) else ""
 	eggButton.BackgroundColor3 = if affordable
 		then Style.PALETTE.nomOrange

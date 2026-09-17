@@ -1,7 +1,7 @@
 # PHILIP-TODO
 
 Things only Philip can do. Claude keeps this current (brief §12, §11.11).
-Last updated: 2026-09-17 (kid-friendly retune, faces, Fusion Book, Egg Market with odds disclosure, leaderboard, guide marker — audio still blocked on one API key scope).
+Last updated: 2026-09-17 (HUD shrunk and recomposed, belt purchases now answer back — **two API key scopes** still blocked: audio upload and cloud tests).
 
 **Status key:** ⬜ not started · 🟡 in progress · ✅ done · ⏸️ not needed yet
 
@@ -143,24 +143,57 @@ so the next one takes a minute rather than an afternoon.
 
 ---
 
-## 🔴 ONE 30-SECOND JOB, AND IT UNLOCKS ALL THE AUDIO
+## 🔴 ONE 60-SECOND JOB ON ONE SCREEN — TWO CHECKBOXES
 
-**The music and all seven sound effects are built, committed, and one click from
-being in the game.** The upload is blocked on a permission only you can grant.
+Both of these are the same API key, the same page, and neither changes the key
+value, so **GitHub needs no update afterwards**.
 
-Roblox's audio upload needs a **different** API key permission from publishing.
-I tried it; it returned `401 "User not authenticated"`.
+Creator Hub → **Credentials** → **API Keys** → edit `NOMLING_PUBLISHING_KEY`.
 
-**Do this:**
-1. Creator Hub → **Credentials** → **API Keys** → edit `NOMLING_PUBLISHING_KEY`.
-2. Add the **`asset`** API system with the **Write** operation.
-   *(Publishing uses `universe-places` → Write. You need both.)*
-3. Save. **The key value does not change, so GitHub needs no update.**
-4. Tell me, and I run the upload and paste the asset IDs in.
+| Add this API system | With these operations | What it unlocks |
+|---|---|---|
+| **`asset`** | **Write** | The music and all seven sound effects |
+| **`universe.place.luau-execution-session`** | **Read** and **Write** | The cloud test that runs after every deploy |
 
-That is the whole job. Until then the game is silent — the audio system is
-wired, it just has nothing to point at, and it degrades quietly rather than
-erroring.
+*(Publishing already works — that is `universe-places` → Write, which you added
+on 2026-09-16. These are additions, not replacements.)*
+
+**1. `asset` → the game is silent without it.** The theme and every sound effect
+are built, committed and one click from being in the game. The audio system is
+wired; it just has nothing to point at, and it degrades quietly rather than
+erroring. Tried it again on 2026-09-17: all eight files still fail.
+
+**2. `universe.place.luau-execution-session` → CI is red without it.** The place
+publishes fine; the smoke test that runs *inside* the published place returns
+`HTTP 403 PERMISSION_DENIED: the required scope
+universe.place.luau-execution-session:10766688851:write is missing`. This has
+been red since 2026-09-16 and is the **only** failing check on the open pull
+request. Nothing in the game is broken by it — but a permanently red CI is a CI
+nobody reads, so it is worth the extra checkbox.
+
+Tell me when both are saved and I run the audio upload, paste the asset IDs in,
+and re-run CI.
+
+---
+
+## 📱 Playtest — just the fixes (90 seconds)
+
+Everything you flagged in the last screenshots. Do this first; the full script
+below still works if you have longer.
+
+| # | Do this | Should happen |
+|---|---|---|
+| 1 | Join and look at the top of the screen | Nothing sits under the Roblox menu/chat buttons. Purse on the left, objective banner beside it, **not on top of it** |
+| 2 | Look at the bottom | Three buttons, about **a third shorter** than before. **FUSE** fits inside its button. The blue one reads **SAVE** — it is not blank |
+| 3 | Look at the "?" on the right | Below the banner, not across it |
+| 4 | Wait for the egg to hatch | The green slot sits **directly on top of the bottom bar**, not floating in the middle |
+| 5 | Walk to the belt with **0 coins** and tap Buy | **This is the one that was broken.** You should get a shake, a sound, and a message: *"78 more coins and it's yours — your Nomlings are earning right now!"* Before, it did nothing at all |
+| 6 | Look at the banner while you wait | *"Saving up for the belt: 12 / 90 coins"* — it counts |
+| 7 | Look at a belt Nomling from a distance | Big line on top (name, or **✨ MUTATION ✨**), small line under it with rarity, coins/sec and the **price**. Not four identical lines of grey |
+| 8 | Earn 90 coins and tap Buy again | It buys, with the burst and the sound |
+
+**If any button still does nothing, tell me exactly which one and what the purse
+said at the time** — a refusal now always speaks, so silence means a real bug.
 
 ---
 
@@ -178,14 +211,14 @@ Open **Fuse a Nomling TEST** on your iPhone.
 | 6 | Watch the purse | Coins fly in, the number climbs smoothly |
 | 7 | Walk to the belt | Creatures ride past. Mutated ones **glow and sparkle** |
 | 8 | Tap **🥚** (right rail) or the market counter | The **Egg Market** — all six tiers, locked ones showing what Re-Nom unlocks them, and an **Odds** button on each |
-| 9 | Tap **🧪 FUSE** | Pick two — order matters. There's an **Odds** button here too |
+| 9 | Tap the green **FUSE** button | Pick two — order matters. There's an **Odds** button here too |
 | 10 | Claim it | **The reveal.** Silhouette, colours resolve, rarity banner, the name types itself out |
 | 11 | Tap **📖** | **The Fusion Book** — a 12×12 grid. Rows are the snack, columns the animal. Tap any square |
 | 12 | Read the board on the street | 🏆 **TOP NOMLERS**, ranked by coins/sec |
 | 13 | Look at a base sign | Name, coins/sec, Nomling count — how you pick a target |
 | 14 | Wait a few minutes | ⛅ **Weather**: 15 s warning, then a coin boost and possible permanent mutations |
 | 15 | Wait a bit longer | 🦝 **Sneaky Sam** — a masked raccoon bandit — takes one and runs |
-| 16 | Chase him, tap 🫧 | **Bubbled.** Your Nomling comes home |
+| 16 | Chase him, tap the blue **SAVE** button | **Bubbled.** Your Nomling comes home |
 | 17 | Tap **?** | Full how-to-play, any time |
 
 ### What I most want to know
@@ -197,7 +230,7 @@ Open **Fuse a Nomling TEST** on your iPhone.
 
 ### Known and deliberate
 
-- **🔴 Silent** until the API key job at the top of this file is done.
+- **🔴 Silent** until the `asset` scope above is added.
 - **You're alone in the server**, so player-vs-player stealing is untested. Sneaky Sam covers the mechanic.
 - **No Laser Gate or Vault** — you can bubble a thief but not lock one out.
 - **No daily rewards** and **no analytics funnel** yet.

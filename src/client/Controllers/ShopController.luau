@@ -48,15 +48,9 @@ local oddsPanel: Frame
 local oddsTitle: TextLabel
 local oddsList: ScrollingFrame
 
---- Display names, so the UI never shows a config key to a player.
-local EGG_LABEL: { [string]: string } = {
-	basic = "Basic Egg",
-	picnic = "Picnic Basket",
-	bakery = "Bakery Box",
-	sushibar = "Sushi Bar Tray",
-	candycloud = "Candy Cloud",
-	cosmic = "Cosmic Diner",
-}
+--- Display names, so the UI never shows a config key to a player. Shared with
+--- the HUD's egg button, which has to name the same tier it buys.
+local EGG_LABEL: { [string]: string } = Style.EGG_LABEL
 
 local function corner(parent: Instance, radius: number)
 	local ui = Instance.new("UICorner")

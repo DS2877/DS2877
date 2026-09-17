@@ -71,6 +71,18 @@ Style.RARITY = {
 	secret = { color = Color3.fromRGB(250, 250, 255), label = "Secret", icon = "sparkle" },
 }
 
+--- Egg display names, so no UI ever shows a config key to a player. Lives here
+--- rather than in Config/Economy because it is presentation, and Economy is
+--- parity-checked against the simulator, which knows nothing about words.
+Style.EGG_LABEL = {
+	basic = "Basic Egg",
+	picnic = "Picnic Basket",
+	bakery = "Bakery Box",
+	sushibar = "Sushi Bar Tray",
+	candycloud = "Candy Cloud",
+	cosmic = "Cosmic Diner",
+}
+
 --- Per-species colour sets, keyed by the `palette` field in Config/Nomlings.
 --- Three roles each: the body, a lighter belly/limb tone, and the snack layer.
 --- Picked so the snack colour always contrasts with the body -- the overlay is
