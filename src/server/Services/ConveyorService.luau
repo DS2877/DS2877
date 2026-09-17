@@ -34,6 +34,7 @@ local Genome = require(Shared:WaitForChild("Logic"):WaitForChild("Genome"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local NetService = require(script.Parent:WaitForChild("NetService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
+local BookService = require(script.Parent:WaitForChild("BookService"))
 local PlotService = require(script.Parent:WaitForChild("PlotService"))
 
 local ConveyorService = {}
@@ -237,6 +238,15 @@ function ConveyorService.buy(player: Player, id: unknown): (boolean, string?)
 	end
 
 	Profile.place(data, stored.id, free, Economy.PEDESTALS_BASE)
+
+	if BookService.record(data, stored) then
+		FeedbackService.fire(player, "hatch", item.model.Position, {
+			rarity = item.nomling.rarity,
+			mutation = item.nomling.mutation,
+		})
+		local notify = Net.get("Notify") :: RemoteEvent
+		notify:FireClient(player, `📖 NEW! {stored.snack} {stored.animal} added to your book.`)
+	end
 
 	-- Answer the tap before anything else, at the belt where their eyes are.
 	FeedbackService.fire(player, "purchase", item.model.Position, {

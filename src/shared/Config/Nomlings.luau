@@ -170,6 +170,20 @@ for _, species in SPECIES do
 end
 Nomlings.BY_ID = byId
 
+-- A fused creature carries a snack from one parent and an animal from another,
+-- so resolving it back to a Fusion Book key means looking up each half
+-- separately. Built once here rather than searched every time a creature is
+-- acquired.
+local bySnack: { [string]: Species } = {}
+local byAnimal: { [string]: Species } = {}
+for _, entry in SPECIES do
+	bySnack[entry.snack] = entry
+	byAnimal[entry.animal] = entry
+end
+
+Nomlings.BY_SNACK = bySnack
+Nomlings.BY_ANIMAL = byAnimal
+
 function Nomlings.get(id: string): Species
 	local species = byId[id]
 	assert(species ~= nil, `unknown Nomling species '{id}'`)

@@ -22,6 +22,44 @@ local function creature(snack: string, animal: string, rarity: string): Profile.
 	}
 end
 
+-- This runs FIRST on purpose, before any test has called sanitize.
+--
+-- A real bug lived here: an edit anchored on "return Profile" matched the FIRST
+-- occurrence in the file, which is `return Profile.new(now)` inside sanitize --
+-- so Profile.rebirth was being DEFINED INSIDE A CONDITIONAL BRANCH. It existed
+-- only after sanitize had been called with a non-table. New players took that
+-- branch, so it worked for them; an existing player's Re-Nom would have called
+-- a nil value. Nothing in the suite caught it, because an earlier test happened
+-- to call sanitize with a non-table first.
+h.test("REGRESSION: every exported function exists at module scope", function()
+	for _, name in
+		{
+			"new",
+			"sanitize",
+			"migrate",
+			"addCoins",
+			"spendCoins",
+			"findNomling",
+			"addNomling",
+			"pedestalOf",
+			"place",
+			"unplace",
+			"placedNomlings",
+			"isStranded",
+			"grantStarterEgg",
+			"rebirth",
+			"discover",
+			"bookCount",
+		}
+	do
+		h.expectEqual(
+			type((Profile :: any)[name]),
+			"function",
+			`Profile.{name} is missing -- is it nested inside another function?`
+		)
+	end
+end)
+
 h.test("a new profile is empty and valid", function()
 	local data = Profile.new(NOW)
 	h.expectEqual(data.coins, 0, "coins")
@@ -291,4 +329,37 @@ h.test("each rebirth unlocks at least one new egg tier eventually", function()
 		tiers += 1
 	end
 	h.expectTrue(tiers >= 3, `only {tiers} distinct unlock points across the egg tiers`)
+end)
+
+h.test("the Fusion Book records a discovery once", function()
+	local data = Profile.new(NOW)
+	h.expectEqual(Profile.bookCount(data), 0, "a new book is empty")
+	h.expectTrue(Profile.discover(data, "g2:sushi-walrus"), "first sighting is a discovery")
+	h.expectTrue(not Profile.discover(data, "g2:sushi-walrus"), "second sighting is not")
+	h.expectEqual(Profile.bookCount(data), 1, "and is only counted once")
+end)
+
+h.test("REGRESSION: Re-Nom never takes the Fusion Book", function()
+	-- Coins and creatures are the price of a rebirth. What a player has
+	-- DISCOVERED is not -- it is the one thing they cannot be asked to give up
+	-- twice, and losing it would make every rebirth feel like a punishment.
+	local data = Profile.new(NOW)
+	Profile.discover(data, "g2:sushi-walrus")
+	Profile.discover(data, "species:taco_rhino")
+	Profile.addCoins(data, Economy.rebirthCost(0))
+
+	Profile.rebirth(data, Economy.rebirthCost(0))
+	h.expectEqual(Profile.bookCount(data), 2, "the book must survive a rebirth")
+	h.expectTrue(data.book["g2:sushi-walrus"], "and keep its entries")
+end)
+
+h.test("a tampered book cannot grow without bound", function()
+	local raw = { book = {} }
+	for i = 1, 20000 do
+		raw.book[`k{i}`] = true
+	end
+	raw.book[string.rep("x", 200)] = true
+	local data = Profile.sanitize(raw, NOW, CAP, PEDS)
+	h.expectTrue(Profile.bookCount(data) <= 8000, "the book must be bounded on load")
+	h.expectTrue(not data.book[string.rep("x", 200)], "an absurd key must be dropped")
 end)

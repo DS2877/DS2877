@@ -25,6 +25,7 @@ local Genome = require(Shared:WaitForChild("Logic"):WaitForChild("Genome"))
 local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 local Style = require(Shared:WaitForChild("Style"))
 
+local BookService = require(script.Parent:WaitForChild("BookService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
 local PlotService = require(script.Parent:WaitForChild("PlotService"))
@@ -151,6 +152,7 @@ local function deposit(carry: Carry)
 		return
 	end
 	Profile.place(thiefData, stored.id, free, Economy.PEDESTALS_BASE)
+	BookService.record(thiefData, stored)
 
 	PlotService.render(carry.thief)
 	notify(carry.thief, `Got it! {carry.nomling.snack} {carry.nomling.animal} is yours.`)

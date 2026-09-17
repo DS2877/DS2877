@@ -26,6 +26,7 @@ local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
+local BookService = require(script.Parent:WaitForChild("BookService"))
 -- Safe at the top: FusionService requires DataService, FeedbackService,
 -- NetService and PlotService, none of which require this module back.
 local FusionService = require(script.Parent:WaitForChild("FusionService"))
@@ -143,6 +144,7 @@ function EggService.claim(player: Player, slot: unknown): (boolean, string?)
 	if not stored then
 		return refuse("Your Nomling book is full.")
 	end
+	local isNew = BookService.record(data, stored)
 
 	table.remove(data.incubators, index)
 
@@ -166,6 +168,11 @@ function EggService.claim(player: Player, slot: unknown): (boolean, string?)
 		if root and root:IsA("BasePart") then root.Position + Vector3.new(0, 3, 0) else nil,
 		{ rarity = rarity, mutation = hatched.mutation }
 	)
+
+	if isNew then
+		local notify = Net.get("Notify") :: RemoteEvent
+		notify:FireClient(player, `📖 NEW! {stored.snack} {stored.animal} added to your book.`)
+	end
 
 	return true, nil
 end

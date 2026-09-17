@@ -105,6 +105,18 @@ local REMOTES: { [string]: RemoteSpec } = {
 		description = "Buys a Nomling off the delivery belt. Returns ok, reason.",
 	},
 
+	--- Client -> server. Fetches the player's Fusion Book.
+	--- Pulled on demand rather than pushed with every profile sync: it is
+	--- hundreds of keys for a screen that is open for seconds at a time.
+	GetBook = {
+		name = "GetBook",
+		kind = "function",
+		direction = "clientToServer",
+		rateCapacity = 4,
+		rateRefill = 0.5,
+		description = "Returns the player's discovered combinations and the totals.",
+	},
+
 	--- Client -> server. Re-Nom: trade everything for a permanent multiplier.
 	--- Irreversible, so the client confirms first and the server re-checks the
 	--- cost from Config rather than trusting that a confirmation happened.

@@ -61,6 +61,13 @@ export type Data = {
 	stats: { hatched: number, placed: number, coinsEarned: number, playtime: number },
 	--- Monotonic, so a Nomling id is never reused within a profile.
 	nextId: number,
+	--- The Fusion Book: every combination this player has ever owned, by combo
+	--- key. A set rather than a list, because "have I seen this?" is the only
+	--- question ever asked of it.
+	---
+	--- Kept FOREVER, including across a Re-Nom. What a player has discovered is
+	--- the one thing they cannot be asked to give up twice (GDD 5.9).
+	book: { [string]: boolean },
 }
 
 function Profile.new(now: number): Data
@@ -74,6 +81,7 @@ function Profile.new(now: number): Data
 		lastSeen = now,
 		stats = { hatched = 0, placed = 0, coinsEarned = 0, playtime = 0 },
 		nextId = 1,
+		book = {},
 	}
 end
 
@@ -104,29 +112,6 @@ end
 --- them so this module stays dependency-free).
 function Profile.sanitize(raw: any, now: number, inventoryCap: number, pedestalCount: number): Data
 	if type(raw) ~= "table" then
-		--- Re-Nom: wipes the base for a permanent multiplier.
-		---
-		--- WHAT IT KEEPS MATTERS AS MUCH AS WHAT IT TAKES (GDD 5.9). Coins and every
-		--- Nomling go. The Fusion Book, the stats and the rebirth count stay, because
-		--- what a player has DISCOVERED is the thing they cannot be asked to give up
-		--- twice -- and World First records live outside the profile entirely.
-		---
-		--- The caller must have already checked affordability and must grant the free
-		--- restart egg afterwards. Without that egg the player has no coins, no income
-		--- and no way to buy anything: permanently stuck, one minute into the reward
-		--- for their first half hour. See D-008; there is a regression test.
-		function Profile.rebirth(data: Data, cost: number): boolean
-			if data.coins < cost then
-				return false
-			end
-			data.coins = 0
-			data.nomlings = {}
-			data.pedestals = {}
-			data.incubators = {}
-			data.rebirths += 1
-			return true
-		end
-
 		return Profile.new(now)
 	end
 
@@ -197,6 +182,21 @@ function Profile.sanitize(raw: any, now: number, inventoryCap: number, pedestalC
 			end
 			placed[nomlingId] = true
 			clean.pedestals[tostring(math.floor(index))] = nomlingId
+		end
+	end
+
+	-- The book. Bounded, because it is the one field a tampered save could make
+	-- arbitrarily large, and a key long enough to be nonsense is dropped.
+	if type(raw.book) == "table" then
+		local kept = 0
+		for key, value in raw.book :: any do
+			if kept >= 8000 then
+				break
+			end
+			if type(key) == "string" and #key > 0 and #key <= 64 and value then
+				clean.book[key] = true
+				kept += 1
+			end
 		end
 	end
 
@@ -367,6 +367,48 @@ function Profile.placedNomlings(data: Data): { Nomling }
 		end
 	end
 	return result
+end
+
+--- Re-Nom: wipes the base for a permanent multiplier.
+---
+--- WHAT IT KEEPS MATTERS AS MUCH AS WHAT IT TAKES (GDD 5.9). Coins and every
+--- Nomling go. The Fusion Book, the stats and the rebirth count stay, because
+--- what a player has DISCOVERED is the thing they cannot be asked to give up
+--- twice -- and World First records live outside the profile entirely.
+---
+--- The caller must have already checked affordability and must grant the free
+--- restart egg afterwards. Without that egg the player has no coins, no income
+--- and no way to buy anything: permanently stuck, one minute into the reward
+--- for their first half hour. See D-008; there is a regression test.
+function Profile.rebirth(data: Data, cost: number): boolean
+	if data.coins < cost then
+		return false
+	end
+	data.coins = 0
+	data.nomlings = {}
+	data.pedestals = {}
+	data.incubators = {}
+	-- `book` is deliberately untouched. Everything else goes.
+	data.rebirths += 1
+	return true
+end
+
+--- Records a discovery. Returns true the FIRST time only, which is what the
+--- caller uses to decide whether this is worth celebrating.
+function Profile.discover(data: Data, key: string): boolean
+	if #key == 0 or data.book[key] then
+		return false
+	end
+	data.book[key] = true
+	return true
+end
+
+function Profile.bookCount(data: Data): number
+	local n = 0
+	for _ in data.book do
+		n += 1
+	end
+	return n
 end
 
 return Profile

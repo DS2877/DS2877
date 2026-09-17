@@ -31,6 +31,7 @@ local Net = require(Shared:WaitForChild("Net"))
 local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 
+local BookService = require(script.Parent:WaitForChild("BookService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
 local NetService = require(script.Parent:WaitForChild("NetService"))
@@ -237,6 +238,9 @@ function FusionService.claim(player: Player): (boolean, string?)
 	if free then
 		Profile.place(data, stored.id, free, Economy.PEDESTALS_BASE)
 	end
+	-- Recorded before the reveal fires, so the reveal can say whether this is
+	-- a page the player has never filled in.
+	local isNewToBook = BookService.record(data, stored)
 	PlotService.render(player)
 
 	-- The World First claim happens after the creature is safely theirs, so a
@@ -253,6 +257,12 @@ function FusionService.claim(player: Player): (boolean, string?)
 		rarity = entry.child.rarity,
 		upgraded = entry.child.upgraded,
 		worldFirst = isFirst,
+		-- A World First means nobody ANYWHERE has made it. This means the
+		-- player personally has not -- a much commoner and still satisfying
+		-- thing, and the reveal says so when it is not a world first.
+		newToBook = isNewToBook,
+		bookCount = Profile.bookCount(data),
+		bookTotal = BookService.totals().all,
 		nomlingId = stored.id,
 	})
 
