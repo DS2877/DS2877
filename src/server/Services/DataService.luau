@@ -69,13 +69,18 @@ local sessions: { [Player]: Session } = {}
 --- lose somebody's afternoon.
 local function retry<T>(label: string, fn: () -> T): (boolean, T?)
 	local lastError: any = nil
-	for attempt = 0, #RETRY_DELAYS do
+	-- 1-based, and the delay is taken for the attempt just FAILED rather than
+	-- offset by one. The old `for attempt = 0` with `RETRY_DELAYS[attempt + 1]`
+	-- was correct but read as an array walk starting at zero, which is what
+	-- Luau's ForRange lint says it looks like -- and the lint is right that it
+	-- is the shape of a bug even when it is not one.
+	for attempt = 1, #RETRY_DELAYS + 1 do
 		local ok, result = pcall(fn)
 		if ok then
 			return true, result
 		end
 		lastError = result
-		local delay = RETRY_DELAYS[attempt + 1]
+		local delay = RETRY_DELAYS[attempt]
 		if delay then
 			task.wait(delay)
 		end

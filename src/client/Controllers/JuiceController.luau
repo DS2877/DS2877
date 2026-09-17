@@ -57,8 +57,15 @@ local shakeDecay = 0
 --- a physical object rather than an animation.
 function JuiceController.pop(target: GuiObject, strength: number?)
 	local amount = strength or 0.18
-	local base = target:GetAttribute("JuiceBaseSize")
-	if typeof(base) ~= "UDim2" then
+	-- Declared as UDim2 rather than inferred. GetAttribute returns `unknown?`,
+	-- and the typeof() guard below narrows the VALUE without narrowing the
+	-- variable it was read into -- so every .X and .Y after it reads as an
+	-- index into something that could be nil.
+	local stored = target:GetAttribute("JuiceBaseSize")
+	local base: UDim2
+	if typeof(stored) == "UDim2" then
+		base = stored
+	else
 		base = target.Size
 		target:SetAttribute("JuiceBaseSize", base)
 	end
@@ -205,7 +212,10 @@ local function cueColour(rarity: string?): Color3
 end
 
 local function handle(kind: string, position: Vector3?, extra: { [string]: any }?)
-	local info = extra or {}
+	-- `or {}` alone makes this a union with an empty sealed table, which has no
+	-- keys at all -- so the fallback meant to make the lookups safe is what makes
+	-- them unsound. Annotating the local keeps the indexer.
+	local info: { [string]: any } = extra or {}
 	local rarity = if type(info.rarity) == "string" then info.rarity else nil
 	local weight = RARITY_WEIGHT[rarity or "common"] or 0.2
 	local colour = cueColour(rarity)
@@ -271,7 +281,8 @@ function JuiceController.start()
 		if type(kind) ~= "string" then
 			return
 		end
-		local ok, err = pcall(handle, kind, position, extra)
+		local ok, err =
+			pcall(handle :: (string, Vector3?, { [string]: any }?) -> any, kind, position, extra)
 		if not ok then
 			warn(`[JuiceController] cue '{kind}' failed: {err}`)
 		end

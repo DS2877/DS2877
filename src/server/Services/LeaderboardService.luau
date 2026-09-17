@@ -191,10 +191,12 @@ local function refresh()
 	end)
 
 	for index = 1, SHOWN do
-		local row = rows:FindFirstChild(`Row{index}`)
-		if not row then
-			row = makeRow(rows, index)
-		end
+		-- makeRow always returns a row, but assigning it back into the `Instance?`
+		-- that FindFirstChild produced leaves the variable optional forever. A
+		-- separate non-optional local is the honest shape: past this point there
+		-- IS a row.
+		local existing = rows:FindFirstChild(`Row{index}`)
+		local row: Instance = existing or makeRow(rows, index)
 		local nameLabel = row:FindFirstChild("PlayerName")
 		local rateLabel = row:FindFirstChild("Rate")
 		local entry = entries[index]
@@ -226,7 +228,7 @@ function LeaderboardService.start()
 		end
 
 		while true do
-			local ok, err = pcall(refresh)
+			local ok, err = pcall(refresh :: () -> any)
 			if not ok then
 				warn(`[LeaderboardService] refresh failed: {err}`)
 			end

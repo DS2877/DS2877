@@ -218,7 +218,7 @@ function WeatherController.start()
 		if type(info) ~= "table" then
 			return
 		end
-		local ok, err = pcall(handle, info)
+		local ok, err = pcall(handle :: (any) -> any, info)
 		if not ok then
 			warn(`[WeatherController] weather phase failed: {err}`)
 		end
