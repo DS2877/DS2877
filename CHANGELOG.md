@@ -4,6 +4,32 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### The AAA sprint · 2026-09-17
+
+**The game now looks and plays like a product.** Seven areas, one night.
+
+**Creatures are real.** 15–20 parts each: torso, belly panel, head, snout, ears, two eyes with pupils, legs or flippers, a tail or fluke, wings where the archetype has them — and the **snack overlay** that makes a fusion legible in under a second: taco shells arching over backs, nori bands, pizza-crust collars, sprinkles, popcorn puffs, waffle grids. Built on the **client** from a replicated genome, because a genome is a handful of strings and a model is twenty parts, and the GDD's test case is 150 visible at once. 11 tests cover the part budget, the eyes, the snack layer, distinct silhouettes per archetype, and byte-identical geometry forever.
+
+**Fusion, the reveal, and World First.** The differentiator, finally in. Ordered pairs (Sushiwal ≠ Wafflepup), a child never worse than its best parent, matching tiers upgrading more often than mismatched ones, and fusion that can inherit a mutation but never invent one. The reveal gets the whole screen: dim, silhouette before colour, rarity banner, then the **name types itself out** — because the name is the proof nobody has seen this creature before. World First is a DataStore first-writer-wins claim broadcast server-wide, storing a UserId and never a display name (D-013).
+
+**Art direction.** One committed time of day, warm-neutral ambient instead of grey, Atmosphere with real haze, volumetric clouds, restrained bloom, a colour grade too small to notice working, sun rays, subtle far-only depth of field — plus measured per-device quality scaling. None of it costs a part.
+
+**A street that reads as a place.** Pavement with a kerb you never jump, lane markings, lamp posts with warm lights, planters, striped market awnings, belt rails, and silhouetted buildings past both ends and behind both sides. A **Fusion Kitchen** and an **Egg Market** at either end, so the road runs between somewhere and somewhere else.
+
+**Game feel.** Coin flight into the purse, particle bursts scaled by rarity, camera shake, a screen flash reserved for epic-or-better, a coin counter that eases rather than snaps, incubator progress that fills, toasts that fade. Sound and picture always fire together.
+
+**Stealing you can actually test.** Sneaky Sam and friends rob your base and run for the street's end, and the **Bubble Wand** is the counter-play — which finally makes snatching something you survive rather than something that happens to you. Philip is alone in his server, so without NPCs this half of the game was untestable (GDD 5.8 planned for exactly this).
+
+**The theme, rebuilt and premium.** 36 bars → 66 (60 s → 113 s), scored for tin whistle, fiddle, cello, bodhrán, harp, strings, horn and bells, with a 12-bar development and a finale an octave up. Seven original sound effects, all in the theme's key so feedback never clashes with the loop. **All eight audio files are committed and one click from the game** — blocked only on an API key scope Philip has to add.
+
+**Bugs caught before they shipped**
+- `FUSION_SECONDS` is keyed by **rarity**; the service indexed it by gen, silently returning nil and using the 8-second FTUE time for every fusion in the game.
+- `DataService` fired "profile loaded" before the three services that listen had subscribed, so the first player on a fresh server would have got no base at all.
+- FUSE and Buy Egg were independently bottom-anchored and **overlapped on a 390-point phone screen**.
+- Moving creatures detached from their anchors beyond 70 studs — every belt creature and every carried one.
+- `Income.format` overflowed the HUD past 10³³.
+- An incubator saved by the previous build had no `total`, which would divide by zero on the client's progress bar.
+
 ### M1 vertical slice, first half · 2026-09-16
 
 **The loop runs.** Join, get a plot, buy an egg, watch it hatch, a Nomling lands on a pedestal and starts earning, leave, come back to your coins.

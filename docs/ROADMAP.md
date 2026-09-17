@@ -49,8 +49,8 @@ Repo scaffold, toolchain, CI/CD, cloud setup script and allowlist text, `CLAUDE.
 ### M1 — Vertical slice · Oct 11 — 🟡 in progress
 Plot, pedestals, coins, Basic egg, hatch, collect, save/load, the first 60 seconds of the FTUE, analytics funnel.
 
-**Done 2026-09-16:** plot assignment, pedestals, server-side coin income with offline accrual, Basic egg purchase and hatch, save/load with a session lock, phone HUD.
-**Still open:** the rest of the FTUE (tutorial prompts and the guided first 60 seconds), the analytics funnel, and placing/moving a Nomling by hand.
+**Done 2026-09-16/17:** plot assignment, pedestals, server-side coin income with offline accrual, Basic egg purchase and hatch, save/load with a session lock, phone HUD, the street layout, the delivery belt, stealing with NPC thieves and the Bubble Wand, an objective-driven tutorial, art direction with per-device quality scaling, real client-built creatures, game feel, and **M2a fusion with the reveal and World First — pulled forward from 25 Oct**.
+**Still open:** the analytics funnel, placing/moving a Nomling by hand, and the audio upload (blocked on an API key scope — `docs/PHILIP-TODO.md`).
 
 **Done when:** a player can join, hatch, place, collect, leave and come back to their coins.
 **Phone demo (3 min):** join → egg hatches in 5 s → place it → collect → rejoin and confirm data persisted.

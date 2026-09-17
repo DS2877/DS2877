@@ -12,16 +12,16 @@ python3 tools/music/render.py --out build --no-wav   # skip the slow part
 
 ## 1. What it is
 
-60 seconds, 36 bars, 6/8, **D major with a borrowed ♭VII**, dotted quarter = 72.
-Solo recorder and harp, growing to a full ensemble and stripping back so the loop is seamless.
+**113 seconds, 66 bars**, 6/8, **D major with a borrowed ♭VII**, dotted quarter = 72.
+Tin whistle over harp, growing to a full folk ensemble — fiddle countermelody, cello, bodhrán, strings, horn, bells — and stripping back so the loop is seamless.
 
 | | |
 |---|---|
-| Form | Intro 2 · A1 8 · A2 8 · Bridge 8 · A3 8 · Outro 2 |
+| Form | Intro 6 · A1 8 · A2 8 · Bridge 8 · **Development 12** · A3 8 · **Finale 8** · Outro 8 |
 | A harmony | D – A/C# – Bm – G – D – **C** – G – A7 |
 | Bridge harmony | G – A7 – Bm – G – Em – A7 – D – A7 |
 | Range | F#3 – G5 (comfortable for a real recorder or flute) |
-| Loop point | exactly **60.000 s** |
+| Loop point | exactly **110.000 s** |
 
 ## 2. The four decisions
 
@@ -59,7 +59,8 @@ the same instruments.
 
 ## 5. Before it ships
 
-- [ ] **Convert WAV → OGG.** No encoder exists in the cloud environment; this is a desktop step.
+- [x] ~~Convert WAV → OGG.~~ `render.py` emits OGG directly (optional `soundfile`), encoded in blocks because handing libsndfile's Vorbis encoder five million frames at once segfaults it.
+- [ ] 🔴 **Add the `asset` API system with Write to the API key.** Audio upload needs a different permission from publishing; the attempt returns `401 "User not authenticated"`. This is the only thing between the audio and the game.
 - [ ] Upload to Roblox, set `Sound.Looped = true`, let the reverb tail overlap the restart.
 - [ ] **Mix check on a phone speaker.** Bass is deliberately light because that is where this gets heard.
 - [ ] Decide whether to re-record with real players or better samples before launch. The mockup is good enough to ship at M1 and is not the final artefact.
