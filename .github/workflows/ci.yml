@@ -13,6 +13,15 @@ on:
           quota by accident.
         type: boolean
         default: false
+      audio_file:
+        description: >-
+          With upload_audio on, upload only THIS file instead of all eight, e.g.
+          assets/audio/sfx-deny.ogg. Run one small file first: it proves the API
+          key, the creator id and the multipart format for the cost of a single
+          slot. upload-audio.yml has the same option but cannot be dispatched
+          until it reaches the default branch, which is why this lives here too.
+        type: string
+        default: ""
 
 # A second push cancels the first: no point spending minutes on a stale commit.
 concurrency:
@@ -183,14 +192,20 @@ jobs:
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
           ROBLOX_USER_ID: "7185134469"
-        run: python3 tools/upload-audio.py --all assets/audio
+        run: |
+          if [ -n "${{ inputs.audio_file }}" ]; then
+            python3 tools/upload-audio.py --file "${{ inputs.audio_file }}" \
+              --name "Fuse a Nomling audio"
+          else
+            python3 tools/upload-audio.py --all assets/audio
+          fi
       - name: Report
         run: |
           {
             echo "### Theme upload"
-            if [ -n "${{ steps.upload.outputs.uploaded }}" ]; then
+            if [ -n "${{ steps.upload.outputs.uploaded }}${{ steps.upload.outputs.asset_id }}" ]; then
               echo '```'
-              echo "${{ steps.upload.outputs.uploaded }}"
+              echo "${{ steps.upload.outputs.uploaded }}${{ steps.upload.outputs.asset_id }}"
               echo '```'
             else
               echo "Nothing uploaded - see the log (most likely the key lacks the \`asset\` scope)."
