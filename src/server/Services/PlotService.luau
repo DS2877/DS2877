@@ -37,7 +37,7 @@ local PlotService = {}
 PlotService.Name = "PlotService"
 
 local PEDESTAL_HEIGHT = World.PEDESTAL_HEIGHT
-local PEDESTAL_SIZE = Vector3.new(4, PEDESTAL_HEIGHT, 4)
+local PEDESTAL_SIZE = Vector3.new(World.PEDESTAL_WIDTH, PEDESTAL_HEIGHT, World.PEDESTAL_WIDTH)
 local PLOT_COUNT = World.BASE_COUNT
 
 type Plot = {
@@ -60,16 +60,17 @@ function PlotService.onNomlingRendered(fn: (Instance, Player, string) -> ())
 end
 
 local function pedestalPositions(pad: BasePart): { CFrame }
-	-- A ring inside the pad, facing outward from the pad's centre. Laid out in
-	-- the pad's own space so it follows the pad's rotation around the plaza.
+	-- A ring inside the pad, laid out in the pad's own space so it follows the
+	-- pad's rotation.
+	--
+	-- THE MATHS LIVES IN World.pedestalRing, not here. It is the only thing
+	-- that knows where a pedestal goes, and the egg bench has to be placed
+	-- around it -- so it has to be somewhere a Lune test can ask, which a
+	-- function taking a BasePart is not.
 	local result: { CFrame } = {}
-	local count = Economy.PEDESTALS_BASE
-	local radius = math.min(pad.Size.X, pad.Size.Z) * 0.32
-	for i = 1, count do
-		local angle = (i - 1) / count * math.pi * 2
-		local offset =
-			Vector3.new(math.cos(angle) * radius, PEDESTAL_HEIGHT / 2, math.sin(angle) * radius)
-		table.insert(result, pad.CFrame * CFrame.new(offset))
+	for _, offset in World.pedestalRing(Economy.PEDESTALS_BASE) do
+		result[#result + 1] = pad.CFrame
+			* CFrame.new(Vector3.new(offset.x, PEDESTAL_HEIGHT / 2, offset.z))
 	end
 	return result
 end

@@ -96,6 +96,49 @@ World.PEDESTAL_ROWS = 2
 World.PEDESTAL_COLUMNS = 4
 World.PEDESTAL_HEIGHT = 3
 World.PEDESTAL_SPACING = 18
+--- A pedestal is this many studs on a side.
+World.PEDESTAL_WIDTH = 4
+--- The pedestal ring's radius, as a fraction of the pad's shorter side.
+World.PEDESTAL_RING_FACTOR = 0.32
+
+-- --- the egg nest -----------------------------------------------------------
+-- The bench the eggs hatch on (WorldService builds it, HatcheryController fills
+-- it). Here rather than inline because it has to MISS three other things -- the
+-- pedestal ring, the awning posts and the path -- and "miss" is arithmetic.
+-- tests/unit/world.spec.luau checks it at every base.
+
+--- How far in from the kerb the bench centre sits.
+World.NEST_INSET = 31
+--- Along the road, relative to the base centre. Negative is one side of the
+--- path, which runs down the middle.
+World.NEST_Z = -19
+--- Bench footprint: depth (across the base) then length (along the road).
+World.NEST_DEPTH = 5
+World.NEST_LENGTH = 25
+--- Diameter of one egg cup, and the gap between cup centres.
+World.NEST_CUP = 3.4
+World.NEST_CUP_PITCH = 5.8
+
+-- --- the awning -------------------------------------------------------------
+-- A market-stall canopy across the base front: posts, a beam, striped fabric
+-- and a scalloped valance. Heights live here because the lowest piece of it has
+-- to clear a jumping player, and tests/unit/nest.spec.luau checks that it does.
+
+--- How far in from the kerb the awning's front posts and beam stand.
+World.AWNING_INSET = 2
+--- A front post is this many studs on a side, and how many there are.
+World.AWNING_POST_WIDTH = 0.9
+World.AWNING_POSTS = 6
+--- Underside of the canopy at its front edge.
+World.AWNING_LIP = 15.0
+--- How far back the canopy reaches, and how much it rises over that distance.
+World.AWNING_DEPTH = 14
+World.AWNING_RISE = 2.4
+--- The beam under the front lip, and the fringe hanging off it.
+World.AWNING_BEAM_H = 0.9
+World.AWNING_VALANCE_H = 1.0
+--- Alternating fabric strips across the frontage.
+World.AWNING_STRIPES = 9
 
 --- Where the kerb is: half the road, plus the pavement.
 World.KERB_X = World.STREET_WIDTH / 2
@@ -111,6 +154,35 @@ function World.baseCenter(index: number): (number, number, number)
 	local z = slot * pitch - span / 2
 	local x = side * (World.KERB_X + World.BASE_DEPTH / 2)
 	return x, z, side
+end
+
+--- The pedestal ring, as offsets from the base centre. `count` positions evenly
+--- around a circle whose radius follows the pad's shorter side.
+---
+--- Pure, and shared with PlotService, so the one place that knows where a
+--- pedestal goes is also the place a test can ask.
+function World.pedestalRing(count: number): { { x: number, z: number } }
+	local radius = math.min(World.BASE_DEPTH, World.BASE_WIDTH) * World.PEDESTAL_RING_FACTOR
+	local ring: { { x: number, z: number } } = {}
+	for i = 1, count do
+		local angle = (i - 1) / count * math.pi * 2
+		table.insert(ring, { x = math.cos(angle) * radius, z = math.sin(angle) * radius })
+	end
+	return ring
+end
+
+--- The egg bench's footprint, as half-extents around a centre offset from the
+--- base centre. `side` is the base's side of the road (-1 west, +1 east), which
+--- mirrors the bench along with everything else in the plot.
+function World.nestFootprint(
+	side: number
+): { x: number, z: number, halfDepth: number, halfLength: number }
+	return {
+		x = -side * World.NEST_INSET,
+		z = World.NEST_Z,
+		halfDepth = World.NEST_DEPTH / 2,
+		halfLength = World.NEST_LENGTH / 2,
+	}
 end
 
 --- Pedestal positions within a base, relative to its centre.

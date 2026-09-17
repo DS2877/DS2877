@@ -403,15 +403,19 @@ local function buildBase(index: number, parent: Instance): BasePart
 	-- the lowest thing here at 13.1 studs. A jumping character's head tops out
 	-- around 12.7 (about 5.5 studs standing, plus a 7.2-stud jump), so you can
 	-- run and jump into your own base without ever knocking your head on it.
-	local AWNING_LIP = 15.0
-	local AWNING_DEPTH = 14
-	local AWNING_RISE = 2.4
-	local BEAM_H = 0.9
+	-- Every number comes from World, because tests/unit/nest.spec.luau checks
+	-- that the lowest piece of this clears a jumping player and that the egg
+	-- bench below fits between it and the pedestal ring. A copy here would make
+	-- that test a check on nothing.
+	local AWNING_LIP = World.AWNING_LIP
+	local AWNING_DEPTH = World.AWNING_DEPTH
+	local AWNING_RISE = World.AWNING_RISE
+	local BEAM_H = World.AWNING_BEAM_H
 	--- Where the front edge of the awning sits, measured in from the kerb.
-	local lipX = cx - side * (World.BASE_DEPTH / 2 - 2)
+	local lipX = cx - side * (World.BASE_DEPTH / 2 - World.AWNING_INSET)
 	local pitch = math.atan(AWNING_RISE / AWNING_DEPTH)
 
-	local stripes = 9
+	local stripes = World.AWNING_STRIPES
 	local stripeWidth = World.BASE_WIDTH / stripes
 	for i = 0, stripes - 1 do
 		part({
@@ -438,12 +442,13 @@ local function buildBase(index: number, parent: Instance): BasePart
 		Material = Enum.Material.Wood,
 	}, model)
 
-	local posts = 6
+	local posts = World.AWNING_POSTS
+	local postWidth = World.AWNING_POST_WIDTH
 	local postPitch = (World.BASE_WIDTH - 4) / (posts - 1)
 	for i = 0, posts - 1 do
 		part({
 			Name = "AwningPost",
-			Size = Vector3.new(0.9, AWNING_LIP - BEAM_H, 0.9),
+			Size = Vector3.new(postWidth, AWNING_LIP - BEAM_H, postWidth),
 			CFrame = CFrame.new(
 				lipX,
 				(AWNING_LIP - BEAM_H) / 2,
@@ -460,10 +465,10 @@ local function buildBase(index: number, parent: Instance): BasePart
 	for i = 0, stripes - 1 do
 		part({
 			Name = "AwningValance",
-			Size = Vector3.new(0.35, 1.0, stripeWidth * 0.82),
+			Size = Vector3.new(0.35, World.AWNING_VALANCE_H, stripeWidth * 0.82),
 			CFrame = CFrame.new(
 				lipX - side * 0.5,
-				AWNING_LIP - BEAM_H - 0.5,
+				AWNING_LIP - BEAM_H - World.AWNING_VALANCE_H / 2,
 				cz - World.BASE_WIDTH / 2 + stripeWidth * (i + 0.5)
 			),
 			Color = if i % 2 == 0 then Style.PALETTE.nomCream else Style.PALETTE.nomOrange,
@@ -482,27 +487,33 @@ local function buildBase(index: number, parent: Instance): BasePart
 	local nest = Instance.new("Model")
 	nest.Name = "Hatchery"
 
-	local nestZ = cz - 17
-	local nestX = cx - side * (World.BASE_DEPTH / 2 - 14)
+	-- Position and footprint from World, so nest.spec.luau is checking the
+	-- bench that actually gets built. It has to clear three things at once --
+	-- the pedestal ring, the awning posts and the path -- and the ring in
+	-- particular is at 0.32 x the pad's shorter side, which is nowhere the name
+	-- PEDESTAL_ROWS would lead you to look.
+	local footprint = World.nestFootprint(side)
+	local nestX = cx + footprint.x
+	local nestZ = cz + footprint.z
+	local BENCH_H = 2.6
 
 	part({
 		Name = "Bench",
-		Size = Vector3.new(7, 2.6, 25),
-		CFrame = CFrame.new(nestX, 1.3, nestZ),
+		Size = Vector3.new(World.NEST_DEPTH, BENCH_H, World.NEST_LENGTH),
+		CFrame = CFrame.new(nestX, BENCH_H / 2, nestZ),
 		Color = Style.PALETTE.nomCocoa,
 		Material = Enum.Material.Wood,
 	}, nest)
 
-	local cupPitch = 5.8
 	for i = 1, Economy.INCUBATORS_MAX do
 		part({
 			Name = `Nest{i}`,
 			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(0.9, 4.2, 4.2),
+			Size = Vector3.new(0.9, World.NEST_CUP, World.NEST_CUP),
 			CFrame = CFrame.new(
 				nestX,
-				3.05,
-				nestZ + (i - (Economy.INCUBATORS_MAX + 1) / 2) * cupPitch
+				BENCH_H + 0.45,
+				nestZ + (i - (Economy.INCUBATORS_MAX + 1) / 2) * World.NEST_CUP_PITCH
 			) * CFrame.Angles(0, 0, math.rad(90)),
 			Color = Style.PALETTE.surfaceCream,
 			Material = Enum.Material.Sand,

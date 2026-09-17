@@ -30,5 +30,6 @@ require("./visual.spec")
 require("./funnel.spec")
 require("./subscribers.spec")
 require("./gate.spec")
+require("./nest.spec")
 
 process.exit(h.report())
