@@ -68,7 +68,13 @@ One feature each, with tests, updated docs, and a **phone playtest script of 3 m
 
 ## Phase gates
 
-The project runs in phases (`docs/00-kickoff-brief.md` §13). At every **STOP**, summarise and wait. Currently: **Phase 2 (M0 pipeline)**.
+The project runs in phases (`docs/00-kickoff-brief.md` §13). At every **STOP**, summarise and wait.
+
+Currently: **Phase 4 (M2 core fun)**, running roughly three weeks ahead of the
+roadmap. Phase 2 (M0) and Phase 3 (M1 playtest) are cleared; M2a and most of
+M2b shipped early during the M1 sprint. See `docs/ROADMAP.md` for what is
+genuinely still open per milestone — it is kept honest against the code, not
+against intent.
 
 ## End every session with this report
 
