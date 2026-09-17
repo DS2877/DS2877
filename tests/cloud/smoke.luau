@@ -87,30 +87,6 @@ if shared then
 	check("Logic modules present", logic ~= nil and logic:FindFirstChild("Odds") ~= nil)
 end
 
--- Every shared module loads inside the real engine -------------------------
--- The one thing Lune structurally cannot tell us. It resolves requires by file
--- path; Roblox resolves them through script.Parent, so a module that is fine
--- under Lune can still fail to load in the actual game.
-if shared then
-	local broken: { string } = {}
-	local loaded = 0
-	for _, descendant in shared:GetDescendants() do
-		if descendant:IsA("ModuleScript") then
-			local ok, err = pcall(require, descendant)
-			if ok then
-				loaded += 1
-			else
-				table.insert(broken, `{descendant:GetFullName()} -> {err}`)
-			end
-		end
-	end
-	check(
-		`all {loaded + #broken} shared modules load in the engine`,
-		#broken == 0,
-		table.concat(broken, " | ")
-	)
-end
-
 -- Remotes, by building them --------------------------------------------------
 -- A task never starts the server bootstrap, so the folder does not exist yet.
 -- Calling Net.build() is both allowed and a better test than looking for a
@@ -178,6 +154,38 @@ if client then
 			"the HUD every other controller hangs buttons on"
 		)
 	end
+end
+
+-- Every shared module loads inside the real engine -------------------------
+-- The one thing Lune structurally cannot tell us. It resolves requires by file
+-- path; Roblox resolves them through script.Parent, so a module that is fine
+-- under Lune can still fail to load in the actual game.
+--
+-- LAST, AND NOISY, ON PURPOSE. require() runs arbitrary module code and there
+-- is no way to time-bound it from in here: a module that yields at its top
+-- level hangs the whole task, and the runner's 300 s timeout then reports
+-- nothing about which one. Every other check has already printed by this
+-- point, and the name goes out BEFORE the require, so the last line in the log
+-- is always the module that stopped it.
+if shared then
+	local broken: { string } = {}
+	local loaded = 0
+	for _, descendant in shared:GetDescendants() do
+		if descendant:IsA("ModuleScript") then
+			print(`  .... requiring {descendant:GetFullName()}`)
+			local ok, err = pcall(require, descendant)
+			if ok then
+				loaded += 1
+			else
+				table.insert(broken, `{descendant:GetFullName()} -> {err}`)
+			end
+		end
+	end
+	check(
+		`all {loaded + #broken} shared modules load in the engine`,
+		#broken == 0,
+		table.concat(broken, " | ")
+	)
 end
 
 -- Report -------------------------------------------------------------------

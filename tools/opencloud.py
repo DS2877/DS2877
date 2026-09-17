@@ -229,7 +229,24 @@ def run_luau_task(universe_id: str, place_id: str, script: str, *, version_id: s
         time.sleep(poll_seconds)
         task = request("GET", f"/cloud/v2/{task_path}")
 
-    raise OpenCloudError(f"task did not finish within {timeout_seconds}s: {task_path}")
+    # Carries the path so the caller can still fetch whatever the task printed
+    # before it stopped. Without this a hang is a black box: the run that found
+    # this printed the timeout and not one line of the script's own output, so
+    # there was nothing to debug from.
+    raise TaskTimeout(f"task did not finish within {timeout_seconds}s: {task_path}", task_path)
+
+
+class TaskTimeout(OpenCloudError):
+    """A Luau task that never reached a terminal state.
+
+    Separate from a plain OpenCloudError because the caller can do something
+    useful with it: the task is still there, and its logs usually say exactly
+    where the script stopped.
+    """
+
+    def __init__(self, message: str, task_path: str) -> None:
+        super().__init__(message)
+        self.task_path = task_path
 
 
 def task_logs(task_path: str) -> list[str]:

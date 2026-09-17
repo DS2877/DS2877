@@ -47,6 +47,23 @@ def main() -> int:
 
     try:
         task = opencloud.run_luau_task(universe, place, script, version_id=args.version)
+    except opencloud.TaskTimeout as exc:
+        # A hang is the one failure worth extra effort: the script stopped
+        # somewhere, and the last line it printed says where. Dying without
+        # fetching these leaves nothing to debug and costs another 5 minutes
+        # to learn nothing again.
+        print(f"\nTIMED OUT: {exc}", file=sys.stderr)
+        print("Logs up to the point it stopped:", file=sys.stderr)
+        try:
+            lines = opencloud.task_logs(exc.task_path)
+            if lines:
+                for line in lines:
+                    print(f"  | {line}", file=sys.stderr)
+            else:
+                print("  (the task printed nothing at all)", file=sys.stderr)
+        except opencloud.OpenCloudError as log_exc:
+            print(f"  (could not fetch logs: {log_exc})", file=sys.stderr)
+        return 1
     except opencloud.OpenCloudError as exc:
         opencloud.die(str(exc))
 
