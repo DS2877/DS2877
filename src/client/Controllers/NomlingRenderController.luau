@@ -94,13 +94,19 @@ local function lerp(a: Color3, b: Color3, t: number): Color3
 end
 
 local function colourFor(role: string, palette: any, mutation: string?): (Color3, number)
-	-- Eyes are fixed across every species and take no mutation tint: a
-	-- creature reads as alive because of its eyes, and recolouring them makes
-	-- it read as dead instead.
+	-- The face is fixed across every species and takes NO mutation tint. A
+	-- creature reads as alive because of its face, and tinting eyes or a smile
+	-- to match a mutation makes it read as unwell instead.
 	if role == "eye" then
 		return Style.EYE.white, 0
 	elseif role == "pupil" then
 		return Style.EYE.pupil, 0
+	elseif role == "shine" then
+		return Style.EYE.shine, 0
+	elseif role == "cheek" then
+		return Style.FACE.cheek, 0
+	elseif role == "mouth" then
+		return Style.FACE.mouth, 0
 	end
 
 	local BY_ROLE: { [string]: Color3 } = {

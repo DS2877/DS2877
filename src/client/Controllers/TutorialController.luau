@@ -65,7 +65,7 @@ local STEPS: { Step } = {
 		end,
 	},
 	{
-		text = "Now the fun part: walk into someone else's base and hold SNATCH",
+		text = "Now the fun part — walk into someone else's base and hold SNATCH!",
 		done = function(snap)
 			return (snap.playtime or 0) > 300
 		end,
@@ -78,11 +78,11 @@ local HELP_LINES = {
 	"✨  A mutated Nomling glows and earns several times more. Grab those.",
 	"🧪  The FUSION KITCHEN combines two Nomlings into one that has never existed.",
 	"🏆  Be the first player anywhere to make one and your name goes on it forever.",
-	"😈  Walk into another player's base and hold SNATCH to take one of theirs.",
+	"🦝  Walk into another player's base and hold SNATCH to borrow one of theirs!",
 	"🏃  Carrying makes you slower. Get it back to YOUR base to keep it.",
 	"🛡️  Brand-new players cannot be snatched from, and neither can you at first.",
 	"⛅  Weather sweeps in every so often: big coin boost, and it can MUTATE the Nomlings you have out.",
-	"🫧  Tap the bubble button to save a Nomling a thief is running off with.",
+	"🫧  Tap the bubble button to rescue a Nomling a snatcher is running off with.",
 	"💰  You keep earning while you're away — come back to a pile of coins.",
 }
 

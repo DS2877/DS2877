@@ -34,6 +34,31 @@ Style.PALETTE = {
 	shadow = Color3.fromRGB(196, 168, 148),
 }
 
+--- Candy buildings for the skyline. Grey concrete reads as a city; these read
+--- as a toy town, which is the whole difference for a nine-year-old looking
+--- past the end of the street.
+Style.SKYLINE = {
+	Color3.fromRGB(255, 196, 168),
+	Color3.fromRGB(180, 222, 255),
+	Color3.fromRGB(255, 226, 158),
+	Color3.fromRGB(198, 236, 198),
+	Color3.fromRGB(238, 198, 246),
+	Color3.fromRGB(255, 178, 196),
+	Color3.fromRGB(176, 232, 226),
+}
+
+--- Roof colours, paired with the skyline by index so no building is one flat
+--- block of colour.
+Style.SKYLINE_ROOF = {
+	Color3.fromRGB(226, 128, 108),
+	Color3.fromRGB(110, 162, 214),
+	Color3.fromRGB(232, 172, 78),
+	Color3.fromRGB(132, 186, 132),
+	Color3.fromRGB(178, 132, 196),
+	Color3.fromRGB(226, 114, 146),
+	Color3.fromRGB(106, 180, 176),
+}
+
 --- Rarity colours. ALWAYS paired with an icon and a text label -- colour alone
 --- is not readable for colourblind players (docs/GDD.md 5.16).
 Style.RARITY = {
@@ -129,6 +154,16 @@ Style.MUTATION = {
 Style.EYE = {
 	white = Color3.fromRGB(252, 252, 255),
 	pupil = Color3.fromRGB(38, 30, 34),
+	--- The highlight on each pupil. One tiny white sphere, and it is the
+	--- difference between an eye that looks alive and one that looks painted on.
+	shine = Color3.fromRGB(255, 255, 255),
+}
+
+--- Face warmth. Carries no information at all -- it exists purely so a Nomling
+--- reads as a character a child wants rather than as a coloured animal shape.
+Style.FACE = {
+	cheek = Color3.fromRGB(255, 154, 174),
+	mouth = Color3.fromRGB(86, 48, 56),
 }
 
 Style.MATERIAL = {

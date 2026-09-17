@@ -489,11 +489,17 @@ function NomlingSpec.build(genome: Genome): { PartSpec }
 		})
 	end
 
-	-- Eyes. Always present, always two, always with pupils. A creature with no
-	-- eyes reads as broken rather than stylised, so this is not optional and
-	-- there is a test for it.
+	-- THE FACE. This is what turns an animal shape into a character, and it is
+	-- the cheapest appeal in the whole builder: five small parts, and a
+	-- creature goes from "a coloured blob with eyes" to something a child wants.
+	--
+	-- Eyes are always present, always two, always with pupils -- a creature with
+	-- no eyes reads as broken rather than stylised, and there is a test for it.
+	-- The HIGHLIGHT on each pupil is what makes an eye look alive instead of
+	-- painted on; it is one tiny white sphere and it does more than anything
+	-- else here.
 	local eyeOut = head * 0.28
-	local eyeSize = head * 0.3
+	local eyeSize = head * 0.32
 	for _, side in { -1, 1 } do
 		push({
 			name = "Eye",
@@ -507,13 +513,44 @@ function NomlingSpec.build(genome: Genome): { PartSpec }
 		push({
 			name = "Pupil",
 			shape = "ball",
-			size = v(eyeSize * 0.5, eyeSize * 0.5, eyeSize * 0.5),
+			size = v(eyeSize * 0.52, eyeSize * 0.52, eyeSize * 0.52),
 			offset = v(side * eyeOut, headY + head * 0.12, headZ + head * 0.52),
 			tilt = ZERO,
 			role = "pupil",
 			material = "smooth",
 		})
+		push({
+			name = "Shine",
+			shape = "ball",
+			size = v(eyeSize * 0.2, eyeSize * 0.2, eyeSize * 0.2),
+			offset = v(side * eyeOut + eyeSize * 0.1, headY + head * 0.2, headZ + head * 0.58),
+			tilt = ZERO,
+			role = "shine",
+			material = "smooth",
+		})
+		-- Rosy cheeks. Pure warmth, no information -- and worth every part.
+		push({
+			name = "Cheek",
+			shape = "ball",
+			size = v(head * 0.2, head * 0.14, head * 0.12),
+			offset = v(side * head * 0.42, headY - head * 0.1, headZ + head * 0.34),
+			tilt = ZERO,
+			role = "cheek",
+			material = "smooth",
+		})
 	end
+
+	-- A smile, flattened and set into the snout so it reads as a mouth rather
+	-- than as a part stuck on the front.
+	push({
+		name = "Mouth",
+		shape = "ball",
+		size = v(head * 0.3, head * 0.1, head * 0.1),
+		offset = v(0, headY - head * 0.32, headZ + head * 0.66),
+		tilt = ZERO,
+		role = "mouth",
+		material = "smooth",
+	})
 
 	-- Legs, flippers or fins, depending on the archetype.
 	if b.legs > 0 then

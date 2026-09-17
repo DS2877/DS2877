@@ -45,8 +45,8 @@ local function buildRoad(parent: Instance)
 		Name = "Asphalt",
 		Size = Vector3.new(World.STREET_WIDTH, 1, World.STREET_LENGTH),
 		CFrame = CFrame.new(0, -0.5, 0),
-		Color = Style.PALETTE.plazaStoneAlt,
-		Material = Enum.Material.Concrete,
+		Color = Color3.fromRGB(196, 186, 206),
+		Material = Enum.Material.SmoothPlastic,
 	}, road)
 
 	-- Pavement either side, slightly raised, in a lighter stone. The step is
@@ -57,8 +57,8 @@ local function buildRoad(parent: Instance)
 			Name = "Pavement",
 			Size = Vector3.new(6, 1.35, World.STREET_LENGTH),
 			CFrame = CFrame.new(side * (World.KERB_X + 2), -0.325, 0),
-			Color = Style.PALETTE.plazaStone,
-			Material = Enum.Material.Concrete,
+			Color = Color3.fromRGB(252, 240, 214),
+			Material = Enum.Material.SmoothPlastic,
 		}, road)
 		part({
 			Name = "Kerb",
@@ -190,44 +190,61 @@ end
 --- the back. Pure parallax: it costs nothing and it stops the world visibly
 --- ending at the last base, which is the single clearest "this is a prototype"
 --- tell in a Roblox scene.
+--- A toy-town skyline past each end of the street and behind both sides. Pure
+--- parallax: it costs nothing and it stops the world visibly ending at the last
+--- base, which is the clearest "this is a prototype" tell in a Roblox scene.
+---
+--- CANDY COLOURS, NOT CONCRETE. An earlier pass made these grey, which read as
+--- a city and made a bright toy street look like it had been dropped into one.
+--- Each building gets a coloured roof too, so none of them is one flat block.
 local function buildBackdrop(parent: Instance)
 	local backdrop = Instance.new("Folder")
 	backdrop.Name = "Backdrop"
+	local palette = Style.SKYLINE
+	local roofs = Style.SKYLINE_ROOF
+
+	local function tower(x: number, z: number, width: number, height: number, index: number)
+		local colour = palette[(index % #palette) + 1]
+		local roof = roofs[(index % #roofs) + 1]
+		part({
+			Name = "FarBuilding",
+			Size = Vector3.new(width, height, 30),
+			CFrame = CFrame.new(x, height / 2 - 2, z),
+			Color = colour,
+			Material = Enum.Material.SmoothPlastic,
+			CanCollide = false,
+			CastShadow = false,
+		}, backdrop)
+		-- A pitched roof cap, so the skyline has a silhouette instead of a
+		-- flat top edge.
+		part({
+			Name = "FarRoof",
+			Size = Vector3.new(width + 3, 5, 34),
+			CFrame = CFrame.new(x, height - 0.5, z),
+			Color = roof,
+			Material = Enum.Material.SmoothPlastic,
+			CanCollide = false,
+			CastShadow = false,
+		}, backdrop)
+	end
 
 	local far = World.STREET_LENGTH / 2 + World.BACKDROP_DISTANCE
+	local index = 0
 	for _, endZ in { -far, far } do
 		for slot = -3, 3 do
 			local height = World.BACKDROP_HEIGHT * (0.55 + ((slot + 3) % 3) * 0.22)
 			local width = 34 + ((slot + 5) % 4) * 12
-			part({
-				Name = "FarBuilding",
-				Size = Vector3.new(width, height, 30),
-				CFrame = CFrame.new(slot * 46, height / 2 - 2, endZ + (slot % 2) * 26),
-				Color = Color3.fromRGB(186, 178, 196)
-					:Lerp(Color3.fromRGB(226, 216, 232), (slot + 3) / 6),
-				Material = Enum.Material.Concrete,
-				CanCollide = false,
-				CastShadow = false,
-			}, backdrop)
+			tower(slot * 46, endZ + (slot % 2) * 26, width, height, index)
+			index += 1
 		end
 	end
 
-	-- A low skyline behind the bases on both sides, so looking sideways out of
-	-- a base does not show the void either.
 	for _, side in { -1, 1 } do
 		local x = side * (World.KERB_X + World.BASE_DEPTH + 60)
 		for slot = -4, 4 do
 			local height = World.BACKDROP_HEIGHT * (0.4 + ((slot + 4) % 4) * 0.16)
-			part({
-				Name = "SideBuilding",
-				Size = Vector3.new(30, height, 60),
-				CFrame = CFrame.new(x + (slot % 2) * 22, height / 2 - 2, slot * 64),
-				Color = Color3.fromRGB(196, 188, 204)
-					:Lerp(Color3.fromRGB(232, 224, 238), (slot + 4) / 8),
-				Material = Enum.Material.Concrete,
-				CanCollide = false,
-				CastShadow = false,
-			}, backdrop)
+			tower(x + (slot % 2) * 22, slot * 64, 30, height, index)
+			index += 1
 		end
 	end
 

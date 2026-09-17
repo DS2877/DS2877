@@ -2,23 +2,29 @@
 --[[
 	The art direction, as numbers.
 
-	"Toy food court diorama at golden hour" (docs/GDD.md 7). Late afternoon sun,
-	long warm shadows, a hazy warm atmosphere with real depth down the street,
-	and enough bloom that neon and mutations glow without washing out.
+	"Toy food court diorama" (docs/GDD.md 7) -- bright, saturated, and cheerful,
+	read at arm's length on a phone by a nine-year-old.
 
-	WHY THIS FILE IS THE MOST VALUABLE VISUAL WORK IN THE PROJECT. Roblox games
-	do not read as premium because of polygon counts -- they read as premium
-	because of lighting, atmosphere, post-processing and a coherent palette.
-	Every value here is free at runtime and none of it costs a single part
-	against the GDD's performance budget.
+	⚠️ RETUNED 2026-09-17, AND THE REASON MATTERS. An earlier pass chased a
+	cinematic look: late-afternoon sun, dark purple ambient, strong contrast,
+	heavy haze, depth of field. It was well made and it was WRONG FOR THIS
+	AUDIENCE. Prestige-game lighting reads as serious and slightly gloomy, and
+	our players are 9-15 with 5-8 to follow. Every top kids' game on Roblox is
+	high-key: bright sky, open shadows, punchy colour, almost no gloom.
 
-	AAA INSPIRATION, HONESTLY SCOPED. Philip asked for GTA 6. Photoreal grit is
-	not reachable on a mid-range phone and would push the maturity rating to
-	Moderate, which loses the Roblox Kids tier that M6 is built around. What
-	transfers from a production like that is not the renderer, it is the
-	DISCIPLINE: one committed time of day, a considered colour grade, real
-	atmospheric depth, and nothing left at its engine default. That is what
-	this file is.
+	So the rules here now are:
+
+	1. SHADOWS STAY BRIGHT. High ambient, low contrast. A dark shadow makes a
+	   toy look like a prop; an open one keeps it looking like a toy.
+	2. COLOUR OVER CONTRAST. Saturation does the work that contrast would do in
+	   a grown-up game, and it never costs legibility.
+	3. NOTHING CINEMATIC. No depth of field, barely any haze. A blurred
+	   background is film language, and on a phone it mostly just hides things a
+	   player wanted to see -- like somebody running off with their Nomling.
+	4. THE SUN IS HIGH. Midday, not golden hour. Long dramatic shadows are
+	   atmosphere; short cheerful ones are a playground.
+
+	None of this costs a single part against the performance budget.
 
 	DEPENDENCY-FREE so Lune can test the ranges.
 ]]
@@ -28,17 +34,20 @@ local Visual = {}
 --- Lighting. ClockTime 15.6 is mid-afternoon: the sun is high enough to light
 --- faces but low enough to throw shadows that describe the street.
 Visual.LIGHTING = {
-	clockTime = 15.6,
-	geographicLatitude = 18,
-	brightness = 2.4,
-	exposureCompensation = 0.18,
-	-- Ambient is the colour of light in shadow. Warm-neutral, never grey:
-	-- grey shadow is the single most common reason a Roblox scene looks flat.
-	ambient = { 74, 68, 82 },
-	outdoorAmbient = { 128, 132, 150 },
-	shadowSoftness = 0.34,
-	environmentDiffuseScale = 0.55,
-	environmentSpecularScale = 0.42,
+	-- Just after midday. Short, cheerful shadows rather than long dramatic ones.
+	clockTime = 13.2,
+	geographicLatitude = 8,
+	brightness = 3.0,
+	exposureCompensation = 0.1,
+	-- Ambient is the colour of light in SHADOW, and this is the single most
+	-- important number in the file. Bright and faintly warm, so a Nomling
+	-- standing in shade still reads as a colourful toy instead of a dark lump.
+	ambient = { 136, 130, 142 },
+	outdoorAmbient = { 172, 182, 204 },
+	-- Soft. Hard-edged shadows look serious.
+	shadowSoftness = 0.62,
+	environmentDiffuseScale = 0.7,
+	environmentSpecularScale = 0.3,
 	fogEnd = 1_000_000, -- Atmosphere replaces legacy fog entirely
 }
 
@@ -46,51 +55,60 @@ Visual.LIGHTING = {
 --- instance. Haze gives the street depth; Glare makes the sun feel like a
 --- light source rather than a texture.
 Visual.ATMOSPHERE = {
-	density = 0.34,
-	offset = 0.08,
-	color = { 232, 214, 190 },
-	decay = { 122, 134, 158 },
-	glare = 0.32,
-	haze = 1.7,
+	-- Light. Just enough that the far end of the street sits back a little;
+	-- anything heavier turns a bright day into a moody one.
+	density = 0.22,
+	offset = 0.05,
+	color = { 226, 238, 255 },
+	decay = { 150, 190, 235 },
+	glare = 0.16,
+	haze = 0.85,
 }
 
 --- Volumetric clouds. Free, and they turn a flat skybox into a sky.
 Visual.CLOUDS = {
-	cover = 0.55,
-	density = 0.048,
-	color = { 255, 250, 244 },
+	-- Fat, white, cartoon clouds. Cover is high because a mostly-blue sky with
+	-- a few big clouds is what a child draws when you ask them to draw a nice day.
+	cover = 0.62,
+	density = 0.038,
+	color = { 255, 255, 255 },
 }
 
 --- Bloom. Restrained on purpose: the threshold sits just above white so only
 --- genuinely bright things glow, which is what makes a mutated Nomling read as
 --- special instead of making the whole screen soft.
 Visual.BLOOM = {
-	intensity = 0.55,
-	size = 22,
-	threshold = 1.05,
+	-- Soft and generous. On a bright scene bloom reads as sunshine, and it is
+	-- what makes a mutated Nomling glow like a sweet.
+	intensity = 0.6,
+	size = 26,
+	threshold = 0.92,
 }
 
 --- The colour grade. Small numbers -- a grade you can see is a grade that is
 --- too strong.
 Visual.COLOR_CORRECTION = {
-	brightness = 0.015,
-	contrast = 0.13,
-	saturation = 0.15,
-	tintColor = { 255, 249, 240 },
+	brightness = 0.04,
+	-- LOW on purpose. Contrast deepens shadows, and deep shadows are the enemy
+	-- of a toy look. Saturation does the work instead.
+	contrast = 0.03,
+	saturation = 0.3,
+	tintColor = { 255, 252, 246 },
 }
 
 Visual.SUN_RAYS = {
-	intensity = 0.11,
-	spread = 0.92,
+	intensity = 0.06,
+	spread = 1,
 }
 
---- Depth of field, deliberately subtle. A far blur gives the street length;
---- anything stronger costs readability, and readability on a phone is worth
---- more than any single effect here.
+--- Depth of field is OFF. It is film language, it reads as "serious game", and
+--- on a phone a blurred background mostly hides things a player wanted to see --
+--- like somebody running off with their Nomling. Kept as a zeroed entry rather
+--- than deleted so nobody re-adds it without reading this.
 Visual.DEPTH_OF_FIELD = {
-	farIntensity = 0.13,
-	focusDistance = 42,
-	inFocusRadius = 44,
+	farIntensity = 0,
+	focusDistance = 1000,
+	inFocusRadius = 1000,
 	nearIntensity = 0,
 }
 

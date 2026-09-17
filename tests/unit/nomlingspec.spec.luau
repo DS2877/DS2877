@@ -201,3 +201,45 @@ h.test("gen 3 gets its crown, gen 1 does not", function()
 	h.expectTrue(hasCrown(3), "gen 3 should carry a crown")
 	h.expectTrue(not hasCrown(1), "gen 1 should not carry a crown")
 end)
+
+h.test("REGRESSION: every creature has a full FACE, not just eyes", function()
+	-- A mouth, cheeks and eye highlights are what turn an animal shape into a
+	-- character a child wants. They carry no information, which is exactly why
+	-- they are the first thing an optimisation pass would quietly delete.
+	for _, species in Nomlings.SPECIES do
+		local parts = NomlingSpec.build(genomeFor(species))
+		local counts: { [string]: number } = {}
+		for _, part in parts do
+			counts[part.role] = (counts[part.role] or 0) + 1
+		end
+		h.expectEqual(counts.shine, 2, `{species.id} eye highlights`)
+		h.expectEqual(counts.cheek, 2, `{species.id} cheeks`)
+		h.expectEqual(counts.mouth, 1, `{species.id} mouth`)
+	end
+end)
+
+h.test("the face is never tinted by a mutation", function()
+	-- Recolouring a smile or an eye to match a mutation makes a creature read
+	-- as unwell rather than as special. The renderer enforces this; the spec
+	-- has to keep the roles distinct for it to be able to.
+	local species = Nomlings.SPECIES[1]
+	local plain = NomlingSpec.build(genomeFor(species, 1))
+	local mutated = NomlingSpec.build(genomeFor(species, 1, "galaxy"))
+	local function faceRoles(parts): number
+		local n = 0
+		for _, part in parts do
+			if
+				part.role == "eye"
+				or part.role == "pupil"
+				or part.role == "shine"
+				or part.role == "cheek"
+				or part.role == "mouth"
+			then
+				n += 1
+			end
+		end
+		return n
+	end
+	h.expectEqual(faceRoles(plain), faceRoles(mutated), "a mutation must not change the face")
+	h.expectEqual(faceRoles(plain), 9, "two eyes, two pupils, two shines, two cheeks, one mouth")
+end)

@@ -67,6 +67,10 @@ local function notify(player: Player, text: string)
 	remote:FireClient(player, text)
 end
 
+--- A friendly masked bandit, not a villain. The design word is "friendly
+--- snatchers" (GDD 5.8) and the whole intent is that being robbed feels
+--- exciting rather than threatening -- which starts with the thief being
+--- something a child finds funny rather than something they find menacing.
 local function buildThief(name: string, at: Vector3): (Model, BasePart)
 	local model = Instance.new("Model")
 	model.Name = `Thief_{name}`
@@ -75,33 +79,77 @@ local function buildThief(name: string, at: Vector3): (Model, BasePart)
 	root.Name = "Body"
 	root.Anchored = true
 	root.CanCollide = false
-	root.Size = Vector3.new(2.6, 4.2, 2.6)
+	root.Size = Vector3.new(2.8, 3.6, 2.4)
 	root.CFrame = CFrame.new(at)
-	root.Color = Style.PALETTE.nomCocoa
+	root.Color = Color3.fromRGB(148, 156, 178)
 	root.Material = Enum.Material.SmoothPlastic
 	root.Parent = model
 	model.PrimaryPart = root
 
+	local function attach(part: Part)
+		part.Anchored = false
+		part.Massless = true
+		part.CanCollide = false
+		part.Parent = model
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = root
+		weld.Part1 = part
+		weld.Parent = part
+	end
+
 	local head = Instance.new("Part")
 	head.Name = "Head"
-	head.Anchored = true
-	head.CanCollide = false
 	head.Shape = Enum.PartType.Ball
-	head.Size = Vector3.new(2.2, 2.2, 2.2)
-	head.CFrame = root.CFrame * CFrame.new(0, 3, 0)
-	head.Color = Style.PALETTE.nomCream
+	head.Size = Vector3.new(2.4, 2.4, 2.4)
+	head.CFrame = root.CFrame * CFrame.new(0, 2.8, 0)
+	head.Color = Color3.fromRGB(206, 212, 226)
 	head.Material = Enum.Material.SmoothPlastic
-	head.Parent = model
+	attach(head)
 
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = root
-	weld.Part1 = head
-	weld.Parent = head
+	-- The mask. One band across the eyes is the entire "bandit" read, and it is
+	-- funny rather than frightening.
+	local mask = Instance.new("Part")
+	mask.Name = "Mask"
+	mask.Size = Vector3.new(2.3, 0.75, 1.5)
+	mask.CFrame = head.CFrame * CFrame.new(0, 0.15, 0.5)
+	mask.Color = Color3.fromRGB(62, 58, 74)
+	mask.Material = Enum.Material.SmoothPlastic
+	attach(mask)
+
+	for _, side in { -1, 1 } do
+		local eye = Instance.new("Part")
+		eye.Name = "Eye"
+		eye.Shape = Enum.PartType.Ball
+		eye.Size = Vector3.new(0.6, 0.6, 0.6)
+		eye.CFrame = head.CFrame * CFrame.new(side * 0.55, 0.2, 1.05)
+		eye.Color = Color3.fromRGB(252, 252, 255)
+		eye.Material = Enum.Material.SmoothPlastic
+		attach(eye)
+
+		local ear = Instance.new("Part")
+		ear.Name = "Ear"
+		ear.Shape = Enum.PartType.Ball
+		ear.Size = Vector3.new(0.9, 1, 0.5)
+		ear.CFrame = head.CFrame * CFrame.new(side * 0.85, 1.05, -0.1)
+		ear.Color = Color3.fromRGB(148, 156, 178)
+		ear.Material = Enum.Material.SmoothPlastic
+		attach(ear)
+	end
+
+	-- A striped swag sack. It says "up to no good" without saying "danger".
+	local sack = Instance.new("Part")
+	sack.Name = "Sack"
+	sack.Shape = Enum.PartType.Ball
+	sack.Size = Vector3.new(1.8, 1.9, 1.6)
+	sack.CFrame = root.CFrame * CFrame.new(-1.6, 0.6, -0.4)
+	sack.Color = Color3.fromRGB(246, 238, 220)
+	sack.Material = Enum.Material.Fabric
+	attach(sack)
 
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Tag"
 	gui.Size = UDim2.fromScale(9, 2.4)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, 4.4, 0)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, 4.6, 0)
 	gui.MaxDistance = 220
 	gui.Parent = head
 
@@ -112,7 +160,7 @@ local function buildThief(name: string, at: Vector3): (Model, BasePart)
 	label.TextScaled = true
 	label.TextColor3 = Style.PALETTE.nomPink
 	label.TextStrokeTransparency = 0.3
-	label.Text = `😈 {name}`
+	label.Text = `🦝 {name}`
 	label.Parent = gui
 
 	model.Parent = folder
@@ -291,7 +339,7 @@ local function beginSnatch()
 	}
 	table.insert(active, thief)
 
-	notify(victim, `😈 {name} is going for your {nomling.snack} {nomling.animal}!`)
+	notify(victim, `🦝 {name} is after your {nomling.snack} {nomling.animal}!`)
 	FeedbackService.fire(victim, "snatched", nil, { rarity = nomling.rarity })
 
 	-- Reaches the pedestal, grabs, then runs for the edge of the street. The
