@@ -217,7 +217,11 @@ function EggService.snapshot(data: Profile.Data): { [string]: any }
 		-- IncomeService, which requires this module -- the other direction
 		-- would be a cycle.
 		perSecond = Income.perSecond(
-			Profile.placedNomlings(data) :: any,
+			-- Skipping the Vault, exactly as IncomeService does. If these two
+			-- disagreed the HUD would advertise a rate the player is not being
+			-- paid, which is the worst kind of wrong number: it looks like the
+			-- income is broken rather than like the fridge is working.
+			Profile.placedNomlings(data, Economy.VAULT_PEDESTAL) :: any,
 			Economy.BASE_INCOME,
 			Economy.MUTATIONS,
 			Economy.rebirthMultiplier(data.rebirths),
@@ -259,7 +263,12 @@ function EggService.snapshot(data: Profile.Data): { [string]: any }
 		-- table, so any client that wants "how many are out?" either walks it
 		-- or, as the HUD first did, compares a table against a number and
 		-- throws. One number on the wire is cheaper than both.
-		placedCount = #Profile.placedNomlings(data),
+		-- EARNING creatures, so the Vault is not counted. The HUD uses this to
+		-- decide whether a trickle of coins is pocket money or real income; a
+		-- player whose only creature is in the fridge earns the stipend and
+		-- nothing else, and counting the vaulted one would label that as
+		-- ordinary income and leave the trickle unexplained.
+		placedCount = #Profile.placedNomlings(data, Economy.VAULT_PEDESTAL),
 		incubators = data.incubators,
 		prices = prices,
 		-- The best tier this player has unlocked, so the buy button follows
