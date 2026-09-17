@@ -85,10 +85,11 @@ local function show()
 		{ Saturation = -0.85, Contrast = 0.18, Brightness = -0.06 }
 	):Play()
 
-	-- The existing deny cue, pitched down hard. Not ideal and not pretending to
-	-- be: a proper sting is a ninth audio upload, and the monthly quota on a
-	-- non-ID-verified account is ten. Philip can spend one on this whenever he
-	-- decides the screen is staying.
+	-- The existing deny cue, at its own pitch, plus a long duck on the music --
+	-- the music dropping away is doing more of the work here than the sting is.
+	-- Not pretending to be the real thing: a proper sting is a ninth audio
+	-- upload against a ten-a-month quota, worth spending once Philip decides
+	-- this screen is staying.
 	AudioController.play("deny")
 	AudioController.duck(2)
 end

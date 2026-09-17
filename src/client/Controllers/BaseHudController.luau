@@ -30,11 +30,13 @@
 ]]
 
 local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Economy = require(Shared:WaitForChild("Config"):WaitForChild("Economy"))
+local Snatch = require(Shared:WaitForChild("Config"):WaitForChild("Snatch"))
 local HudLayout = require(Shared:WaitForChild("Logic"):WaitForChild("HudLayout"))
 local Income = require(Shared:WaitForChild("Logic"):WaitForChild("Income"))
 local Net = require(Shared:WaitForChild("Net"))
@@ -466,7 +468,16 @@ local function build()
 
 	bubbleLabel = buttonText(bubbleButton, Enum.Font.FredokaOne, Style.PALETTE.nomCream, 18)
 	bubbleLabel.ZIndex = 5
-	bubbleLabel.Text = "SAVE"
+	bubbleLabel.Text = "SAVE IT!"
+
+	-- HIDDEN UNTIL THERE IS SOMETHING TO SAVE. From a playtest: "the save
+	-- button I don't even know what the function is for." It was permanently
+	-- on the bar doing nothing, which is the worst way to teach a mechanic --
+	-- a button you have pressed ten times to no effect is one you stop
+	-- believing in. It now appears only while a thief is actually running off
+	-- with something near you, which makes it self-explanatory: it shows up at
+	-- the exact moment it means "press this".
+	bubbleButton.Visible = false
 
 	eggButton.Activated:Connect(function()
 		-- Buys the best tier this player has unlocked. Wiring this to "basic"
@@ -652,6 +663,48 @@ end
 --- The refresh loop reports its first failure to the player and then shuts up.
 local refreshFaultShown = false
 
+--- os.clock() of the last carried-Nomling scan, and what it found.
+local lastCarrierScan = 0
+local carrierNear = false
+
+--- Is somebody running off with a Nomling within bubbling distance?
+---
+--- Read off the world rather than pushed from the server, because the thing to
+--- look for is already replicated: a player thief carries a model named
+--- "Carried" welded to their head, and an NPC thief is a model named Thief_*.
+--- No new remote for a question the client can already answer.
+---
+--- 4 Hz. Bubble range is 26 studs and nobody crosses that in 250 ms.
+local function isCarrierNear(): boolean
+	local now = os.clock()
+	if now - lastCarrierScan < 0.25 then
+		return carrierNear
+	end
+	lastCarrierScan = now
+
+	local character = Players.LocalPlayer.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		carrierNear = false
+		return false
+	end
+
+	local reach = Snatch.BUBBLE_RANGE
+	for _, thing in Workspace:GetChildren() do
+		local isCarry = thing.Name == "Carried" or string.sub(thing.Name, 1, 6) == "Thief_"
+		if not isCarry or not thing:IsA("Model") then
+			continue
+		end
+		local pivot = thing.PrimaryPart or thing:FindFirstChildWhichIsA("BasePart")
+		if pivot and (pivot.Position - root.Position).Magnitude <= reach then
+			carrierNear = true
+			return true
+		end
+	end
+	carrierNear = false
+	return false
+end
+
 local function refresh(delta: number)
 	local snap = snapshot
 	if not snap then
@@ -729,6 +782,8 @@ local function refresh(delta: number)
 	else
 		renomButton.Visible = false
 	end
+
+	bubbleButton.Visible = isCarrierNear()
 
 	local incubators = snap.incubators or {}
 	for i, slot in slots do

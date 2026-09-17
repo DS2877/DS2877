@@ -106,7 +106,17 @@ local function startMusic()
 	sound.Parent = SoundService
 	theme = sound
 
-	musicGroup.Volume = 0
+	-- AUDIBLE FIRST, PRETTY SECOND. This used to set the group to 0 and rely on
+	-- a tween to bring it up, which means any failure between here and the
+	-- tween completing leaves the music playing at silence -- indistinguishable
+	-- from no music at all, and impossible to tell apart from a missing asset.
+	--
+	-- Roblox confirmed all eight assets Approved while a playtester reported
+	-- total silence, so the fault is on this side and this is the one place
+	-- where a fade could swallow it. Start at volume, fade from slightly under
+	-- it: still a fade in, but the failure mode is "it started a bit loud"
+	-- rather than "there is no music in this game".
+	musicGroup.Volume = track.volume * 0.35
 	sound:Play()
 	TweenService:Create(
 		musicGroup,
