@@ -40,7 +40,10 @@ end
 
 function AtmosphereService.start()
 	local light = Visual.LIGHTING
-	Lighting.Technology = Enum.Technology.Future
+	-- Technology is set in default.project.json, not here. Some engine versions
+	-- treat it as read-only at runtime, and Bootstrap pcalls each service -- so
+	-- one rejected assignment would abort the rest of this function and leave
+	-- the scene with no atmosphere at all.
 	Lighting.ClockTime = light.clockTime
 	Lighting.GeographicLatitude = light.geographicLatitude
 	Lighting.Brightness = light.brightness
@@ -92,10 +95,17 @@ function AtmosphereService.start()
 
 	-- Volumetric clouds live on Terrain, not Lighting. One instance, and the
 	-- sky stops being a flat backdrop.
-	local clouds = replace(Workspace.Terrain, "Clouds", "Clouds") :: Clouds
-	clouds.Cover = Visual.CLOUDS.cover
-	clouds.Density = Visual.CLOUDS.density
-	clouds.Color = rgb(Visual.CLOUDS.color)
+	-- Clouds are the one instance here that is newer than the rest of this API
+	-- surface, so it is guarded: a failure costs the sky and nothing else.
+	local ok, err = pcall(function()
+		local clouds = replace(Workspace.Terrain, "Clouds", "Clouds") :: Clouds
+		clouds.Cover = Visual.CLOUDS.cover
+		clouds.Density = Visual.CLOUDS.density
+		clouds.Color = rgb(Visual.CLOUDS.color)
+	end)
+	if not ok then
+		warn(`[AtmosphereService] clouds unavailable: {err}`)
+	end
 
 	print("[AtmosphereService] art direction applied")
 end

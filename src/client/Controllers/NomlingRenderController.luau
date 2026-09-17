@@ -47,7 +47,15 @@ local MATERIALS: { [string]: Enum.Material } = {
 	fabric = Enum.Material.Fabric,
 }
 
-type Live = { anchor: BasePart, root: BasePart, phase: number, baseY: number }
+type Live = {
+	anchor: BasePart,
+	root: BasePart,
+	phase: number,
+	--- The anchor CFrame this creature was last placed at. Comparing against it
+	--- is how a MOVING anchor (a belt item, a carried creature) is told apart
+	--- from a static one on a pedestal.
+	lastOrigin: CFrame,
+}
 
 local live: { [BasePart]: Live } = {}
 
@@ -206,7 +214,7 @@ local function build(anchor: BasePart)
 		-- A per-creature phase, so a plot of eight does not bob in lockstep --
 		-- synchronised idle motion reads as mechanical immediately.
 		phase = (genome.seed % 1000) / 1000 * math.pi * 2,
-		baseY = anchor.CFrame.Position.Y,
+		lastOrigin = anchor.CFrame,
 	}
 end
 
@@ -255,16 +263,33 @@ function NomlingRenderController.start()
 				live[anchor] = nil
 				continue
 			end
+
 			local origin = anchor.CFrame
-			if (origin.Position - eye).Magnitude > MOTION_RANGE then
+			-- A MOVED anchor must always be followed, however far away it is.
+			-- Belt creatures ride the length of the street and a carried one
+			-- runs off with a thief; syncing only what is near the camera left
+			-- those visually detached from their anchors, which was a real bug
+			-- and an obvious one on screen.
+			local moved = (origin.Position - entry.lastOrigin.Position).Magnitude > 0.01
+			local near = (origin.Position - eye).Magnitude <= MOTION_RANGE
+
+			if not moved and not near then
 				continue
 			end
-			-- A slow bob and a slight sway. Small numbers on purpose: this
-			-- should read as breathing, not as floating.
-			local t = clock * 1.6 + entry.phase
-			local bob = math.sin(t) * 0.16
-			local sway = math.sin(t * 0.5) * 2.5
-			entry.root.CFrame = origin * CFrame.new(0, bob, 0) * CFrame.Angles(0, math.rad(sway), 0)
+			entry.lastOrigin = origin
+
+			if near then
+				-- A slow bob and a slight sway. Small numbers on purpose: this
+				-- should read as breathing, not as floating.
+				local t = clock * 1.6 + entry.phase
+				entry.root.CFrame = origin
+					* CFrame.new(0, math.sin(t) * 0.16, 0)
+					* CFrame.Angles(0, math.rad(math.sin(t * 0.5) * 2.5), 0)
+			else
+				-- Far away: follow exactly, and spend nothing on animation
+				-- nobody can see.
+				entry.root.CFrame = origin
+			end
 		end
 	end)
 end

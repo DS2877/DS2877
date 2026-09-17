@@ -21,6 +21,8 @@ local Net = require(Shared:WaitForChild("Net"))
 local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 local Snatch = require(Shared:WaitForChild("Config"):WaitForChild("Snatch"))
 local SnatchRules = require(Shared:WaitForChild("Logic"):WaitForChild("SnatchRules"))
+local Genome = require(Shared:WaitForChild("Logic"):WaitForChild("Genome"))
+local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 local Style = require(Shared:WaitForChild("Style"))
 
 local DataService = require(script.Parent:WaitForChild("DataService"))
@@ -54,6 +56,10 @@ local function incomeOf(player: Player): number
 	return if data then IncomeService.perSecond(data) else 0
 end
 
+--- The carried creature, welded above the thief's head. It is a genome ANCHOR
+--- like every other Nomling in the world, so the client builds the real
+--- creature rather than a stand-in -- which matters because the whole point of
+--- a chase is that everyone can see what is being carried off.
 local function carriedModel(nomling: Profile.Nomling, thief: Player): Model?
 	local character = thief.Character
 	local head = character and character:FindFirstChild("Head")
@@ -64,23 +70,32 @@ local function carriedModel(nomling: Profile.Nomling, thief: Player): Model?
 	local model = Instance.new("Model")
 	model.Name = "Carried"
 
-	local body = Instance.new("Part")
-	body.Name = "Body"
-	body.CanCollide = false
-	body.Massless = true
-	body.Shape = Enum.PartType.Ball
-	body.Size = Vector3.new(2.4, 2.4, 2.4)
-	body.Color = (Style.RARITY[nomling.rarity] or Style.RARITY.common).color
-	body.Material = Enum.Material.Neon
-	body.CFrame = head.CFrame * CFrame.new(0, 3, 0)
-	body.Parent = model
+	local anchor = Instance.new("Part")
+	anchor.Name = "NomlingAnchor"
+	anchor.CanCollide = false
+	anchor.Massless = true
+	anchor.Transparency = 1
+	anchor.Size = Vector3.new(2.5, 2.5, 2.5)
+	anchor.CFrame = head.CFrame * CFrame.new(0, 3.2, 0)
+	for key, value in Genome.attributes(nomling :: any, Nomlings.BY_ID :: any, nil) do
+		anchor:SetAttribute(key, value)
+	end
+	anchor.Parent = model
+	model.PrimaryPart = anchor
 
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = head
-	weld.Part1 = body
-	weld.Parent = body
+	weld.Part1 = anchor
+	weld.Parent = anchor
 
-	model.PrimaryPart = body
+	-- A trail, so a thief is visible across the street. Being chased is the
+	-- fun part and it cannot happen if nobody can tell who to chase.
+	local glow = Instance.new("PointLight")
+	glow.Brightness = 2
+	glow.Range = 16
+	glow.Color = (Style.RARITY[nomling.rarity] or Style.RARITY.common).color
+	glow.Parent = anchor
+
 	model.Parent = workspace
 	return model
 end
