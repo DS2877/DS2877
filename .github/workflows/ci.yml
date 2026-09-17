@@ -260,6 +260,22 @@ jobs:
           # API key owner, so never split this into a task per test.
           python3 tools/run-cloud-tests.py --env test --version "${{ steps.publish.outputs.version }}"
 
+      # An asset id in the config says nothing about whether Roblox will PLAY
+      # it. Audio uploaded through Open Cloud goes through moderation, and until
+      # it clears, a Sound with a perfectly valid SoundId is silent and raises
+      # nothing. A playtester reported exactly that silence with all eight ids
+      # present and correct, so this asks Roblox what it thinks of them.
+      #
+      # continue-on-error: this is a REPORT, not a gate. Moderation being slow
+      # is not a reason to fail a build, and a red CI that means "wait a bit"
+      # is a red CI people learn to ignore.
+      - name: Audio moderation status
+        if: steps.creds.outputs.ready == 'true'
+        continue-on-error: true
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+        run: python3 tools/check-audio.py
+
   upload-audio:
     name: Upload the theme to Roblox (manual only)
     runs-on: ubuntu-latest

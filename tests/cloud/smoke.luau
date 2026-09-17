@@ -267,35 +267,40 @@ if services then
 		check(`every service survives {phase}()`, #broken == 0, table.concat(broken, " | "))
 	end
 
-	-- The remotes the HUD buttons call. A RemoteFunction with no OnServerInvoke
-	-- does not error when invoked -- it YIELDS FOREVER, which on a phone is a
-	-- button that does nothing, with nothing in the log and nothing on screen.
-	-- That is the single most expensive failure mode this game has, so name
-	-- every handler that is missing rather than just counting them.
+	-- Every declared remote is really there, under the name the client asks for.
+	--
+	-- WHAT THIS DELIBERATELY DOES NOT CHECK, because the first version of it did
+	-- and was wrong: whether each RemoteFunction has an OnServerInvoke. Roblox
+	-- callback properties are WRITE-ONLY -- reading OnServerInvoke throws rather
+	-- than returning the handler -- so a pcall around the read reports "no
+	-- handler" for every remote in the game, including the twelve that are
+	-- correctly wired. It failed CI claiming all 12 were unhandled, which was
+	-- the test being broken, not the game.
+	--
+	-- The reason it was worth trying is still true: a RemoteFunction with no
+	-- handler does not error when invoked, it YIELDS FOREVER, which on a phone
+	-- is a button that does nothing. The check for that has to be the bootstrap
+	-- above completing without error, since the handlers are assigned in init()
+	-- and start().
 	local netFolder = ReplicatedStorage:FindFirstChild("Net")
 	check("Net folder exists after NetService started", netFolder ~= nil)
 	if netFolder then
-		local unhandled: { string } = {}
-		local handled = 0
-		for _, remote in netFolder:GetChildren() do
-			if not remote:IsA("RemoteFunction") then
-				continue
-			end
-			-- Reading OnServerInvoke is only legal on the server, which a task
-			-- is. nil means every InvokeServer on it hangs.
-			local ok, handler = pcall(function()
-				return (remote :: any).OnServerInvoke
-			end)
-			if ok and handler ~= nil then
-				handled += 1
+		local Net = require(shared:FindFirstChild("Net") :: ModuleScript) :: any
+		local absent: { string } = {}
+		local present = 0
+		for name, spec in Net.REMOTES do
+			local remote = netFolder:FindFirstChild(name)
+			local wanted = if spec.kind == "event" then "RemoteEvent" else "RemoteFunction"
+			if remote and remote:IsA(wanted) then
+				present += 1
 			else
-				table.insert(unhandled, remote.Name)
+				table.insert(absent, `{name} ({wanted})`)
 			end
 		end
 		check(
-			`all {handled + #unhandled} RemoteFunctions have a server handler`,
-			#unhandled == 0,
-			`no OnServerInvoke: {table.concat(unhandled, ", ")}`
+			`all {present + #absent} declared remotes exist with the right class`,
+			#absent == 0,
+			table.concat(absent, ", ")
 		)
 	end
 end

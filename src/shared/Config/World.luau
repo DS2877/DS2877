@@ -33,7 +33,15 @@ World.BELT_HEIGHT = 1.2
 --- Not decoration: a creature at belt level sits along the bottom edge of a
 --- phone screen, which is exactly where the button bar is. Lifting it puts it
 --- in the middle of the frame where it can be seen, wanted and raced for.
-World.BELT_RIDE_HEIGHT = 3.2
+--- How far a riding Nomling's FEET sit above the belt's top surface. A
+--- Nomling's model origin is between its feet (NomlingSpec), so this is
+--- genuinely a ground clearance and not a hover height.
+---
+--- It was 3.2 and they floated: "the nomlings going on the band is elevating,
+--- can we have them walk instead?" Riding three studs above a conveyor reads
+--- as levitation, and no amount of animation fixes a creature that is visibly
+--- not touching anything.
+World.BELT_RIDE_HEIGHT = 0.1
 
 --- Where the arrivals board stands, along the street.
 ---
@@ -48,7 +56,10 @@ World.BOARD_Z = -World.STREET_LENGTH / 2 + 46
 World.BELT_DISPLAY_SCALE = 1.55
 --- Studs per second a Nomling travels. Slow enough to read the sign and decide,
 --- fast enough that a bad one clears quickly.
-World.BELT_SPEED = 9
+--- Studs per second along the belt. Slower than it looks like it should be,
+--- on purpose: this is the shop window, and a player has to have time to read
+--- a nameplate, decide, and walk over before it is gone.
+World.BELT_SPEED = 4.5
 
 World.BASES_PER_SIDE = 4
 World.BASE_COUNT = World.BASES_PER_SIDE * 2

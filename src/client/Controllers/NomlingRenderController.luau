@@ -366,7 +366,8 @@ function NomlingRenderController.start()
 			-- runs off with a thief; syncing only what is near the camera left
 			-- those visually detached from their anchors, which was a real bug
 			-- and an obvious one on screen.
-			local moved = (origin.Position - entry.lastOrigin.Position).Magnitude > 0.01
+			local travel = origin.Position - entry.lastOrigin.Position
+			local moved = travel.Magnitude > 0.01
 			local near = (origin.Position - eye).Magnitude <= MOTION_RANGE
 			-- A creature still rising has to be updated even if it is static and
 			-- off-camera, or it would be left sunk into its pedestal forever.
@@ -394,7 +395,29 @@ function NomlingRenderController.start()
 				local noticed = playerAt ~= nil
 					and (origin.Position - playerAt).Magnitude <= NOTICE_RANGE
 
-				if noticed then
+				if moved then
+					-- A WALK, not a hover. Anything the server is carrying along
+					-- -- a belt rider, a creature on a thief's head -- gets a
+					-- step cycle instead of the idle breathe: a sharp two-beat
+					-- bounce, a roll onto each foot, and it faces where it is
+					-- going. abs(sin) is what makes it read as steps; a plain
+					-- sine is a float, which is exactly what a playtester saw.
+					--
+					-- The cycle is driven by the CLOCK rather than by distance
+					-- travelled, so it stays steady when the server's movement
+					-- tick and this render tick disagree.
+					local stride = clock * 7 + entry.phase
+					local bounce = math.abs(math.sin(stride)) * 0.30
+					local roll = math.sin(stride * 0.5) * 0.09
+					local facing = Vector3.new(travel.X, 0, travel.Z)
+					local base = origin.Position + Vector3.new(0, bounce + popOffset, 0)
+					if facing.Magnitude > 0.001 then
+						entry.root.CFrame = CFrame.lookAt(base, base + facing.Unit)
+							* CFrame.Angles(0, 0, roll)
+					else
+						entry.root.CFrame = CFrame.new(base) * CFrame.Angles(0, 0, roll)
+					end
+				elseif noticed then
 					-- It noticed you. Turns to look, and bounces about twice as
 					-- high. This is the cheapest charm in the whole game and it
 					-- is the thing a child will point at.

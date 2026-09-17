@@ -57,7 +57,12 @@ local BELT_FLOOR = math.max(1, math.floor(Economy.BASE_INCOME.common * World.BEL
 --- In order. The first step that is not done is the one shown.
 local STEPS: { Step } = {
 	{
-		text = "Your first Nomling is hatching — wait for the green button",
+		-- NOT "wait for the green button". The hatch slot is mint-green while it
+		-- is still COUNTING DOWN and turns pink saying TAP TO HATCH when it is
+		-- ready, so the old wording pointed at the state that means "not yet"
+		-- and a playtester waited through it: "nothing ever happens, there is
+		-- no green button."
+		text = "Your first Nomling is hatching — tap the egg timer when it says TAP",
 		done = function(snap)
 			return (snap.hatched or 0) >= 1
 		end,
@@ -143,6 +148,10 @@ local function build()
 	banner.Name = "Objective"
 	banner.Size = UDim2.fromScale(1, 1)
 	banner.BackgroundColor3 = Style.PALETTE.nomBlue
+	-- SEE-THROUGH, from a playtest: "the banner at the top that says things is
+	-- too big and should be a bit see-through." It is a hint, not a headline --
+	-- it must not read as more important than the street behind it.
+	banner.BackgroundTransparency = 0.35
 	banner.BorderSizePixel = 0
 	banner.ZIndex = 4
 	banner.Visible = false
@@ -153,11 +162,13 @@ local function build()
 	bannerText.Size = UDim2.new(1, -18, 1, -8)
 	bannerText.Position = UDim2.new(0, 9, 0, 4)
 	bannerText.BackgroundTransparency = 1
-	bannerText.Font = Enum.Font.FredokaOne
+	bannerText.Font = Enum.Font.GothamMedium
 	bannerText.TextScaled = true
 	bannerText.TextWrapped = true
 	bannerText.TextColor3 = Style.PALETTE.nomCream
-	bannerText.TextStrokeTransparency = 0.5
+	-- A stroke, because the background is now translucent and the text has to
+	-- stay readable against whatever the street happens to put behind it.
+	bannerText.TextStrokeTransparency = 0.25
 	bannerText.ZIndex = 5
 	bannerText.Text = ""
 	bannerText.Parent = banner

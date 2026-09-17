@@ -649,6 +649,9 @@ end
 
 -- --- refresh ---------------------------------------------------------------
 
+--- The refresh loop reports its first failure to the player and then shuts up.
+local refreshFaultShown = false
+
 local function refresh(delta: number)
 	local snap = snapshot
 	if not snap then
@@ -848,6 +851,16 @@ function BaseHudController.start()
 			local ok, err = pcall(refresh :: (number) -> any, delta)
 			if not ok then
 				warn(`[BaseHudController] refresh failed: {err}`)
+				-- SAID ONCE, ON SCREEN. This loop runs 20 times a second, so a
+				-- refresh that throws used to freeze every number and every
+				-- button state in the HUD while printing into a log no phone
+				-- can open -- which reaches me as "nothing happens when I press
+				-- it" and is the single most expensive bug report this project
+				-- has had. Once, because 20 toasts a second is not a message.
+				if not refreshFaultShown then
+					refreshFaultShown = true
+					showToast(`HUD error — tell Claude: {err}`)
+				end
 			end
 		end
 	end)

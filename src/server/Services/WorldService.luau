@@ -102,10 +102,16 @@ local function buildRoad(parent: Instance)
 	road.Parent = parent
 end
 
---- Lamp posts. These are the only scenery that collides, because they are tall
---- and obvious; everything else is walk-through so nobody is stopped by a
---- decoration. Each carries a warm PointLight, which is most of what makes the
+--- Lamp posts. Each carries a warm PointLight, which is most of what makes the
 --- street feel lit rather than merely bright.
+---
+--- SOLID, like almost everything else now. From a playtest: "the physics needs
+--- to be correct, for everything we can see on the map we need to be able to
+--- interact with it like walking on it and such." Only two kinds of thing stay
+--- walk-through, and both for the same reason -- they are not really objects:
+--- flat markings painted on the ground (road dashes, the base path, belt
+--- chevrons), which would otherwise be ankle-height trip hazards, and the
+--- invisible parts that only exist to hang a BillboardGui on.
 local function buildLamps(parent: Instance)
 	local lamps = Instance.new("Folder")
 	lamps.Name = "Lamps"
@@ -133,7 +139,6 @@ local function buildLamps(parent: Instance)
 				CFrame = CFrame.new(x, World.LAMP_HEIGHT + 0.6, z),
 				Color = Style.PALETTE.surfaceCream,
 				Material = Enum.Material.Neon,
-				CanCollide = false,
 			}, lamps)
 
 			local glow = Instance.new("PointLight")
@@ -148,8 +153,14 @@ local function buildLamps(parent: Instance)
 	lamps.Parent = parent
 end
 
---- Planters between the lamps. Non-colliding: a phone player running from a
---- snatch must never be stopped by shrubbery.
+--- Planters between the lamps.
+---
+--- These DO collide now. The earlier reasoning -- a player fleeing a snatch must
+--- never be stopped by shrubbery -- was a real concern, and the answer is that
+--- they only sit on the pavement, every other one, so the road and both bases
+--- stay completely clear. If chases start feeling snagged, thin them out rather
+--- than making solid-looking scenery walk-through again: a planter you pass
+--- through reads as a bug long before anybody notices it helped them escape.
 local function buildPlanters(parent: Instance)
 	local planters = Instance.new("Folder")
 	planters.Name = "Planters"
@@ -172,7 +183,6 @@ local function buildPlanters(parent: Instance)
 				CFrame = CFrame.new(x, 1.1, z),
 				Color = Style.PALETTE.nomCocoa,
 				Material = Enum.Material.Wood,
-				CanCollide = false,
 			}, planters)
 			for leaf = 1, 3 do
 				local spread = 0.9
@@ -222,7 +232,6 @@ local function buildBackdrop(parent: Instance)
 			CFrame = CFrame.new(x, height / 2 - 2, z),
 			Color = colour,
 			Material = Enum.Material.SmoothPlastic,
-			CanCollide = false,
 			CastShadow = false,
 		}, backdrop)
 		-- A pitched roof cap, so the skyline has a silhouette instead of a
@@ -233,7 +242,6 @@ local function buildBackdrop(parent: Instance)
 			CFrame = CFrame.new(x, height - 0.5, z),
 			Color = roof,
 			Material = Enum.Material.SmoothPlastic,
-			CanCollide = false,
 			CastShadow = false,
 		}, backdrop)
 	end
@@ -297,7 +305,6 @@ local function buildBelt(parent: Instance)
 			CFrame = CFrame.new(side * (World.BELT_WIDTH / 2 + 0.4), World.BELT_HEIGHT * 0.9, 0),
 			Color = Style.PALETTE.nomCocoa,
 			Material = Enum.Material.Metal,
-			CanCollide = false,
 		}, belt)
 		part({
 			Name = "RailGlow",
@@ -305,7 +312,6 @@ local function buildBelt(parent: Instance)
 			CFrame = CFrame.new(side * (World.BELT_WIDTH / 2 + 0.4), World.BELT_HEIGHT * 1.45, 0),
 			Color = Style.PALETTE.nomMint,
 			Material = Enum.Material.Neon,
-			CanCollide = false,
 		}, belt)
 	end
 
@@ -441,7 +447,6 @@ local function buildBase(index: number, parent: Instance): BasePart
 		CFrame = gateButton.CFrame * CFrame.new(0, 3, 0),
 		Color = Style.PALETTE.nomPink,
 		Material = Enum.Material.Neon,
-		CanCollide = false,
 	}, model)
 
 	-- Owner sign, over the back wall, readable from the road.
@@ -529,7 +534,6 @@ local function buildLandmark(parent: Instance, name: string, z: number, facing: 
 				* CFrame.Angles(0, 0, math.rad(side * -22)),
 			Color = if name == "FusionLab" then Style.PALETTE.nomMint else Style.PALETTE.nomOrange,
 			Material = Enum.Material.Fabric,
-			CanCollide = false,
 		}, model)
 	end
 
@@ -591,7 +595,6 @@ local function buildLandmark(parent: Instance, name: string, z: number, facing: 
 			CFrame = CFrame.new(0, 0.8, z + facing * 2) * CFrame.Angles(0, 0, math.rad(90)),
 			Color = Style.PALETTE.nomBlue,
 			Material = Enum.Material.Neon,
-			CanCollide = false,
 		}, model)
 
 		local glow = Instance.new("PointLight")
@@ -659,7 +662,6 @@ function WorldService.start()
 		CFrame = CFrame.new(-World.KERB_X - 4, 19, World.BOARD_Z),
 		Color = Style.PALETTE.surfaceCream,
 		Material = Enum.Material.Plastic,
-		CanCollide = false,
 	}, street)
 	local _ = boardPost
 
@@ -753,7 +755,7 @@ function WorldService.start()
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "StreetSpawn"
 	spawn.Anchored = true
-	spawn.CanCollide = false
+	spawn.CanCollide = true
 	spawn.Size = Vector3.new(12, 1, 12)
 	spawn.CFrame = CFrame.new(0, 0.5, -World.STREET_LENGTH / 2 + 20)
 	spawn.Color = Style.PALETTE.nomPink

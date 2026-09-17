@@ -8,6 +8,12 @@ Platform facts with source URLs and check dates live in `docs/VERIFY.md`.
 
 ## 2026-09-17 — Phase 4 (M2 core fun)
 
+### D-026 · The death screen says WASTED — Philip's call, flagged not softened
+**Decision.** Dying desaturates the world and fades up **WASTED** in red, with a sound. Asked for directly: *"When you die I want something exactly similar to when you do it in gta."*
+**The concern, stated once and then dropped.** Everything else in this game avoids the vocabulary of dying on purpose — the PvP is "friendly snatchers", and `tools/validate-kid-safe.py` rejects the whole violent word list in any player-facing string. WASTED is a quotation from an 18-rated game and is the only place the project points at that register. It trips no automated rule, and a single stylised word is not what decides a Roblox maturity questionnaire — the questionnaire asks about blood, realistic violence and gambling, none of which this is. So it ships.
+**What would actually change this.** If the Maturity & Compliance Questionnaire at M5 asks anything where this is a defensible "yes", or if a playtest with an actual nine-year-old reads it as scary rather than funny, swap the word. The screen itself — the desaturate, the fade, the sting — is the part doing the work and survives any wording.
+**Also true:** there is barely any way to die yet. The street is flat and there is no combat. This is for falling off things, and for whatever M4 adds.
+
 ### D-025 · The Laser Gate is 60 s up in every 90, and does not collide
 **Decision.** `GATE_SECONDS = 60`, `GATE_COOLDOWN_SECONDS = 90` measured **from the raise**, and the lasers are `CanCollide = false`.
 **Why from the raise.** Measured from the drop it would be 60 up then 90 down — 40% of the time locked. From the raise it is 60 in every 90, so the real gap between one gate falling and the next going up is 30 s. That is the difference between a defence and a wall, and it is easy to implement the wrong one by accident, so `tests/unit/gate.spec.luau` asserts which it is.
