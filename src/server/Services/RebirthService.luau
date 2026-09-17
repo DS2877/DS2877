@@ -20,6 +20,7 @@ local Economy = require(Shared:WaitForChild("Config"):WaitForChild("Economy"))
 local Net = require(Shared:WaitForChild("Net"))
 local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 
+local AnalyticsService = require(script.Parent:WaitForChild("AnalyticsService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
 local NetService = require(script.Parent:WaitForChild("NetService"))
@@ -73,6 +74,17 @@ function RebirthService.perform(player: Player): (boolean, string?)
 	if not Profile.rebirth(data, cost) then
 		return false, "Could not Re-Nom right now."
 	end
+
+	-- Reported BEFORE the wipe reads the counters, because Profile.rebirth has
+	-- already zeroed the coins this event is meant to describe.
+	AnalyticsService.report(player, "rebirth", data.rebirths, {
+		rebirth_number = data.rebirths,
+		playtime_bucket = if data.stats.playtime < 1800
+			then "under_30m"
+			elseif data.stats.playtime < 7200 then "under_2h"
+			else "over_2h",
+	})
+	AnalyticsService.coinFlow(player, "sink", "rebirth", cost)
 
 	-- The restart egg, in the same breath as the wipe. Without it the player has
 	-- no coins, no income and no way to buy anything (D-008).

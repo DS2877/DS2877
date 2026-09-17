@@ -18,6 +18,9 @@ local Net = require(Shared:WaitForChild("Net"))
 local SERVICE_ORDER = {
 	-- Remotes must exist before anything tries to resolve one.
 	"NetService",
+	-- Early and dependency-free: it only ever reads a profile it is handed, and
+	-- everything downstream wants to be able to report.
+	"AnalyticsService",
 	-- The street builds the base pads that PlotService then finds.
 	"WorldService",
 	-- The look is applied before anything is built, so nothing renders unlit.

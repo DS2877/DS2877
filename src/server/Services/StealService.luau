@@ -26,6 +26,7 @@ local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 local Style = require(Shared:WaitForChild("Style"))
 
 local BookService = require(script.Parent:WaitForChild("BookService"))
+local AnalyticsService = require(script.Parent:WaitForChild("AnalyticsService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
 local PlotService = require(script.Parent:WaitForChild("PlotService"))
@@ -153,6 +154,11 @@ local function deposit(carry: Carry)
 	end
 	Profile.place(thiefData, stored.id, free, Economy.PEDESTALS_BASE)
 	BookService.record(thiefData, stored)
+
+	AnalyticsService.report(carry.thief, "snatch_succeeded", 1, {
+		rarity = carry.nomling.rarity,
+		carry_seconds = math.floor(os.clock() - carry.startedAt),
+	})
 
 	PlotService.render(carry.thief)
 	notify(carry.thief, `Got it! {carry.nomling.snack} {carry.nomling.animal} is yours.`)

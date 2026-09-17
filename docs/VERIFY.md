@@ -278,6 +278,24 @@ Source: [`Enum.ScreenInsets`](https://create.roblox.com/docs/reference/engine/en
   description. If the top row still collides on some device, the fallback is
   `GuiService:GetGuiInset()` and explicit offsets. Nothing else depends on this.
 
+### 🆕 AnalyticsService signatures — checked 2026-09-17
+
+Source: [`AnalyticsService`](https://create.roblox.com/docs/reference/engine/classes/AnalyticsService),
+[Custom events](https://create.roblox.com/docs/production/analytics/custom-events)
+
+- ✅ `LogOnboardingFunnelStepEvent(player, step: number, stepName: string, customFields)`
+- ✅ `LogCustomEvent(player, eventName: string, value: number, customFields)`
+- ✅ `LogEconomyEvent(player, flowType, currencyType, amount, endingBalance, transactionType, itemSku, customFields)`
+- ✅ `LogFunnelStepEvent(player, funnelName, funnelSessionId, step, stepName, customFields)`
+- ✅ Up to **100 custom events** per experience, and "a much tighter cardinality
+  limit on event names than custom fields" — so prefer fields over new names.
+- ❓ **The per-event custom-field cap is not published.** Roblox's own examples
+  use three, so `AnalyticsService.luau` budgets for three and truncates
+  deterministically rather than letting the service drop fields silently. If a
+  fourth turns out to be allowed, raising `MAX_CUSTOM_FIELDS` is the whole change.
+- ❓ Cardinality limits on field *values* are not published either, which is why
+  amounts go through the numeric `value` argument and never a field.
+
 ### 🆕 Luau Execution does NOT run the place's scripts — checked 2026-09-17
 
 Source: [Luau Execution](https://create.roblox.com/docs/cloud/reference/features/luau-execution.md)

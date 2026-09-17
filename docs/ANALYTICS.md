@@ -23,6 +23,44 @@ Phase 1.1. What we log, how it is named, and what Philip checks weekly.
 
 ---
 
+## 1b. What is actually wired, as of 2026-09-17
+
+This file is the spec, and the spec has always been larger than the build. This
+section is the honest half: what exists in code today.
+
+**Implemented:** `src/server/Services/AnalyticsService.luau`, with the funnel
+logic split into the pure, Lune-tested `src/shared/Logic/Funnel.luau`.
+
+| Live | Event |
+|---|---|
+| ✅ | the full 7-step onboarding funnel |
+| ✅ | `egg_bought`, `egg_hatched`, `nomling_placed` |
+| ✅ | `fusion_started`, `fusion_completed`, `world_first_claimed` |
+| ✅ | `snatch_succeeded`, `rebirth` |
+| ✅ | `coins_source` / `coins_sink` (offline, egg, belt, rebirth) |
+| ⬜ | `weather_started`, `mutation_gained`, `snatch_attempted`, `snatch_defended` |
+| ⬜ | everything under §4 monetisation — the features do not exist yet (M3) |
+
+**Three properties the funnel guarantees**, each tested in
+`tests/unit/funnel.spec.luau` because each is a bug that would otherwise surface
+as inexplicable data months later: a step fires **once ever**, steps fire **in
+order** even when a player leaps several beats in one action, and a **rejoin
+does not re-enter the funnel at the top**. Progress lives in the profile
+(`data.funnel`), not in memory.
+
+**Analytics never breaks the game.** Every Roblox call is wrapped; a telemetry
+outage costs a data point and nothing else. Warnings are once per event name,
+because a broken event fires as often as the thing it measures.
+
+**Custom fields are capped at 3 and sorted** before truncation, so which three
+survive is deterministic rather than dependent on Luau's undefined table order —
+otherwise two servers would report different fields for the same event. Values
+are buckets and keys, never quantities: Roblox limits how many *distinct* values
+a field may have, and a raw coin amount would exhaust that within an hour. The
+amount goes through the numeric `value` argument instead.
+
+---
+
 ## 2. Onboarding funnel
 
 The most important instrumentation in the project. Phase 0 confirmed **first-play bounce rate** (`<60 s` and `61–180 s`) is one of the most heavily weighted discovery signals, and that "qualified play sessions" filter out quick bounces.

@@ -24,6 +24,7 @@ local Odds = require(Shared:WaitForChild("Logic"):WaitForChild("Odds"))
 local NameGen = require(Shared:WaitForChild("Logic"):WaitForChild("NameGen"))
 local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 
+local AnalyticsService = require(script.Parent:WaitForChild("AnalyticsService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
 local BookService = require(script.Parent:WaitForChild("BookService"))
@@ -80,6 +81,11 @@ function EggService.buy(player: Player, eggKey: unknown): (boolean, string?)
 	if not Profile.spendCoins(data, price) then
 		return refuse("Not enough coins yet.")
 	end
+
+	data.stats.eggsBought += 1
+	AnalyticsService.report(player, "egg_bought", price, { egg_tier = eggKey, source = "market" })
+	AnalyticsService.coinFlow(player, "sink", "egg", price)
+	AnalyticsService.advanceFunnel(player, data)
 
 	table.insert(data.incubators, {
 		eggKey = eggKey,
@@ -154,6 +160,18 @@ function EggService.claim(player: Player, slot: unknown): (boolean, string?)
 	if free then
 		Profile.place(data, stored.id, free, Economy.PEDESTALS_BASE)
 	end
+
+	AnalyticsService.report(player, "egg_hatched", 1, {
+		egg_tier = incubator.eggKey,
+		rarity = rarity,
+		was_skipped = false,
+	})
+	if free then
+		AnalyticsService.report(player, "nomling_placed", 1, { rarity = rarity, gen = 1 })
+	end
+	-- After both, so a hatch that also auto-places advances two steps at once
+	-- and still records them in order.
+	AnalyticsService.advanceFunnel(player, data)
 
 	PlotService.render(player)
 	EggService.sync(player)

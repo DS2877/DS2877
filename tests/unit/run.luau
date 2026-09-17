@@ -27,5 +27,6 @@ require("./fusion.spec")
 require("./weather.spec")
 require("./hud.spec")
 require("./visual.spec")
+require("./funnel.spec")
 
 process.exit(h.report())

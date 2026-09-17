@@ -58,7 +58,20 @@ export type Data = {
 	incubators: { Incubator },
 	--- os.time() of the last save. Drives offline income.
 	lastSeen: number,
-	stats: { hatched: number, placed: number, coinsEarned: number, playtime: number },
+	stats: {
+		hatched: number,
+		placed: number,
+		coinsEarned: number,
+		playtime: number,
+		--- Counters the onboarding funnel derives its step from. They are
+		--- lifetime totals and survive a Re-Nom deliberately: a returning
+		--- player must not be counted as a new one, or first-play bounce --
+		--- the discovery signal the whole launch plan rests on -- is measured
+		--- against people who have played for a week.
+		eggsBought: number,
+		fusionsStarted: number,
+		fusionsRevealed: number,
+	},
 	--- Monotonic, so a Nomling id is never reused within a profile.
 	nextId: number,
 	--- The Fusion Book: every combination this player has ever owned, by combo
@@ -68,6 +81,12 @@ export type Data = {
 	--- Kept FOREVER, including across a Re-Nom. What a player has discovered is
 	--- the one thing they cannot be asked to give up twice (GDD 5.9).
 	book: { [string]: boolean },
+	--- Which onboarding funnel steps have already been logged, by step number.
+	---
+	--- Stored rather than recomputed because Roblox counts a player once per
+	--- step: re-logging step 3 on every rejoin would inflate it past step 2 and
+	--- make the funnel read as though players move backwards through it.
+	funnel: { [number]: boolean },
 }
 
 function Profile.new(now: number): Data
@@ -79,9 +98,18 @@ function Profile.new(now: number): Data
 		pedestals = {},
 		incubators = {},
 		lastSeen = now,
-		stats = { hatched = 0, placed = 0, coinsEarned = 0, playtime = 0 },
+		stats = {
+			hatched = 0,
+			placed = 0,
+			coinsEarned = 0,
+			playtime = 0,
+			eggsBought = 0,
+			fusionsStarted = 0,
+			fusionsRevealed = 0,
+		},
 		nextId = 1,
 		book = {},
+		funnel = {},
 	}
 end
 
@@ -129,6 +157,9 @@ function Profile.sanitize(raw: any, now: number, inventoryCap: number, pedestalC
 		-- Drives the newcomer shield, so it must never come back negative:
 		-- that would leave a veteran permanently unsnatchable.
 		playtime = num(stats.playtime, 0, 0),
+		eggsBought = math.floor(num(stats.eggsBought, 0, 0)),
+		fusionsStarted = math.floor(num(stats.fusionsStarted, 0, 0)),
+		fusionsRevealed = math.floor(num(stats.fusionsRevealed, 0, 0)),
 	}
 
 	-- Nomlings. An entry missing an id, a snack or an animal cannot be rendered
@@ -196,6 +227,19 @@ function Profile.sanitize(raw: any, now: number, inventoryCap: number, pedestalC
 			if type(key) == "string" and #key > 0 and #key <= 64 and value then
 				clean.book[key] = true
 				kept += 1
+			end
+		end
+	end
+
+	-- Funnel steps. Bounded by the step count rather than by trust: a save with
+	-- a million keys in here would otherwise be carried into memory forever.
+	-- Like everything else in sanitize, a bad value is dropped and never
+	-- rejected -- refusing to load a profile locks a player out permanently.
+	if type(raw.funnel) == "table" then
+		for key, value in raw.funnel :: any do
+			local step = tonumber(key)
+			if step and step >= 1 and step <= 32 and value then
+				clean.funnel[math.floor(step)] = true
 			end
 		end
 	end

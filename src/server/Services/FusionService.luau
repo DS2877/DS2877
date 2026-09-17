@@ -32,6 +32,7 @@ local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 
 local BookService = require(script.Parent:WaitForChild("BookService"))
+local AnalyticsService = require(script.Parent:WaitForChild("AnalyticsService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
 local NetService = require(script.Parent:WaitForChild("NetService"))
@@ -195,6 +196,14 @@ function FusionService.start_(player: Player, idA: unknown, idB: unknown): (bool
 		seed = seed,
 	}
 
+	data.stats.fusionsStarted += 1
+	AnalyticsService.report(player, "fusion_started", seconds, {
+		a_rarity = a.rarity,
+		b_rarity = b.rarity,
+		same_tier = a.rarity == b.rarity,
+	})
+	AnalyticsService.advanceFunnel(player, data)
+
 	return true, nil
 end
 
@@ -246,6 +255,19 @@ function FusionService.claim(player: Player): (boolean, string?)
 	-- The World First claim happens after the creature is safely theirs, so a
 	-- DataStore problem can cost the accolade but never the Nomling.
 	local isFirst = claimWorldFirst(entry.comboKey, player.UserId)
+
+	data.stats.fusionsRevealed += 1
+	AnalyticsService.report(player, "fusion_completed", 1, {
+		result_rarity = stored.rarity,
+		result_gen = stored.gen,
+		new_to_book = isNewToBook,
+	})
+	if isFirst then
+		-- The combo key, never the generated name: a name is player-adjacent
+		-- content and telemetry carries none of that (docs/ANALYTICS.md 1).
+		AnalyticsService.report(player, "world_first_claimed", 1, { combo_key = entry.comboKey })
+	end
+	AnalyticsService.advanceFunnel(player, data)
 
 	local reveal = Net.get("FusionReveal") :: RemoteEvent
 	reveal:FireClient(player, {

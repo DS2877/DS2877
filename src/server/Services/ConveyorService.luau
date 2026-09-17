@@ -32,6 +32,7 @@ local Nameplate = require(Shared:WaitForChild("Nameplate"))
 local World = require(Shared:WaitForChild("Config"):WaitForChild("World"))
 local Genome = require(Shared:WaitForChild("Logic"):WaitForChild("Genome"))
 
+local AnalyticsService = require(script.Parent:WaitForChild("AnalyticsService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local NetService = require(script.Parent:WaitForChild("NetService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
@@ -271,6 +272,14 @@ function ConveyorService.buy(player: Player, id: unknown): (boolean, string?)
 		rarity = item.nomling.rarity,
 		mutation = item.nomling.mutation,
 	})
+
+	AnalyticsService.report(player, "nomling_placed", 1, {
+		rarity = item.nomling.rarity,
+		source = "belt",
+		mutated = item.nomling.mutation ~= nil,
+	})
+	AnalyticsService.coinFlow(player, "sink", "belt", item.price)
+	AnalyticsService.advanceFunnel(player, data)
 
 	removeItem(item)
 	PlotService.render(player)

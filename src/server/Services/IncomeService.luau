@@ -15,6 +15,7 @@ local Economy = require(Shared:WaitForChild("Config"):WaitForChild("Economy"))
 local Income = require(Shared:WaitForChild("Logic"):WaitForChild("Income"))
 local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 
+local AnalyticsService = require(script.Parent:WaitForChild("AnalyticsService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local EggService = require(script.Parent:WaitForChild("EggService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
@@ -57,8 +58,12 @@ local function payOffline(player: Player, data: Profile.Data)
 	)
 	if earned > 0 then
 		Profile.addCoins(data, earned)
+		AnalyticsService.coinFlow(player, "source", "offline", earned)
 		print(`[IncomeService] {player.Name} away {elapsed}s, paid {earned}`)
 	end
+	-- Earning anything at all IS the collect step, and offline pay is the one
+	-- moment a returning player's balance moves before they touch anything.
+	AnalyticsService.advanceFunnel(player, data)
 end
 
 function IncomeService.start()
@@ -85,6 +90,11 @@ function IncomeService.start()
 				local earned = IncomeService.perSecond(data) * delta
 				if earned > 0 then
 					Profile.addCoins(data, earned)
+					-- Earning the first coin is funnel step 4, and income
+					-- accrues without a tap, so there is no other moment to
+					-- hook it to. Cheap when there is nothing pending: it walks
+					-- seven table entries and makes no API call at all.
+					AnalyticsService.advanceFunnel(player, data)
 				end
 			end
 		end
