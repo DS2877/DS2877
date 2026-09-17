@@ -35,6 +35,17 @@ local ANCHOR_NAME = "NomlingAnchor"
 --- Bob only what the player can actually see move.
 local MOTION_RANGE = 70
 local MOTION_HZ = 20
+--- Inside this, a creature turns to look at you and bounces higher. Small on
+--- purpose: it has to feel like it noticed YOU, not like everything in the
+--- street is watching.
+local NOTICE_RANGE = 15
+--- How long a creature takes to rise onto its pedestal.
+---
+--- Done by moving the ROOT, not by scaling the model. Model:ScaleTo repositions
+--- every part, and these parts are held by WeldConstraints -- a rigid weld would
+--- fight the scale and either snap back or jitter. Moving the one anchored root
+--- is what welds are for, and it composes with the idle bob for free.
+local POP_SECONDS = 0.42
 
 local SHAPES: { [string]: Enum.PartType } = {
 	block = Enum.PartType.Block,
@@ -53,6 +64,8 @@ type Live = {
 	anchor: BasePart,
 	root: BasePart,
 	phase: number,
+	--- os.clock() when this creature appeared, for the rise-in.
+	bornAt: number,
 	--- The anchor CFrame this creature was last placed at. Comparing against it
 	--- is how a MOVING anchor (a belt item, a carried creature) is told apart
 	--- from a static one on a pedestal.
@@ -245,12 +258,14 @@ local function build(anchor: BasePart)
 	end
 
 	model.Parent = anchor
+
 	live[anchor] = {
 		anchor = anchor,
 		root = root,
 		-- A per-creature phase, so a plot of eight does not bob in lockstep --
 		-- synchronised idle motion reads as mechanical immediately.
 		phase = (genome.seed % 1000) / 1000 * math.pi * 2,
+		bornAt = os.clock(),
 		lastOrigin = anchor.CFrame,
 	}
 end
@@ -295,6 +310,12 @@ function NomlingRenderController.start()
 		local eye = camera.CFrame.Position
 		local clock = os.clock()
 
+		-- Where the player actually is, which is not where the camera is. A
+		-- creature should notice the PERSON walking up to it.
+		local character = Players.LocalPlayer.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		local playerAt = if root and root:IsA("BasePart") then root.Position else nil
+
 		for anchor, entry in live do
 			if not anchor.Parent then
 				live[anchor] = nil
@@ -309,23 +330,55 @@ function NomlingRenderController.start()
 			-- and an obvious one on screen.
 			local moved = (origin.Position - entry.lastOrigin.Position).Magnitude > 0.01
 			local near = (origin.Position - eye).Magnitude <= MOTION_RANGE
+			-- A creature still rising has to be updated even if it is static and
+			-- off-camera, or it would be left sunk into its pedestal forever.
+			local rising = clock - entry.bornAt < POP_SECONDS
 
-			if not moved and not near then
+			if not moved and not near and not rising then
 				continue
 			end
 			entry.lastOrigin = origin
 
+			-- The rise-in. Starts sunk into the pedestal and overshoots slightly
+			-- before settling, which is what makes it read as arriving rather
+			-- than as having been switched on.
+			local age = clock - entry.bornAt
+			local popOffset = 0
+			if age < POP_SECONDS then
+				local t = age / POP_SECONDS
+				popOffset = if t < 0.72
+					then -2.6 + (t / 0.72) * 3.0
+					else 0.4 - ((t - 0.72) / 0.28) * 0.4
+			end
+
 			if near then
-				-- A slow bob and a slight sway. Small numbers on purpose: this
-				-- should read as breathing, not as floating.
 				local t = clock * 1.6 + entry.phase
-				entry.root.CFrame = origin
-					* CFrame.new(0, math.sin(t) * 0.16, 0)
-					* CFrame.Angles(0, math.rad(math.sin(t * 0.5) * 2.5), 0)
+				local noticed = playerAt ~= nil
+					and (origin.Position - playerAt).Magnitude <= NOTICE_RANGE
+
+				if noticed then
+					-- It noticed you. Turns to look, and bounces about twice as
+					-- high. This is the cheapest charm in the whole game and it
+					-- is the thing a child will point at.
+					local look = Vector3.new(
+						(playerAt :: Vector3).X,
+						origin.Position.Y,
+						(playerAt :: Vector3).Z
+					)
+					local bounce = math.abs(math.sin(clock * 4 + entry.phase)) * 0.42
+					entry.root.CFrame =
+						CFrame.new(origin.Position + Vector3.new(0, bounce, 0), look)
+				else
+					-- A slow bob and a slight sway. Small numbers on purpose:
+					-- this should read as breathing, not as floating.
+					entry.root.CFrame = origin
+						* CFrame.new(0, math.sin(t) * 0.16 + popOffset, 0)
+						* CFrame.Angles(0, math.rad(math.sin(t * 0.5) * 2.5), 0)
+				end
 			else
 				-- Far away: follow exactly, and spend nothing on animation
 				-- nobody can see.
-				entry.root.CFrame = origin
+				entry.root.CFrame = origin * CFrame.new(0, popOffset, 0)
 			end
 		end
 	end)
