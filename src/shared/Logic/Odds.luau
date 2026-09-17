@@ -76,7 +76,11 @@ end
 --- Deterministic: the same roll always yields the same rarity.
 function Odds.pick(odds: OddsTable, roll: number): Rarity
 	local cumulative = 0
-	for _, rarity in RARITY_ORDER do
+	-- The loop variable is annotated because generalized iteration over an array
+	-- of string singletons hands back plain `string`, however the array itself
+	-- is declared -- so without this, pick() cannot return what it just read out
+	-- of its own order table.
+	for _, rarity: Rarity in RARITY_ORDER do
 		cumulative += odds[rarity] or 0
 		if roll < cumulative then
 			return rarity
