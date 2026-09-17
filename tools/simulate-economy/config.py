@@ -117,6 +117,16 @@ EGGS = {
 # a reveal inside 15 seconds (brief 4.6).
 FIRST_EGG_HATCH_SECONDS = 5
 
+# A new player is GIVEN this egg, already incubating. The simulator has always
+# assumed it -- every pacing number in docs/ECONOMY.md was derived with it --
+# but it was an unnamed line in simulate.py rather than a constant, and the game
+# never implemented it. A new profile therefore had 0 coins and 0 income and
+# could not afford the cheapest egg: soft-locked on the first screen.
+#
+# Same failure as rebirth (D-008), same fix. Set to None for no starting egg,
+# and expect the FTUE to need a coin grant instead.
+STARTER_EGG = "basic"
+
 # Egg prices scale with rebirth count. Without this, eggs become free relative
 # to late-game income, the shop stops being a sink, and income runs away — the
 # simulator showed heavy players reaching 220 rebirths in 28 days.
@@ -214,6 +224,24 @@ REBIRTH_GRANTS_FREE_EGG = True
 OFFLINE_EFFICIENCY = 0.25
 OFFLINE_CAP_SECONDS = 2 * 3600
 OFFLINE_CAP_SECONDS_VIP = 4 * 3600
+
+# ---------------------------------------------------------------------------
+# Pocket money
+# ---------------------------------------------------------------------------
+# Paid per second ONLY while a player's placed Nomlings earn nothing at all.
+#
+# Without it, losing everything is a dead end rather than a setback: income is
+# zero, every egg costs coins, and nothing in the game generates the first one.
+# Profile.isStranded() grants a starter egg, but only at load and only when the
+# profile is completely empty -- a player robbed down to nothing mid-session
+# falls straight through it.
+#
+# It pays ONLY at zero, so it never touches normal play and cannot be farmed:
+# a single common earns 1/s and is already worth more than sitting still. At
+# 2/s a Basic egg is about thirteen seconds away, which reads as a rescue
+# rather than a grind. It is multiplied by the rebirth multiplier like any
+# other income, so it stays proportionate once egg prices have scaled.
+STIPEND_PER_SECOND = 2
 
 
 def expected_income(egg_key: str) -> float:

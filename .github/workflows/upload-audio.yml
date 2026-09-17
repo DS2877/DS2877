@@ -1,0 +1,61 @@
+name: Upload audio to Roblox
+
+# Manual only. Uploading creates assets on Philip's Roblox account and sends
+# them through moderation, so it is never automatic.
+on:
+  workflow_dispatch:
+    inputs:
+      directory:
+        description: "Directory of .ogg files to upload (ignored when 'file' is set)"
+        default: "assets/audio"
+        required: true
+      file:
+        description: >-
+          Upload ONE file instead of the whole directory, e.g.
+          assets/audio/sfx-deny.ogg. Use this first: it proves the API key, the
+          creator id and the file format before spending the monthly quota on
+          all eight.
+        required: false
+        default: ""
+      name:
+        description: "Display name, only used with 'file'"
+        required: false
+        default: "Nomling Audio"
+
+jobs:
+  upload:
+    name: Upload and report the asset ID
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload
+        id: upload
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          ROBLOX_USER_ID: ${{ vars.ROBLOX_USER_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ROBLOX_USER_ID:-}" ]; then
+            echo "ROBLOX_USER_ID variable is not set; falling back to the known creator id"
+            export ROBLOX_USER_ID=7185134469
+          fi
+          if [ -n "${{ inputs.file }}" ]; then
+            python3 tools/upload-audio.py \
+              --file "${{ inputs.file }}" --name "${{ inputs.name }}"
+          else
+            python3 tools/upload-audio.py --all "${{ inputs.directory }}"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Audio upload"
+            echo ""
+            echo '```'
+            echo "${{ steps.upload.outputs.uploaded }}${{ steps.upload.outputs.asset_id }}"
+            echo '```'
+            echo ""
+            echo "Put these in \`src/shared/Config/Audio.luau\`."
+          } >> "$GITHUB_STEP_SUMMARY"

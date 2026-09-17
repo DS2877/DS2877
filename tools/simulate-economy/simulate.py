@@ -257,7 +257,8 @@ def simulate(archetype: str, seed: int, days: int = DAYS) -> Player:
     next_weather = avg_weather_interval
 
     # Seed the FTUE: the free starting egg is already incubating at t=0.
-    p.hatching.append((C.FIRST_EGG_HATCH_SECONDS, "basic"))
+    if C.STARTER_EGG:
+        p.hatching.append((C.FIRST_EGG_HATCH_SECONDS, C.STARTER_EGG))
 
     for day in range(days):
         if day > 0:

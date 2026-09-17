@@ -45,11 +45,65 @@ def main() -> int:
     print(f"Running {os.path.relpath(args.script, ROOT)} on {args.env.upper()}")
     print(f"  universe: {universe}  place: {place}  version: {args.version or 'latest'}")
 
-    try:
-        task = opencloud.run_luau_task(universe, place, script, version_id=args.version)
-    except opencloud.OpenCloudError as exc:
-        opencloud.die(str(exc))
+    task = run_with_retry(universe, place, script, args.version)
+    if task is None:
+        return 1
+    return report(task)
 
+
+def run_with_retry(universe: str, place: str, script: str, version: str | None):
+    """Runs the task, retrying once if Luau Execution never started it.
+
+    A task that times out having printed NOTHING never ran: smoke.luau's first
+    statement is a print, so no output at all means the service accepted the
+    task and never executed it. That happened three times in five runs on
+    2026-09-17, either side of the same script passing 25/25 in six seconds.
+
+    This is a retry, NOT a skip. A task that started and then hung, or ran and
+    failed, is reported exactly as it came back and is never retried -- the
+    difference is whether it produced output, which is the whole reason the
+    timeout path fetches logs. A test is never retried into passing here; only
+    a task that never became a test run is given a second chance.
+    """
+    for attempt in (1, 2):
+        try:
+            return opencloud.run_luau_task(universe, place, script, version_id=version)
+        except opencloud.TaskTimeout as exc:
+            lines: list[str] = []
+            try:
+                lines = opencloud.task_logs(exc.task_path)
+            except opencloud.OpenCloudError as log_exc:
+                print(f"  (could not fetch logs: {log_exc})", file=sys.stderr)
+
+            if not lines and attempt == 1:
+                print(
+                    "\nThe task never started: no output at all within the timeout, "
+                    "and the script's first line is a print.\n"
+                    "That is a Luau Execution flake rather than a test failure, "
+                    "so retrying once.",
+                    file=sys.stderr,
+                )
+                continue
+
+            print(f"\nTIMED OUT: {exc}", file=sys.stderr)
+            print("Logs up to the point it stopped:", file=sys.stderr)
+            if lines:
+                for line in lines:
+                    print(f"  | {line}", file=sys.stderr)
+            else:
+                print(
+                    "  (nothing at all, on both attempts -- Luau Execution is not "
+                    "running tasks for this place right now)",
+                    file=sys.stderr,
+                )
+            return None
+        except opencloud.OpenCloudError as exc:
+            opencloud.die(str(exc))
+    return None
+
+
+def report(task: dict) -> int:
+    """Prints a finished task's logs and turns its state into an exit code."""
     state = task.get("state")
     print(f"\nTask finished: {state}")
 

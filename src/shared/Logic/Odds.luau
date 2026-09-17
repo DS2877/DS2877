@@ -56,7 +56,12 @@ function Odds.assertValid(odds: OddsTable, label: string)
 	local total = Odds.sum(odds)
 	if total ~= Odds.TOTAL_PPM then
 		error(
-			string.format("odds table '%s' sums to %d ppm, expected %d", label, total, Odds.TOTAL_PPM),
+			string.format(
+				"odds table '%s' sums to %d ppm, expected %d",
+				label,
+				total,
+				Odds.TOTAL_PPM
+			),
 			2
 		)
 	end

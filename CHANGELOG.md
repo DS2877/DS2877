@@ -4,6 +4,175 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### Sound, a working key, and a test that had never run · 2026-09-17
+
+**The game has sound.** The theme and all seven effects are uploaded, live, and
+wired — 113 seconds of *Nomling Glade* plus coin, purchase, hatch, reveal, snatch
+alarm, snatch grab and deny. Every entry had been `assetId = 0`, which
+`Audio.isReady()` treats as inert, so the game had been deliberately silent rather
+than broken while the upload was blocked on a key scope.
+
+Uploaded in two passes on purpose: **one small effect first as a canary**, then the
+set. Roblox allows 10 audio uploads per month on an account that is not
+ID-verified, we have 8 files, and audio is *"not available for updating"* — so a
+bad upload is a spent slot, not something to fix in place. A canary costs one slot
+and proves the key, the creator id and the multipart format before the budget goes.
+
+**TEST was never actually live, and a log line is why.** CI publishes with
+`--type Saved`, which creates a version *without* making it live — correct for
+validation. But `publish.py` printed `Published as version N` either way. That line
+went into a CI log, into my summary, and Philip spent a playtest on a build four
+commits old whose belt button was still the broken one. It now prints
+`SAVED as version N — NOT LIVE` and names the workflow that does deploy.
+
+**The cloud smoke test had never once executed.** The API key had lacked the
+luau-execution scope since the day it was made, so nobody had seen it pass — and
+when it finally ran it failed on two assertions that were impossible from the day
+they were written. It checked for `ReplicatedStorage.Net` and `Workspace.Plaza`,
+both built at runtime by scripts a Luau task never starts (*"Server and local
+scripts within the place also do not automatically run"*), and the Plaza had not
+existed since the map became a street. Same shape as the format gate that sat green
+and inert, except this one was red and unread.
+
+Rewritten around what a task genuinely can do, which is also this project's real
+blind spot: **every shared module is now required inside the real Roblox engine.**
+Lune resolves `require` by file path and has no engine, and there is no Studio and
+no `luau-lsp` in cloud sessions, so nothing else covers "does this actually load".
+25/25 checks pass, including all 22 modules.
+
+- **A hung cloud task used to print nothing at all.** The runner died on the
+  timeout without fetching logs, so five minutes bought zero information. It now
+  prints whatever the task logged, and the test names each module before requiring
+  it — so the last line is always the culprit. Which is how the next hang got
+  diagnosed as transient rather than blamed on the wrong code.
+- **A beam of light over your own base.** "I can't find my base" — eight bases on
+  one 520-stud road, same parts, same colours. A signpost, never a teleport:
+  carrying a snatched Nomling home on foot is the whole risk half of stealing.
+- **The egg button priced the tier it actually buys.** It read `prices.basic` while
+  buying `bestEgg`, so after a Re-Nom it advertised 25 coins and charged 1200.
+- **A manual CI run can no longer burn the audio quota** — the upload job is behind
+  an input that defaults to false.
+
+### Playtest fixes: the HUD, and the belt button that did nothing · 2026-09-17
+
+From Philip's phone playtest: *"Screen composition looks a bit weird, make the buttons
+smaller and the ui more ux friendly. Also you can't buy any of the animals from the band,
+and the buttons don't seem to be working."* Two of those were the same bug wearing
+different hats.
+
+**The belt button was not broken — it was mute.** A `ProximityPrompt` fires on the
+**server**, and nothing carries a return value back to the player the way a
+`RemoteFunction` does. `ConveyorService.buy` returned `(false, "You need 90 coins.")` and
+that string went nowhere. Tapping Buy on a Nomling you could not afford did *literally
+nothing*, which is indistinguishable from a dead button. Every refusal now reaches the
+player, with the deny cue, and says how much more they need rather than just the price.
+`StoreNomling` had the same hole and is fixed the same way. `StealService` already got
+this right, which is why nobody noticed.
+
+**A button that renders blank is not a rendering bug you find in a log.** The Bubble
+button was labelled U+1FAE7 🫧 — Emoji 14.0, from 2021. Roblox draws text with the host
+platform's emoji font, so on a phone it was an empty blue rectangle. It threw nothing and
+logged nothing. `tools/validate-kid-safe.py` now fails the build on any emoji outside an
+explicit allowlist with its Emoji version recorded, floor 12.0 (2019); it caught four more
+live instances the moment it was switched on. The bubble is now a **drawn** circle and the
+word SAVE.
+
+**The HUD is a third smaller and lays itself out.** Bottom bar 72 → 50, rail 56 → 44,
+purse 208×70 → 152×44, incubators 150×58 → 108×44. Every number now lives in
+`src/shared/Logic/HudLayout.luau`, which requires nothing — so Lune tests the whole screen
+composition: **bands cannot overlap, nothing drops under the 44 pt touch floor, and the
+furniture cannot take more than 32% of a resting screen** (it was 45%). That test caught a
+42 pt incubator before a phone did.
+
+- **Nothing positions itself against a screen edge any more.** The purse and the objective
+  banner are one row that stops short of the rail; the weather banner is a strip under it;
+  the incubator tray is docked to the top of the bottom bar instead of floating
+  mid-screen; the toast sits above the tray. Four collisions in one screenshot, all
+  arithmetic, all now derived.
+- **`CoreUISafeInsets`, not `DeviceSafeInsets`.** The latter dodges the notch but does not
+  reserve the Roblox top bar, so the banner rendered underneath the menu and chat buttons.
+  Recorded in `docs/VERIFY.md` with its caveat — the docs publish no description for these
+  enum values.
+- **FUSE stopped falling off its own button.** `TextScaled` in a 72 px button asks for
+  72 px type; with an emoji in front of it the E ran past the right edge. Labels are inset
+  on all four sides and capped with a `UITextSizeConstraint`.
+- **Nameplates have a hierarchy.** One `TextScaled` label makes every line the same size,
+  so a whole street of them was stacks of unreadable grey. A shared `Nameplate` module
+  gives the mutation (or the name) the headline and rarity/income/price the small line, so
+  what you need from across the street stays readable after the rest stops being.
+- **The tutorial counts.** "Buy a Nomling off the belt" with 12 coins in your purse reads
+  as a broken game. It now reads *"Saving up for the belt: 12 / 90 coins — your Nomlings
+  are earning it now"*, and the belt sign shows the price from across the street.
+
+### The AAA sprint · 2026-09-17
+
+**The game now looks and plays like a product.** Seven areas, one night.
+
+**Creatures are real.** 15–20 parts each: torso, belly panel, head, snout, ears, two eyes with pupils, legs or flippers, a tail or fluke, wings where the archetype has them — and the **snack overlay** that makes a fusion legible in under a second: taco shells arching over backs, nori bands, pizza-crust collars, sprinkles, popcorn puffs, waffle grids. Built on the **client** from a replicated genome, because a genome is a handful of strings and a model is twenty parts, and the GDD's test case is 150 visible at once. 11 tests cover the part budget, the eyes, the snack layer, distinct silhouettes per archetype, and byte-identical geometry forever.
+
+**Fusion, the reveal, and World First.** The differentiator, finally in. Ordered pairs (Sushiwal ≠ Wafflepup), a child never worse than its best parent, matching tiers upgrading more often than mismatched ones, and fusion that can inherit a mutation but never invent one. The reveal gets the whole screen: dim, silhouette before colour, rarity banner, then the **name types itself out** — because the name is the proof nobody has seen this creature before. World First is a DataStore first-writer-wins claim broadcast server-wide, storing a UserId and never a display name (D-013).
+
+**Art direction.** One committed time of day, warm-neutral ambient instead of grey, Atmosphere with real haze, volumetric clouds, restrained bloom, a colour grade too small to notice working, sun rays, subtle far-only depth of field — plus measured per-device quality scaling. None of it costs a part.
+
+**A street that reads as a place.** Pavement with a kerb you never jump, lane markings, lamp posts with warm lights, planters, striped market awnings, belt rails, and silhouetted buildings past both ends and behind both sides. A **Fusion Kitchen** and an **Egg Market** at either end, so the road runs between somewhere and somewhere else.
+
+**Game feel.** Coin flight into the purse, particle bursts scaled by rarity, camera shake, a screen flash reserved for epic-or-better, a coin counter that eases rather than snaps, incubator progress that fills, toasts that fade. Sound and picture always fire together.
+
+**Stealing you can actually test.** Sneaky Sam and friends rob your base and run for the street's end, and the **Bubble Wand** is the counter-play — which finally makes snatching something you survive rather than something that happens to you. Philip is alone in his server, so without NPCs this half of the game was untestable (GDD 5.8 planned for exactly this).
+
+**The theme, rebuilt and premium.** 36 bars → 66 (60 s → 113 s), scored for tin whistle, fiddle, cello, bodhrán, harp, strings, horn and bells, with a 12-bar development and a finale an octave up. Seven original sound effects, all in the theme's key so feedback never clashes with the loop. **All eight audio files are committed and one click from the game** — blocked only on an API key scope Philip has to add.
+
+**Bugs caught before they shipped**
+- `FUSION_SECONDS` is keyed by **rarity**; the service indexed it by gen, silently returning nil and using the 8-second FTUE time for every fusion in the game.
+- `DataService` fired "profile loaded" before the three services that listen had subscribed, so the first player on a fresh server would have got no base at all.
+- FUSE and Buy Egg were independently bottom-anchored and **overlapped on a 390-point phone screen**.
+- Moving creatures detached from their anchors beyond 70 studs — every belt creature and every carried one.
+- `Income.format` overflowed the HUD past 10³³.
+- An incubator saved by the previous build had no `total`, which would divide by zero on the client's progress bar.
+
+### M1 vertical slice, first half · 2026-09-16
+
+**The loop runs.** Join, get a plot, buy an egg, watch it hatch, a Nomling lands on a pedestal and starts earning, leave, come back to your coins.
+
+**Added**
+- `Logic/Profile.luau` — the save schema and every legal mutation. `sanitize` never rejects: a corrupt profile is repaired, not refused, because refusing locks a player out of the game permanently.
+- `Logic/Income.luau` — per-second and offline accrual, the same formula the economy simulator uses.
+- `DataService` — DataStore wrapper with a **session lock**, atomic writes, retry with backoff, autosave and a parallel `BindToClose` flush.
+- `PlotService` — plot assignment, pedestal ring, Nomling rendering (placeholder visuals; the real builder is M2a).
+- `EggService` — buy and hatch. The roll happens **on claim, on the server**, never at purchase and never on the client.
+- `IncomeService` — time-based coin tick, so frame rate cannot change earnings.
+- `BaseHudController` — phone-first HUD: coins, egg button, incubator slots, all touch targets ≥ 56 px.
+- Three remotes declared in `shared/Net` first, implemented second.
+- 24 tests, including regressions for double-placement, corrupt saves and backwards clocks.
+
+**Fixed before it ever ran**
+- **stylua was checking zero files.** Built without `--features luau` it drops `.luau` from its glob and exits 0, so the format gate was green and inert since day one across CI and local runs. See D-018.
+- **A service ordering bug that would have killed the slice.** `PlotService` looked for the plaza in `init()`, but `PlazaService` builds it in `start()`, and every `init` runs before any `start`. Nobody would have been given a plot and nothing would have rendered.
+- `Income.format` returned a nine-character string past 10³³, overflowing the HUD.
+
+**The starter egg, which the model assumed and the game did not.**
+A new profile had 0 coins, 0 income and no way to afford the cheapest egg — soft-locked on the first screen, the exact failure `REBIRTH_GRANTS_FREE_EGG` fixes for rebirth (D-008). The economy simulator had *always* granted a free starting egg, as an unnamed line inside `simulate.py`, so every pacing number in `docs/ECONOMY.md` already depended on it. It is now `STARTER_EGG` in both config files, used by both, with the grant written as a state test (`isStranded`) so it also rescues anyone already stranded by the previous build.
+
+**Not done yet** — the analytics funnel and the rest of the FTUE, both listed under M1 in `docs/ROADMAP.md`.
+
+### First TEST deploy · 2026-09-16
+
+**Shipped**
+- **`Fuse a Nomling TEST` is live at version 4** with the M0 plaza. The pipeline is real: a push to `main` builds and publishes on its own.
+
+**Fixed**
+- Open Cloud permission names were wrong in `tools/opencloud.py` — it named scopes that do not exist, so a 401 sent the reader hunting for something Creator Hub never shows. Roblox's guide says `universe-places` + the **Write** operation, picked from menus.
+- Removed `Swatinem/rust-cache` from both workflows. It needs a Cargo workspace, and this repo is not one, so it cached nothing and failed in its post step on every run. `~/.cargo/bin` is cached directly instead, which turns a ~2-minute Rojo build into a restore.
+- Dropped the deprecated `Workspace.FilteringEnabled` from the project file.
+
+**Added**
+- A universe/place preflight in `tools/publish.py`. It needs no API key, takes a second, and catches a mistyped GitHub variable before a multi-minute build instead of after it.
+- Retry with backoff on transient Open Cloud failures (~135 s across 4 attempts).
+- `docs/RUNBOOKS.md` §9a — the HTTP 409 decision tree.
+
+**The 409, honestly**
+Three failed publishes over 2½ hours, all `Save failed. Server is busy`. Everything on our side was ruled out by test: the universe/place pair against Roblox's public mapping endpoint, the key (an invalid one 401s instantly, ours got past that), the built file, the content type. Then it published first try with nothing changed — so it was Roblox-side and cleared on its own. The ruled-out table is kept because it is what makes the next one a minute's work.
+
 ### Name generator (M2a, pure-logic half) · 2026-09-16
 
 **Added**

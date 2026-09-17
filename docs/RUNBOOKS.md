@@ -160,10 +160,46 @@ Not an outage — a quality classification, and recoverable. Roblox reclassifies
 
 **Check in order:**
 1. **Rate limits.** Task creation is **5/minute per API key owner**. Parallel CI runs will hit this. Concurrency groups should prevent it — verify they are working.
-2. **API key scopes and expiry.** Keys expire; the error is usually a 401 or 403.
+2. **API key permissions and expiry.** Keys expire; the error is a 401 or 403. The
+   key needs the **`universe-places`** API system with the **Write** operation, added
+   for this specific experience. `tools/opencloud.py` prints the list on any 401/403.
 3. **Roblox status.** Not everything is our fault.
 
 **Workaround:** publishing to TEST can be done manually from Philip's Creator Hub if CI is blocked and a playtest is urgent.
+
+### 9a. HTTP 409 "Server is busy and unable to process your upload request"
+
+Hit three times on 2026-09-16 over 2½ hours. The message says "busy", but a 409 that
+survives hours is not load — it is the place.
+
+**What has already been ruled out, so do not re-check it:**
+
+| Suspect | Verdict | How it was checked |
+|---|---|---|
+| Wrong universe/place pair | ✅ correct | `GET https://apis.roblox.com/universes/v1/places/<placeId>/universe` returns `{"universeId":10766688851}`. Public, no key needed. `tools/publish.py` now runs this before every upload. |
+| Bad or unscoped API key | ✅ fine | A deliberately invalid key returns **401 `Invalid API Key`** immediately. The real failures got past auth to a 409, so the key is valid and authorized for the place. |
+| Malformed place file | ✅ valid | `rojo build` output carries the `<roblox!` binary magic and the `</roblox>` terminator; 24 KB. |
+| Wrong `Content-Type` | ✅ correct | Docs require `application/octet-stream` for `.rbxl`; that is what we send. |
+
+**So the remaining causes are all place-state, in this order:**
+1. **Studio still has the place open.** Close Roblox Studio completely, then re-run the deploy.
+2. **Collaborative editing (Team Create) is enabled** on the place.
+3. **Roblox-side.** Decide this with one test: `File → Publish to Roblox` **from Studio**.
+   If Studio publishes fine while Open Cloud 409s, it is not a platform outage.
+
+`tools/opencloud.py` retries a 409 four times over ~135 s, so a genuine busy signal
+never reaches the log. Anything that survives that is this list.
+
+**How it ended on 2026-09-16.** The next attempt, at 18:32, published as version 4 on
+the **first try** — the retry never fired and nothing about the request had changed.
+So the cause was on Roblox's side of the place, not in our pipeline, and it cleared on
+its own. Two honest conclusions:
+
+- The ruled-out table above is still worth keeping. It is what makes the *next* 409
+  answerable in a minute instead of three hours.
+- A 409 that clears without explanation means the next one might too. **Re-run the
+  deploy once before investigating** — the retry now does this automatically within a
+  single run, so a 409 in the log is already a failure that survived ~135 s.
 
 ---
 

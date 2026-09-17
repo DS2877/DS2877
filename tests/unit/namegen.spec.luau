@@ -95,7 +95,10 @@ h.test("gen-3 names never collide with gen-2 names", function()
 	end
 	for _, entry in NameGen.enumerate(SPECIES, AFFIXES, PUREBRED) do
 		if entry.gen == 3 then
-			h.expectTrue(not gen2[entry.name], `gen-3 name '{entry.name}' collides with a gen-2 name`)
+			h.expectTrue(
+				not gen2[entry.name],
+				`gen-3 name '{entry.name}' collides with a gen-2 name`
+			)
 		end
 	end
 end)
@@ -112,10 +115,7 @@ h.test("EXHAUSTIVE: no generated name hits the blocklist", function()
 			table.insert(offenders, `{entry.name} (contains '{hit}')`)
 		end
 	end
-	h.expectTrue(
-		#offenders == 0,
-		`{#offenders} unsafe name(s): {table.concat(offenders, ", ")}`
-	)
+	h.expectTrue(#offenders == 0, `{#offenders} unsafe name(s): {table.concat(offenders, ", ")}`)
 end)
 
 h.test("the safety check actually catches things", function()

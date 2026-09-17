@@ -27,11 +27,44 @@ Style.PALETTE = {
 	nomMint = Color3.fromRGB(120, 224, 196),
 	nomBlue = Color3.fromRGB(96, 178, 255),
 	nomCream = Color3.fromRGB(255, 246, 228),
+	--- The same cream, for LARGE WORLD SURFACES rather than text.
+	---
+	--- nomCream is a UI colour: near-white is right for a label on a dark
+	--- toast, and wrong for a twenty-stud wall. Walls, kerbs and boards are
+	--- big enough to set the exposure of the frame, and at 255 they clip to
+	--- featureless white under any daylight worth having. This has somewhere
+	--- to go when the sun hits it.
+	surfaceCream = Color3.fromRGB(238, 226, 202),
 	nomCocoa = Color3.fromRGB(122, 85, 62),
 
 	-- Neutrals
 	ink = Color3.fromRGB(58, 44, 40),
 	shadow = Color3.fromRGB(196, 168, 148),
+}
+
+--- Candy buildings for the skyline. Grey concrete reads as a city; these read
+--- as a toy town, which is the whole difference for a nine-year-old looking
+--- past the end of the street.
+Style.SKYLINE = {
+	Color3.fromRGB(255, 196, 168),
+	Color3.fromRGB(180, 222, 255),
+	Color3.fromRGB(255, 226, 158),
+	Color3.fromRGB(198, 236, 198),
+	Color3.fromRGB(238, 198, 246),
+	Color3.fromRGB(255, 178, 196),
+	Color3.fromRGB(176, 232, 226),
+}
+
+--- Roof colours, paired with the skyline by index so no building is one flat
+--- block of colour.
+Style.SKYLINE_ROOF = {
+	Color3.fromRGB(226, 128, 108),
+	Color3.fromRGB(110, 162, 214),
+	Color3.fromRGB(232, 172, 78),
+	Color3.fromRGB(132, 186, 132),
+	Color3.fromRGB(178, 132, 196),
+	Color3.fromRGB(226, 114, 146),
+	Color3.fromRGB(106, 180, 176),
 }
 
 --- Rarity colours. ALWAYS paired with an icon and a text label -- colour alone
@@ -44,6 +77,146 @@ Style.RARITY = {
 	legendary = { color = Color3.fromRGB(255, 176, 48), label = "Legendary", icon = "crown" },
 	mythic = { color = Color3.fromRGB(255, 92, 120), label = "Mythic", icon = "flame" },
 	secret = { color = Color3.fromRGB(250, 250, 255), label = "Secret", icon = "sparkle" },
+}
+
+--- One candy colour per base, indexed by base number.
+---
+--- Eight identical green plots is a street with no landmarks: from halfway
+--- down the road every base looks the same, which is how "I can't find my
+--- base" happens even with your name on the sign. Colour is the fastest
+--- landmark there is, and a row of eight different sweets is also simply more
+--- fun to look at than a row of eight lawns -- the ask was to make it more
+--- appealing to children, and this is most of that for one table.
+---
+--- Paired with a darker edge so each plot still reads as a raised platform
+--- rather than a flat sticker.
+Style.BASE_PAD = {
+	Color3.fromRGB(180, 232, 180), -- apple
+	Color3.fromRGB(180, 216, 255), -- blueberry
+	Color3.fromRGB(255, 214, 176), -- peach
+	Color3.fromRGB(246, 196, 240), -- bubblegum
+	Color3.fromRGB(255, 236, 168), -- lemon
+	Color3.fromRGB(184, 236, 230), -- mint ice
+	Color3.fromRGB(226, 202, 255), -- grape
+	Color3.fromRGB(255, 198, 196), -- strawberry
+}
+
+Style.BASE_EDGE = {
+	Color3.fromRGB(128, 194, 128),
+	Color3.fromRGB(124, 168, 218),
+	Color3.fromRGB(226, 160, 112),
+	Color3.fromRGB(206, 138, 198),
+	Color3.fromRGB(224, 194, 104),
+	Color3.fromRGB(126, 194, 188),
+	Color3.fromRGB(174, 146, 216),
+	Color3.fromRGB(222, 142, 140),
+}
+
+--- Egg display names, so no UI ever shows a config key to a player. Lives here
+--- rather than in Config/Economy because it is presentation, and Economy is
+--- parity-checked against the simulator, which knows nothing about words.
+Style.EGG_LABEL = {
+	basic = "Basic Egg",
+	picnic = "Picnic Basket",
+	bakery = "Bakery Box",
+	sushibar = "Sushi Bar Tray",
+	candycloud = "Candy Cloud",
+	cosmic = "Cosmic Diner",
+}
+
+--- Per-species colour sets, keyed by the `palette` field in Config/Nomlings.
+--- Three roles each: the body, a lighter belly/limb tone, and the snack layer.
+--- Picked so the snack colour always contrasts with the body -- the overlay is
+--- what makes a fusion legible, and it cannot read if it blends in.
+Style.SPECIES_PALETTE = {
+	ochre_shell = {
+		primary = Color3.fromRGB(196, 142, 78),
+		secondary = Color3.fromRGB(240, 222, 186),
+		snack = Color3.fromRGB(240, 186, 86),
+	},
+	rice_salmon = {
+		primary = Color3.fromRGB(246, 242, 232),
+		secondary = Color3.fromRGB(255, 226, 214),
+		snack = Color3.fromRGB(244, 122, 108),
+	},
+	crust_tomato = {
+		primary = Color3.fromRGB(238, 196, 116),
+		secondary = Color3.fromRGB(250, 232, 196),
+		snack = Color3.fromRGB(214, 74, 58),
+	},
+	glaze_sprinkle = {
+		primary = Color3.fromRGB(252, 228, 160),
+		secondary = Color3.fromRGB(255, 246, 216),
+		snack = Color3.fromRGB(250, 158, 196),
+	},
+	bun_lettuce = {
+		primary = Color3.fromRGB(214, 164, 104),
+		secondary = Color3.fromRGB(242, 214, 168),
+		snack = Color3.fromRGB(126, 196, 106),
+	},
+	broth_scallion = {
+		primary = Color3.fromRGB(226, 186, 118),
+		secondary = Color3.fromRGB(246, 226, 178),
+		snack = Color3.fromRGB(148, 206, 118),
+	},
+	popcorn_butter = {
+		primary = Color3.fromRGB(250, 238, 206),
+		secondary = Color3.fromRGB(255, 250, 234),
+		snack = Color3.fromRGB(252, 206, 92),
+	},
+	waffle_syrup = {
+		primary = Color3.fromRGB(206, 154, 96),
+		secondary = Color3.fromRGB(238, 208, 158),
+		snack = Color3.fromRGB(168, 104, 48),
+	},
+	frosting_cherry = {
+		primary = Color3.fromRGB(216, 196, 240),
+		secondary = Color3.fromRGB(242, 232, 252),
+		snack = Color3.fromRGB(226, 76, 102),
+	},
+	pickle_beak = {
+		primary = Color3.fromRGB(132, 180, 92),
+		secondary = Color3.fromRGB(196, 224, 158),
+		snack = Color3.fromRGB(246, 154, 62),
+	},
+	mochi_dust = {
+		primary = Color3.fromRGB(248, 242, 244),
+		secondary = Color3.fromRGB(255, 250, 250),
+		snack = Color3.fromRGB(198, 172, 186),
+	},
+	nacho_cheese = {
+		primary = Color3.fromRGB(240, 196, 96),
+		secondary = Color3.fromRGB(250, 228, 168),
+		snack = Color3.fromRGB(246, 150, 54),
+	},
+}
+
+--- Mutation tints. A mutation recolours and adds a glow -- it must be obvious
+--- from across the street, because it is the single biggest reason to want a
+--- particular creature off the belt.
+Style.MUTATION = {
+	glazed = { tint = Color3.fromRGB(255, 226, 150), glow = 0.35 },
+	frosted = { tint = Color3.fromRGB(186, 232, 255), glow = 0.45 },
+	spicy = { tint = Color3.fromRGB(255, 118, 86), glow = 0.55 },
+	rainbow = { tint = Color3.fromRGB(255, 160, 220), glow = 0.75 },
+	galaxy = { tint = Color3.fromRGB(140, 120, 255), glow = 0.95 },
+}
+
+--- Eye colours are fixed across every species. A creature reads as alive
+--- because of its eyes, and inconsistent eyes read as a bug.
+Style.EYE = {
+	white = Color3.fromRGB(252, 252, 255),
+	pupil = Color3.fromRGB(38, 30, 34),
+	--- The highlight on each pupil. One tiny white sphere, and it is the
+	--- difference between an eye that looks alive and one that looks painted on.
+	shine = Color3.fromRGB(255, 255, 255),
+}
+
+--- Face warmth. Carries no information at all -- it exists purely so a Nomling
+--- reads as a character a child wants rather than as a coloured animal shape.
+Style.FACE = {
+	cheek = Color3.fromRGB(255, 154, 174),
+	mouth = Color3.fromRGB(86, 48, 56),
 }
 
 Style.MATERIAL = {

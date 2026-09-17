@@ -10,6 +10,23 @@
 
 local CONTROLLER_ORDER = {
 	"PingController",
+	-- Audio first: Juice calls into it, and the HUD and Fusion both call Juice.
+	-- A cue fired before the pools exist is a silent no-op rather than an
+	-- error, which would have been a genuinely hard bug to notice.
+	"AtmosphereController",
+	"AudioController",
+	"JuiceController",
+	"BaseHudController",
+	"TutorialController",
+	"NomlingRenderController",
+	-- Needs nothing from the others; it only reads the pads' OwnerUserId.
+	"HomeController",
+	-- Shop before Fusion: the fusion picker's Odds button calls into it, and
+	-- fusion is a paid random item whose odds must be disclosable.
+	"ShopController",
+	"FusionController",
+	"WeatherController",
+	"BookController",
 }
 
 type Controller = {

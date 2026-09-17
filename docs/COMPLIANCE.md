@@ -37,6 +37,34 @@ Paid random items are a **separate descriptor** and — as far as the documentat
 
 ---
 
+## 1a. The kid-safety gate — enforced, not reviewed
+
+`python3 tools/validate-kid-safe.py`, run by `scripts/check.sh` and by CI.
+
+Everything in this document that can be checked mechanically now is, because a
+rule that lives only in a doc is a rule somebody breaks during an art pass. It
+scans **string literals only**, so `instance:Destroy()` is never mistaken for
+the word "destroy" shown to a player.
+
+| Rule | Why it is a gate and not a guideline |
+|---|---|
+| No casino language or imagery | "Unplayable gambling content" forces a **Moderate** rating, which loses the Roblox Kids tier outright. The cheapest compliance win we have and the easiest to lose by accident. |
+| Nothing violent or frightening | The audience is 9–15, then 5–8. "Snatch", "steal" and "thief" are the brief's own words for a friendly mechanic and are deliberately allowed. |
+| No menacing emoji | 😈 👹 💀 🔫 🎰 🃏 🎲 and friends. An emoji is content. |
+| No internal text reaching a player | A sentence containing `nil`, `RemoteEvent` or "invalid request" is a bug, not a message. |
+| Every rarity has a text label | Colour alone is unreadable for roughly 1 in 12 boys (`docs/GDD.md` §5.16). Checked structurally against `Style.RARITY`. |
+
+**Verified to fail.** Three deliberate violations were introduced and each rule
+fired. A check that cannot fail is worse than no check — see `docs/DECISIONS.md`
+D-018, where a green-but-inert format gate went unnoticed for the life of the repo.
+
+**Word boundaries, not substrings.** The first run flagged "shell" for containing
+"hell" — the same trap the name blocklist already fell into with "Titan" and
+"tit" (`docs/NOMLINGS.md` §4). Unlike generated names these strings are real
+English written by us, so a `\b` match is the correct fix rather than an allowlist.
+
+---
+
 ## 2. Paid random items — the big one
 
 ### What counts as a PRI in our game

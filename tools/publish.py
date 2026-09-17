@@ -68,13 +68,33 @@ def main() -> int:
     print(f"  place       : {place}")
     print(f"  versionType : {args.type}")
 
+    mismatch = opencloud.check_place_pair(universe, place)
+    if mismatch:
+        opencloud.die(mismatch)
+
     try:
         result = opencloud.publish_place(universe, place, args.file, args.type)
     except opencloud.OpenCloudError as exc:
         opencloud.die(str(exc))
 
     version = result.get("versionNumber", result.get("VersionNumber", "?"))
-    print(f"\nPublished as version {version}.")
+    # Never say "Published" for a Saved version. This exact line printed
+    # "Published as version 21." after a --type Saved upload on 2026-09-17, I
+    # read the CI log, told Philip the build was live on TEST, and he spent his
+    # playtest on a build four commits old whose belt button was still the
+    # broken one. A log line that reads like success for something that did not
+    # happen is worse than no log line.
+    if args.type == "Saved":
+        print(f"\nSAVED as version {version} -- NOT LIVE.")
+        print("  Players still get the last PUBLISHED version. Saved versions")
+        print("  exist so CI can validate a build without shipping it.")
+        print("  To make it live: run the 'Deploy TEST' workflow, or")
+        print(f"  python3 tools/publish.py --env {args.env} --type Published --file {args.file}")
+    else:
+        print(f"\nPUBLISHED as version {version} -- LIVE.")
+        print("  Players get it on their NEXT join. Servers already running keep")
+        print("  the old version until they empty out and shut down, so a")
+        print("  playtester has to fully leave and rejoin to see it.")
 
     # CI writes this out so downstream steps can target the exact version.
     github_output = os.environ.get("GITHUB_OUTPUT")

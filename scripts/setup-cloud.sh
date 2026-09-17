@@ -29,31 +29,43 @@ export PATH="${BIN_DIR}:${PATH}"
 
 # Priority order: the fast inner loop first (format, lint, tests), then build,
 # then packages.
+# name:version:extra-cargo-args
+#
+# stylua MUST be built with --features luau. Without it the binary cannot parse
+# .luau at all and, worse, drops .luau from its default glob -- so `stylua
+# --check src tests` exits 0 having checked nothing. That is how this repo ran
+# a green format gate over unformatted code from day one.
 TOOLS=(
-  "stylua:2.5.2"
-  "selene:0.31.0"
-  "lune:0.10.5"
-  "rojo:7.7.0"
-  "wally:0.3.2"
+  "stylua:2.5.2:--features luau"
+  "selene:0.31.0:"
+  "lune:0.10.5:"
+  "rojo:7.7.0:"
+  "wally:0.3.2:"
 )
 
 echo "==> Installing Roblox toolchain from crates.io"
 started=$(date +%s)
 
 for entry in "${TOOLS[@]}"; do
-  name="${entry%%:*}"
-  version="${entry##*:}"
+  IFS=':' read -r name version extra <<< "$entry"
 
   if command -v "$name" >/dev/null 2>&1; then
     installed="$("$name" --version 2>/dev/null | head -1 || true)"
-    if [[ "$installed" == *"$version"* ]]; then
+    usable=1
+    # Right version, wrong build is the failure this check exists for.
+    if [[ "$name" == "stylua" ]] && ! stylua --syntax 2>&1 | grep -q "Luau"; then
+      usable=0
+      echo "  stylua present but built without Luau support; reinstalling"
+    fi
+    if [[ "$installed" == *"$version"* && "$usable" == 1 ]]; then
       echo "  $name $version already present, skipping"
       continue
     fi
   fi
 
-  echo "  installing $name $version ..."
-  if cargo install --locked "$name" --version "$version" >/dev/null 2>&1; then
+  echo "  installing $name $version ${extra} ..."
+  # shellcheck disable=SC2086
+  if cargo install --locked "$name" --version "$version" ${extra} >/dev/null 2>&1; then
     echo "    ok ($(( $(date +%s) - started ))s elapsed)"
   else
     # A missing tool degrades the session; it must not abort setup, or the

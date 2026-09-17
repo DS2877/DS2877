@@ -3,6 +3,25 @@ name: CI
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      upload_audio:
+        description: >-
+          Also upload assets/audio to Roblox. OFF by default: Roblox allows only
+          10 audio uploads per month on an account that is not ID-verified, this
+          project has 8 files, and audio cannot be updated in place -- so an
+          upload that rides along with an unrelated CI run can burn a month's
+          quota by accident.
+        type: boolean
+        default: false
+      audio_file:
+        description: >-
+          With upload_audio on, upload only THIS file instead of all eight, e.g.
+          assets/audio/sfx-deny.ogg. Run one small file first: it proves the API
+          key, the creator id and the multipart format for the cost of a single
+          slot. upload-audio.yml has the same option but cannot be dispatched
+          until it reaches the default branch, which is why this lives here too.
+        type: string
+        default: ""
 
 # A second push cancels the first: no point spending minutes on a stale commit.
 concurrency:
@@ -22,23 +41,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache cargo build artifacts
-        uses: Swatinem/rust-cache@v2
+      # Swatinem/rust-cache caches build artifacts but not ~/.cargo/bin, so a
+      # `cargo install` still relinks every run. Caching the binaries turns a
+      # 7-10 minute toolchain step (measured, docs/DECISIONS.md D-014a) into
+      # seconds. Keyed on the versions, so a bump rebuilds automatically.
+      - name: Cache toolchain binaries
+        id: toolchain-cache
+        uses: actions/cache@v4
         with:
-          key: toolchain-${{ env.ROJO_VERSION }}-${{ env.SELENE_VERSION }}-${{ env.STYLUA_VERSION }}-${{ env.LUNE_VERSION }}
+          path: ~/.cargo/bin
+          key: toolchain-bin-${{ runner.os }}-${{ env.ROJO_VERSION }}-${{ env.SELENE_VERSION }}-${{ env.STYLUA_VERSION }}-${{ env.LUNE_VERSION }}
 
       - name: Install toolchain
+        if: steps.toolchain-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           # Installed from crates.io so CI and cloud sessions build the exact
           # same versions from the same source. See docs/DECISIONS.md D-001.
-          cargo install --locked stylua --version "$STYLUA_VERSION"
+          cargo install --locked stylua --version "$STYLUA_VERSION" --features luau
           cargo install --locked selene --version "$SELENE_VERSION"
           cargo install --locked lune   --version "$LUNE_VERSION"
           cargo install --locked rojo   --version "$ROJO_VERSION"
 
+      - name: Confirm the toolchain is present
+        run: |
+          set -euo pipefail
+          # Naming the syntax is the guard: a stylua built without the luau
+          # feature rejects this flag outright instead of silently checking
+          # zero files.
+          stylua --syntax Luau --version
+          selene --version
+          lune --version
+          rojo --version
+
       - name: Format check
-        run: stylua --check src tests
+        run: stylua --syntax Luau --check src tests
 
       - name: Lint
         run: selene src tests
@@ -48,6 +85,9 @@ jobs:
 
       - name: Economy parity (Economy.luau vs the simulator)
         run: python3 tests/parity/economy_parity.py
+
+      - name: Kid-safe content
+        run: python3 tools/validate-kid-safe.py
 
       - name: Catalog validation
         run: python3 tools/validate-catalog.py
@@ -78,9 +118,14 @@ jobs:
     name: Publish to TEST (Saved)
     needs: check
     runs-on: ubuntu-latest
-    # Skips cleanly until Philip has created the experiences and the secrets
-    # exist, so early PRs still go green on everything that can run.
-    if: ${{ github.event_name == 'pull_request' }}
+    # Also runs on manual dispatch, not just pull_request. Without that there
+    # was no way to exercise the publish path on demand -- the first real
+    # attempt could only happen inside a PR, which is a poor place to discover
+    # that Roblox is returning 409.
+    #
+    # Skips cleanly when the secrets are absent, so early PRs still go green on
+    # everything that can run.
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -134,3 +179,35 @@ jobs:
           # One task, many assertions: task creation is capped at 5/minute per
           # API key owner, so never split this into a task per test.
           python3 tools/run-cloud-tests.py --env test --version "${{ steps.publish.outputs.version }}"
+
+  upload-audio:
+    name: Upload the theme to Roblox (manual only)
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.upload_audio }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload
+        id: upload
+        continue-on-error: true
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          ROBLOX_USER_ID: "7185134469"
+        run: |
+          if [ -n "${{ inputs.audio_file }}" ]; then
+            python3 tools/upload-audio.py --file "${{ inputs.audio_file }}" \
+              --name "Fuse a Nomling audio"
+          else
+            python3 tools/upload-audio.py --all assets/audio
+          fi
+      - name: Report
+        run: |
+          {
+            echo "### Theme upload"
+            if [ -n "${{ steps.upload.outputs.uploaded }}${{ steps.upload.outputs.asset_id }}" ]; then
+              echo '```'
+              echo "${{ steps.upload.outputs.uploaded }}${{ steps.upload.outputs.asset_id }}"
+              echo '```'
+            else
+              echo "Nothing uploaded - see the log (most likely the key lacks the \`asset\` scope)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

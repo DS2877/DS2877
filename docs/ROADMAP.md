@@ -46,14 +46,29 @@ Repo scaffold, toolchain, CI/CD, cloud setup script and allowlist text, `CLAUDE.
 **Phone demo:** join TEST, walk, confirm 60 FPS.
 **KPIs:** none yet. **Blocked by:** Philip tasks 3, 4, 5.
 
-### M1 — Vertical slice · Oct 11
+### M1 — Vertical slice · Oct 11 — 🟢 all but analytics
 Plot, pedestals, coins, Basic egg, hatch, collect, save/load, the first 60 seconds of the FTUE, analytics funnel.
+
+**Done 2026-09-16/17:** plot assignment, pedestals, server-side coin income with offline accrual, Basic egg purchase and hatch, save/load with a session lock, phone HUD, the street layout, the delivery belt, stealing with NPC thieves and the Bubble Wand, an objective-driven tutorial, art direction with per-device quality scaling, real client-built creatures, game feel, and **M2a fusion with the reveal and World First — pulled forward from 25 Oct**.
+**Done 2026-09-17 (second playtest pass):** the HUD shrunk and recomposed to a
+tested layout budget, belt purchases that say why they refuse, pocket money so
+losing everything is a setback rather than a dead end, a home beacon, an
+arrivals board with live countdowns and the server top five, eight
+colour-coded bases, and **all eight audio assets uploaded and live** — the
+game has sound.
+
+**Still open:** the analytics funnel (0 lines written against ~65 spec'd rows
+in `docs/ANALYTICS.md`) and placing/moving a Nomling by hand.
 
 **Done when:** a player can join, hatch, place, collect, leave and come back to their coins.
 **Phone demo (3 min):** join → egg hatches in 5 s → place it → collect → rejoin and confirm data persisted.
 **KPIs:** FTUE steps 1–5 firing. **Risk:** ProfileStore integration and `ProcessReceipt` idempotency.
 
-### M2a — Fusion and discovery · Oct 25
+### M2a — Fusion and discovery · Oct 25 — 🟢 pulled forward, largely done
+Built early during the M1 sprint: `NomlingBuilder`, `NameGen`, the fusion flow,
+the reveal, the Fusion Book and World First. **Open:** the TTS name callout and
+the shared plaza reveal screen for two players in one server.
+
 `NomlingBuilder`, `NameGen`, fusion flow, public reveal, TTS name callout, Fusion Book, World First (DataStore + MessagingService).
 
 **Done when:** two players in one server can each fuse and see the other's reveal on the plaza screen, and a World First banner fires globally.
@@ -61,7 +76,13 @@ Plot, pedestals, coins, Basic egg, hatch, collect, save/load, the first 60 secon
 **KPIs:** `fusion_completed`, `world_first_claimed`.
 **Risk: this is the highest-risk milestone in the project.** It contains the differentiator, and "procedurally generated creature that looks good" is the hardest thing to verify without Studio. Budget screenshot round-trips.
 
-### M2b — Weather, snatching, rebirth · Nov 8
+### M2b — Weather, snatching, rebirth · Nov 8 — 🟡 mostly done
+Weather, mutations, snatching, the Bubble Wand, Sneaky Sam and rebirth all
+shipped early. **Open: the Laser Gate and the Vault** — note that
+`SnatchRules.luau` already implements and tests both, and `StealService` simply
+passes `gateUp = false, protected = false`. The rules are done; the feature is
+unwired. Also open: three of the four leaderboards (one is live).
+
 Weather and mutations; snatching, Bubble Wand, Laser Gate, Vault, Sneaky Sam; rebirth; four leaderboards.
 
 **Done when:** the full loop closes — a player can rebirth and restart, and NPC snatch scenarios pass in CI.

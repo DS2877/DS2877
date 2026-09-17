@@ -76,10 +76,27 @@ The single most important 180 seconds in the project. Phase 0 confirmed **first-
 
 ## 5. Systems
 
-### 5.1 Server and plots
-8 players, 8 plots around a central plaza. A plot exists only while its owner is in the server. Plaza holds the Egg Market, the Fusion Lab with a public reveal stage, four leaderboards, an event stage and a podium.
+### 5.1 The street — ⚠️ replaced the plaza after the first playtest
 
-Each plot: **8 pedestals** (→16), **2 incubators** (→4), **1 Vault pedestal** (unsnatchable), a collect pad, a **Laser Gate** button, and an owner sign showing name and coins/s.
+**This section originally read "8 players, 8 plots around a central plaza."** Built and played, that failed in one sentence: *"I can't reach any of the bases."* The pads sat in a ring with empty space between them, so no player could walk to another player's base — which makes a game built around stealing from each other impossible to play. The layout below replaces it. Layout constants: `src/shared/Config/World.luau`.
+
+**One street.** A road 520 studs long, with a **delivery belt** running down the middle and **8 bases lining both sides**, four per side, all at ground level.
+
+- Every base is a short run from every other base. Stealing is a thing you can physically do.
+- Bases are **open to the road** — no doors, no gates in the geometry. Walking into someone's base must be effortless or nobody will try it. Defending is the **Laser Gate**, not walls.
+- The belt is visible from everywhere, so the good stuff is public before anyone owns it. That is what makes a base worth looking at, and therefore worth robbing.
+- Owner sign over each back wall, readable from the road, so you always know whose base you are standing in.
+
+Each base: **8 pedestals** in two rows (→16), **2 incubators** (→4), **1 Vault pedestal** (unsnatchable), a **Laser Gate** button, and the owner sign. Row 1 of pedestals sits nearest the kerb — a thief can grab from it without committing, but has to cross the whole base for the back row.
+
+### 5.1a The delivery belt
+
+Nomlings ride the belt past every base. Each shows its species, rarity, **mutation** and price, and anyone can buy one as it passes. Price is derived, not tabled: `income/s × BELT_PAYBACK_SECONDS`, so price and value stay tied together automatically.
+
+⚠️ **A belt Nomling is not a paid random item.** You see exactly what you are buying, at a stated price, before paying — so no odds disclosure applies and none of the paid-random-item rules engage. Eggs remain the random half of the game. This is a compliance *advantage* of the layout, and worth protecting.
+
+### 5.1b Plots
+A base exists only while its owner is in the server.
 
 ### 5.2 Eggs
 Six tiers unlocked by rebirths — Basic, Picnic, Bakery, Sushi Bar, Candy Cloud, Cosmic Diner. Prices, hatch times and odds in `docs/ECONOMY.md`.

@@ -28,8 +28,7 @@
       "$className": "Workspace",
       "$properties": {
         "StreamingEnabled": true,
-        "StreamingTargetRadius": 512,
-        "FilteringEnabled": true
+        "StreamingTargetRadius": 512
       }
     },
 
