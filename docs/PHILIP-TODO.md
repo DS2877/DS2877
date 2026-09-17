@@ -1,7 +1,7 @@
 # PHILIP-TODO
 
 Things only Philip can do. Claude keeps this current (brief §12, §11.11).
-Last updated: 2026-09-17 (HUD shrunk and recomposed, belt purchases now answer back — **two API key scopes** still blocked: audio upload and cloud tests).
+Last updated: 2026-09-17 (API key scopes granted — **the game has sound**, all 8 assets uploaded and live; cloud smoke test runs and passes 25/25).
 
 **Status key:** ⬜ not started · 🟡 in progress · ✅ done · ⏸️ not needed yet
 
@@ -143,7 +143,27 @@ so the next one takes a minute rather than an afternoon.
 
 ---
 
-## 🔴 ONE 60-SECOND JOB ON ONE SCREEN — TWO CHECKBOXES
+## ✅ DONE 2026-09-17 — key scopes granted, audio is in the game
+
+All three scopes are live on the new key and every one is confirmed by use
+rather than assumption:
+
+| API system | Proven by |
+|---|---|
+| `universe-places` → Write | TEST publishes |
+| `assets` → Read + Write | 8 audio assets uploaded and through moderation |
+| `universe.place.luau-execution-session` → R+W | cloud smoke test runs, 25/25 |
+
+**Quota spent: 9 of 10 this month** (one canary plus the set of eight). Audio
+cannot be updated in place, so re-running the upload mints *new* assets and
+spends more — the ids in `src/shared/Config/Audio.luau` are final unless a
+sound is deliberately re-rendered. Doing task 2 (age check / ID verification)
+raises the ceiling to 100/month.
+
+<details>
+<summary>What the job was, for the record</summary>
+
+## ONE 60-SECOND JOB ON ONE SCREEN — TWO CHECKBOXES
 
 Both of these are the same API key, the same page, and neither changes the key
 value, so **GitHub needs no update afterwards**.
@@ -209,6 +229,8 @@ stops working. **GitHub → Settings → Secrets and variables → Actions → u
 
 Tell me when it is saved and I run the audio upload, paste the asset IDs in, and
 re-run CI.
+
+</details>
 
 ---
 
@@ -283,7 +305,7 @@ Open **Fuse a Nomling TEST** on your iPhone.
 
 ### Known and deliberate
 
-- **🔴 Silent** until the `asset` scope above is added.
+- ~~Silent~~ **The game has sound.** Theme plus seven effects, live since 2026-09-17.
 - **You're alone in the server**, so player-vs-player stealing is untested. Sneaky Sam covers the mechanic.
 - **No Laser Gate or Vault** — you can bubble a thief but not lock one out.
 - **No daily rewards** and **no analytics funnel** yet.

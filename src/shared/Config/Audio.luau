@@ -9,6 +9,12 @@
 	spamming the log with failed loads, so a missing upload degrades the game
 	instead of breaking it.
 
+	All eight were uploaded on 2026-09-17 and the ids below are live. DO NOT
+	re-run the upload to "refresh" them: Roblox audio is not updatable in place,
+	so a re-run mints NEW assets and spends the monthly quota (10/month while
+	the account is not ID-verified, and there are eight files). Changing a sound
+	means re-rendering it and uploading deliberately, not by accident.
+
 	Volumes are deliberately low. This is a phone game played in public, often
 	near other people, and a loop that is too loud is the fastest way to get
 	muted permanently -- after which none of the audio design matters.
@@ -36,7 +42,7 @@ export type Cue = {
 local MUSIC: { [string]: Track } = {
 	--- "Nomling Glade" -- tools/music/score.py, docs/MUSIC.md.
 	theme = {
-		assetId = 0,
+		assetId = 75643474514379,
 		volume = 0.32,
 		loopSeconds = 110,
 		fadeSeconds = 2.5,
@@ -44,13 +50,13 @@ local MUSIC: { [string]: Track } = {
 }
 
 local SFX: { [string]: Cue } = {
-	coin = { assetId = 0, volume = 0.18, pitchMin = 0.94, pitchMax = 1.12 },
-	purchase = { assetId = 0, volume = 0.35, pitchMin = 0.98, pitchMax = 1.02 },
-	hatch = { assetId = 0, volume = 0.45, pitchMin = 1.0, pitchMax = 1.0 },
-	reveal = { assetId = 0, volume = 0.55, pitchMin = 1.0, pitchMax = 1.0 },
-	snatchAlarm = { assetId = 0, volume = 0.40, pitchMin = 1.0, pitchMax = 1.0 },
-	snatchGrab = { assetId = 0, volume = 0.35, pitchMin = 0.96, pitchMax = 1.06 },
-	deny = { assetId = 0, volume = 0.25, pitchMin = 0.98, pitchMax = 1.02 },
+	coin = { assetId = 77598228361385, volume = 0.18, pitchMin = 0.94, pitchMax = 1.12 },
+	purchase = { assetId = 117104174715104, volume = 0.35, pitchMin = 0.98, pitchMax = 1.02 },
+	hatch = { assetId = 112783269074814, volume = 0.45, pitchMin = 1.0, pitchMax = 1.0 },
+	reveal = { assetId = 80554080887908, volume = 0.55, pitchMin = 1.0, pitchMax = 1.0 },
+	snatchAlarm = { assetId = 73916737620191, volume = 0.40, pitchMin = 1.0, pitchMax = 1.0 },
+	snatchGrab = { assetId = 127735790445507, volume = 0.35, pitchMin = 0.96, pitchMax = 1.06 },
+	deny = { assetId = 71979898233075, volume = 0.25, pitchMin = 0.98, pitchMax = 1.02 },
 }
 
 Audio.MUSIC = MUSIC
