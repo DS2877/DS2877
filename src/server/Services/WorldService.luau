@@ -41,15 +41,19 @@ local function buildRoad(parent: Instance)
 	local road = Instance.new("Folder")
 	road.Name = "Road"
 
-	-- MATTE, not SmoothPlastic. SmoothPlastic takes a specular highlight along
-	-- its whole length, and on a 520-stud road that reads as wet tarmac rather
-	-- than a toy street. Plastic keeps the flat candy colour and drops the
-	-- shine. Warmer, too: the old lilac-grey was the last of the moody palette.
+	-- MID-TONE, and that is the point rather than a preference. This is the
+	-- single largest surface in the game, so it sets the exposure of the whole
+	-- frame. At RGB 214 it was already 84% of the way to white BEFORE any light
+	-- touched it, and it clipped to flat featureless white across the entire
+	-- street. A road needs room above it to catch light in; a near-white road
+	-- has nowhere to go.
+	--
+	-- Plastic rather than SmoothPlastic: less specular on a surface this big.
 	part({
 		Name = "Asphalt",
 		Size = Vector3.new(World.STREET_WIDTH, 1, World.STREET_LENGTH),
 		CFrame = CFrame.new(0, -0.5, 0),
-		Color = Color3.fromRGB(214, 206, 222),
+		Color = Color3.fromRGB(150, 146, 162),
 		Material = Enum.Material.Plastic,
 	}, road)
 
@@ -61,14 +65,16 @@ local function buildRoad(parent: Instance)
 			Name = "Pavement",
 			Size = Vector3.new(6, 1.35, World.STREET_LENGTH),
 			CFrame = CFrame.new(side * (World.KERB_X + 2), -0.325, 0),
-			Color = Color3.fromRGB(255, 245, 224),
+			-- Warm stone, not cream. Same reason as the road: it runs the whole
+			-- length of the street, so at 255 it was a strip of pure white.
+			Color = Color3.fromRGB(226, 208, 178),
 			Material = Enum.Material.Plastic,
 		}, road)
 		part({
 			Name = "Kerb",
 			Size = Vector3.new(0.8, 1.5, World.STREET_LENGTH),
 			CFrame = CFrame.new(side * (World.KERB_X - 0.4), -0.25, 0),
-			Color = Style.PALETTE.nomCream,
+			Color = Style.PALETTE.surfaceCream,
 			Material = Enum.Material.Concrete,
 		}, road)
 	end
@@ -85,7 +91,7 @@ local function buildRoad(parent: Instance)
 				Name = "Dash",
 				Size = Vector3.new(0.7, 0.06, dash),
 				CFrame = CFrame.new(side * lane, 0.03, z),
-				Color = Style.PALETTE.nomCream,
+				Color = Style.PALETTE.surfaceCream,
 				Material = Enum.Material.SmoothPlastic,
 				CanCollide = false,
 			}, road)
@@ -125,7 +131,7 @@ local function buildLamps(parent: Instance)
 				Shape = Enum.PartType.Ball,
 				Size = Vector3.new(2.2, 2.2, 2.2),
 				CFrame = CFrame.new(x, World.LAMP_HEIGHT + 0.6, z),
-				Color = Style.PALETTE.nomCream,
+				Color = Style.PALETTE.surfaceCream,
 				Material = Enum.Material.Neon,
 				CanCollide = false,
 			}, lamps)
@@ -332,7 +338,7 @@ local function buildBase(index: number, parent: Instance): BasePart
 		Name = "BackWall",
 		Size = Vector3.new(1.5, 14, World.BASE_WIDTH),
 		CFrame = CFrame.new(cx + side * World.BASE_DEPTH / 2, 7, cz),
-		Color = Style.PALETTE.nomCream,
+		Color = Style.PALETTE.surfaceCream,
 		Material = Enum.Material.SmoothPlastic,
 	}, model)
 	for _, edge in { -1, 1 } do
@@ -451,7 +457,7 @@ local function buildLandmark(parent: Instance, name: string, z: number, facing: 
 		Name = "Back",
 		Size = Vector3.new(width, height, 1.5),
 		CFrame = CFrame.new(0, height / 2, z + facing * depth / 2),
-		Color = Style.PALETTE.nomCream,
+		Color = Style.PALETTE.surfaceCream,
 		Material = Enum.Material.SmoothPlastic,
 	}, model)
 
@@ -460,7 +466,7 @@ local function buildLandmark(parent: Instance, name: string, z: number, facing: 
 			Name = "Side",
 			Size = Vector3.new(1.5, height, depth),
 			CFrame = CFrame.new(side * width / 2, height / 2, z),
-			Color = Style.PALETTE.nomCream,
+			Color = Style.PALETTE.surfaceCream,
 			Material = Enum.Material.SmoothPlastic,
 		}, model)
 	end
@@ -505,7 +511,7 @@ local function buildLandmark(parent: Instance, name: string, z: number, facing: 
 		Name = "SignAnchor",
 		Size = Vector3.new(1, 1, 1),
 		CFrame = CFrame.new(0, height + 8, z),
-		Color = Style.PALETTE.nomCream,
+		Color = Style.PALETTE.surfaceCream,
 		Material = Enum.Material.SmoothPlastic,
 		CanCollide = false,
 		Transparency = 1,
@@ -603,7 +609,7 @@ function WorldService.start()
 		Name = "Leaderboard",
 		Size = Vector3.new(0.6, 17, 20),
 		CFrame = CFrame.new(-World.KERB_X - 4, 19, World.BOARD_Z),
-		Color = Style.PALETTE.nomCream,
+		Color = Style.PALETTE.surfaceCream,
 		Material = Enum.Material.Plastic,
 		CanCollide = false,
 	}, street)

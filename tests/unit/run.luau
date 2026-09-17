@@ -26,5 +26,6 @@ require("./nomlingspec.spec")
 require("./fusion.spec")
 require("./weather.spec")
 require("./hud.spec")
+require("./visual.spec")
 
 process.exit(h.report())

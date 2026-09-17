@@ -37,22 +37,29 @@ Visual.LIGHTING = {
 	-- Just after midday. Short, cheerful shadows rather than long dramatic ones.
 	clockTime = 13.2,
 	geographicLatitude = 8,
-	brightness = 3.0,
-	exposureCompensation = 0.1,
-	-- Ambient is the colour of light in SHADOW, and this is the single most
-	-- important number in the file. Bright and faintly warm, so a Nomling
-	-- standing in shade still reads as a colourful toy instead of a dark lump.
-	ambient = { 136, 130, 142 },
-	outdoorAmbient = { 172, 182, 204 },
+	-- THE WHOLE STACK IS AN EXPOSURE BUDGET, and it was massively over it.
+	-- A screenshot showed the road, pavement, awnings and buildings all
+	-- clipped to flat white with no detail left, reported as "very shiny".
+	-- It was not reflection: brightness 3.0, +0.1 exposure, outdoorAmbient 172,
+	-- diffuse 0.75 and another +0.04 of colour-correction brightness all stack,
+	-- and then bloom at threshold 0.92 smeared whatever survived. A road at
+	-- RGB 214 never stood a chance.
+	--
+	-- Every number below is now inside a budget that tests/unit/visual.spec
+	-- enforces, because "is it blown out?" is invisible from a cloud session
+	-- with no Studio and no screenshot -- I had to be told twice.
+	brightness = 2.0,
+	exposureCompensation = -0.15,
+	-- Ambient is the colour of light in SHADOW. Still bright enough that a
+	-- Nomling in shade reads as a colourful toy rather than a dark lump, but no
+	-- longer bright enough to be a second sun.
+	ambient = { 118, 114, 128 },
+	outdoorAmbient = { 140, 150, 172 },
 	-- Soft. Hard-edged shadows look serious.
 	shadowSoftness = 0.62,
-	environmentDiffuseScale = 0.75,
-	-- NEARLY OFF. From a playtest: "the ground are a bit too shiny". Specular
-	-- is what makes a big flat surface read as wet, and a street is the
-	-- biggest flat surface in the game -- under Future lighting it was
-	-- catching the sky across its whole length. Diffuse goes up by the same
-	-- breath so the world does not get darker in exchange, because the point
-	-- is matte and bright, not matte and dull.
+	environmentDiffuseScale = 0.45,
+	-- Specular stays near off: a 520-stud road catching the sky along its whole
+	-- length does read as wet. It was just never the main problem.
 	environmentSpecularScale = 0.06,
 	fogEnd = 1_000_000, -- Atmosphere replaces legacy fog entirely
 }
@@ -84,21 +91,26 @@ Visual.CLOUDS = {
 --- genuinely bright things glow, which is what makes a mutated Nomling read as
 --- special instead of making the whole screen soft.
 Visual.BLOOM = {
-	-- Soft and generous. On a bright scene bloom reads as sunshine, and it is
-	-- what makes a mutated Nomling glow like a sweet.
-	intensity = 0.6,
-	size = 26,
-	threshold = 0.92,
+	-- THRESHOLD ABOVE WHITE, which is what the comment above always claimed and
+	-- 0.92 never did. Below 1.0 every lit pale surface blooms, so the road, the
+	-- pavement and the market awnings all smeared into each other. At 1.15 only
+	-- things that are genuinely brighter than white glow -- neon, the sun, a
+	-- mutated Nomling -- which is the whole point of having bloom at all.
+	intensity = 0.35,
+	size = 20,
+	threshold = 1.15,
 }
 
 --- The colour grade. Small numbers -- a grade you can see is a grade that is
 --- too strong.
 Visual.COLOR_CORRECTION = {
-	brightness = 0.04,
+	-- Zero. This was a fourth helping of brightness on top of three others.
+	-- Colour comes from saturation; exposure comes from Lighting, once.
+	brightness = 0.0,
 	-- LOW on purpose. Contrast deepens shadows, and deep shadows are the enemy
 	-- of a toy look. Saturation does the work instead.
-	contrast = 0.03,
-	saturation = 0.3,
+	contrast = 0.05,
+	saturation = 0.36,
 	tintColor = { 255, 252, 246 },
 }
 

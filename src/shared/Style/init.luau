@@ -27,6 +27,14 @@ Style.PALETTE = {
 	nomMint = Color3.fromRGB(120, 224, 196),
 	nomBlue = Color3.fromRGB(96, 178, 255),
 	nomCream = Color3.fromRGB(255, 246, 228),
+	--- The same cream, for LARGE WORLD SURFACES rather than text.
+	---
+	--- nomCream is a UI colour: near-white is right for a label on a dark
+	--- toast, and wrong for a twenty-stud wall. Walls, kerbs and boards are
+	--- big enough to set the exposure of the frame, and at 255 they clip to
+	--- featureless white under any daylight worth having. This has somewhere
+	--- to go when the sun hits it.
+	surfaceCream = Color3.fromRGB(238, 226, 202),
 	nomCocoa = Color3.fromRGB(122, 85, 62),
 
 	-- Neutrals
