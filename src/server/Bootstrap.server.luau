@@ -20,6 +20,8 @@ local SERVICE_ORDER = {
 	"NetService",
 	-- The street builds the base pads that PlotService then finds.
 	"WorldService",
+	-- The look is applied before anything is built, so nothing renders unlit.
+	"AtmosphereService",
 	-- These only REGISTER a DataService.onLoaded callback in their start(),
 	-- so they must all run before DataService's.
 	"PlotService",

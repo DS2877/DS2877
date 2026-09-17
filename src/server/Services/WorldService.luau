@@ -38,25 +38,200 @@ local function part(props: { [string]: any }, parent: Instance): Part
 end
 
 local function buildRoad(parent: Instance)
+	local road = Instance.new("Folder")
+	road.Name = "Road"
+
 	part({
-		Name = "Road",
+		Name = "Asphalt",
 		Size = Vector3.new(World.STREET_WIDTH, 1, World.STREET_LENGTH),
 		CFrame = CFrame.new(0, -0.5, 0),
 		Color = Style.PALETTE.plazaStoneAlt,
 		Material = Enum.Material.Concrete,
-	}, parent)
+	}, road)
 
-	-- Kerbs. Low enough to walk straight over -- they mark the edge of the
-	-- road, they do not stop anyone. A phone player should never have to jump.
+	-- Pavement either side, slightly raised, in a lighter stone. The step is
+	-- 0.35 studs: visible as an edge, low enough that a phone player walks
+	-- straight over it without ever having to jump.
 	for _, side in { -1, 1 } do
 		part({
-			Name = "Kerb",
-			Size = Vector3.new(2, 0.6, World.STREET_LENGTH),
-			CFrame = CFrame.new(side * World.KERB_X, -0.2, 0),
+			Name = "Pavement",
+			Size = Vector3.new(6, 1.35, World.STREET_LENGTH),
+			CFrame = CFrame.new(side * (World.KERB_X + 2), -0.325, 0),
 			Color = Style.PALETTE.plazaStone,
 			Material = Enum.Material.Concrete,
-		}, parent)
+		}, road)
+		part({
+			Name = "Kerb",
+			Size = Vector3.new(0.8, 1.5, World.STREET_LENGTH),
+			CFrame = CFrame.new(side * (World.KERB_X - 0.4), -0.25, 0),
+			Color = Style.PALETTE.nomCream,
+			Material = Enum.Material.Concrete,
+		}, road)
 	end
+
+	-- Dashed markings between the belt and each pavement, which is what makes
+	-- the middle read as a road rather than as a strip of floor.
+	local dash = 9
+	local gap = 7
+	local lane = (World.BELT_WIDTH / 2 + World.KERB_X) / 2
+	local z = -World.STREET_LENGTH / 2 + dash
+	while z < World.STREET_LENGTH / 2 - dash do
+		for _, side in { -1, 1 } do
+			part({
+				Name = "Dash",
+				Size = Vector3.new(0.7, 0.06, dash),
+				CFrame = CFrame.new(side * lane, 0.03, z),
+				Color = Style.PALETTE.nomCream,
+				Material = Enum.Material.SmoothPlastic,
+				CanCollide = false,
+			}, road)
+		end
+		z += dash + gap
+	end
+
+	road.Parent = parent
+end
+
+--- Lamp posts. These are the only scenery that collides, because they are tall
+--- and obvious; everything else is walk-through so nobody is stopped by a
+--- decoration. Each carries a warm PointLight, which is most of what makes the
+--- street feel lit rather than merely bright.
+local function buildLamps(parent: Instance)
+	local lamps = Instance.new("Folder")
+	lamps.Name = "Lamps"
+
+	local count = math.floor(World.STREET_LENGTH / World.LAMP_SPACING)
+	for i = 0, count do
+		local z = -World.STREET_LENGTH / 2 + 30 + i * World.LAMP_SPACING
+		if z > World.STREET_LENGTH / 2 - 20 then
+			break
+		end
+		for _, side in { -1, 1 } do
+			local x = side * (World.KERB_X + 3.4)
+			part({
+				Name = "LampPost",
+				Size = Vector3.new(0.7, World.LAMP_HEIGHT, 0.7),
+				CFrame = CFrame.new(x, World.LAMP_HEIGHT / 2, z),
+				Color = Style.PALETTE.nomCocoa,
+				Material = Enum.Material.Wood,
+			}, lamps)
+
+			local head = part({
+				Name = "LampHead",
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.new(2.2, 2.2, 2.2),
+				CFrame = CFrame.new(x, World.LAMP_HEIGHT + 0.6, z),
+				Color = Style.PALETTE.nomCream,
+				Material = Enum.Material.Neon,
+				CanCollide = false,
+			}, lamps)
+
+			local glow = Instance.new("PointLight")
+			glow.Brightness = 1.1
+			glow.Range = 34
+			glow.Color = Color3.fromRGB(255, 226, 172)
+			glow.Shadows = false
+			glow.Parent = head
+		end
+	end
+
+	lamps.Parent = parent
+end
+
+--- Planters between the lamps. Non-colliding: a phone player running from a
+--- snatch must never be stopped by shrubbery.
+local function buildPlanters(parent: Instance)
+	local planters = Instance.new("Folder")
+	planters.Name = "Planters"
+
+	local count = math.floor(World.STREET_LENGTH / World.PLANTER_SPACING)
+	for i = 0, count do
+		local z = -World.STREET_LENGTH / 2 + 22 + i * World.PLANTER_SPACING
+		if z > World.STREET_LENGTH / 2 - 16 then
+			break
+		end
+		-- Skip where a lamp already stands, or the pavement becomes clutter.
+		if i % 2 == 0 then
+			continue
+		end
+		for _, side in { -1, 1 } do
+			local x = side * (World.KERB_X + 3.2)
+			part({
+				Name = "Planter",
+				Size = Vector3.new(3.2, 2.2, 3.2),
+				CFrame = CFrame.new(x, 1.1, z),
+				Color = Style.PALETTE.nomCocoa,
+				Material = Enum.Material.Wood,
+				CanCollide = false,
+			}, planters)
+			for leaf = 1, 3 do
+				local spread = 0.9
+				part({
+					Name = "Leaf",
+					Shape = Enum.PartType.Ball,
+					Size = Vector3.new(2.4 - leaf * 0.3, 2.0 - leaf * 0.25, 2.4 - leaf * 0.3),
+					CFrame = CFrame.new(
+						x + (leaf - 2) * spread,
+						2.6 + leaf * 0.35,
+						z + (leaf % 2 == 0 and spread or -spread) * 0.6
+					),
+					Color = Color3.fromRGB(104 + leaf * 14, 164 + leaf * 10, 92),
+					Material = Enum.Material.Grass,
+					CanCollide = false,
+				}, planters)
+			end
+		end
+	end
+
+	planters.Parent = parent
+end
+
+--- Silhouetted buildings past each end of the street, plus a low skyline along
+--- the back. Pure parallax: it costs nothing and it stops the world visibly
+--- ending at the last base, which is the single clearest "this is a prototype"
+--- tell in a Roblox scene.
+local function buildBackdrop(parent: Instance)
+	local backdrop = Instance.new("Folder")
+	backdrop.Name = "Backdrop"
+
+	local far = World.STREET_LENGTH / 2 + World.BACKDROP_DISTANCE
+	for _, endZ in { -far, far } do
+		for slot = -3, 3 do
+			local height = World.BACKDROP_HEIGHT * (0.55 + ((slot + 3) % 3) * 0.22)
+			local width = 34 + ((slot + 5) % 4) * 12
+			part({
+				Name = "FarBuilding",
+				Size = Vector3.new(width, height, 30),
+				CFrame = CFrame.new(slot * 46, height / 2 - 2, endZ + (slot % 2) * 26),
+				Color = Color3.fromRGB(186, 178, 196)
+					:Lerp(Color3.fromRGB(226, 216, 232), (slot + 3) / 6),
+				Material = Enum.Material.Concrete,
+				CanCollide = false,
+				CastShadow = false,
+			}, backdrop)
+		end
+	end
+
+	-- A low skyline behind the bases on both sides, so looking sideways out of
+	-- a base does not show the void either.
+	for _, side in { -1, 1 } do
+		local x = side * (World.KERB_X + World.BASE_DEPTH + 60)
+		for slot = -4, 4 do
+			local height = World.BACKDROP_HEIGHT * (0.4 + ((slot + 4) % 4) * 0.16)
+			part({
+				Name = "SideBuilding",
+				Size = Vector3.new(30, height, 60),
+				CFrame = CFrame.new(x + (slot % 2) * 22, height / 2 - 2, slot * 64),
+				Color = Color3.fromRGB(196, 188, 204)
+					:Lerp(Color3.fromRGB(232, 224, 238), (slot + 4) / 8),
+				Material = Enum.Material.Concrete,
+				CanCollide = false,
+				CastShadow = false,
+			}, backdrop)
+		end
+	end
+
+	backdrop.Parent = parent
 end
 
 local function buildBelt(parent: Instance)
@@ -82,6 +257,26 @@ local function buildBelt(parent: Instance)
 			Size = Vector3.new(World.BELT_WIDTH * 0.5, 0.08, 2.4),
 			CFrame = CFrame.new(0, World.BELT_HEIGHT + 0.04, z),
 			Color = Style.PALETTE.nomOrange,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+		}, belt)
+	end
+
+	-- Side rails, so the belt reads as machinery rather than as a painted strip.
+	for _, side in { -1, 1 } do
+		part({
+			Name = "Rail",
+			Size = Vector3.new(0.8, 1.1, World.STREET_LENGTH),
+			CFrame = CFrame.new(side * (World.BELT_WIDTH / 2 + 0.4), World.BELT_HEIGHT * 0.9, 0),
+			Color = Style.PALETTE.nomCocoa,
+			Material = Enum.Material.Metal,
+			CanCollide = false,
+		}, belt)
+		part({
+			Name = "RailGlow",
+			Size = Vector3.new(0.3, 0.16, World.STREET_LENGTH),
+			CFrame = CFrame.new(side * (World.BELT_WIDTH / 2 + 0.4), World.BELT_HEIGHT * 1.45, 0),
+			Color = Style.PALETTE.nomMint,
 			Material = Enum.Material.Neon,
 			CanCollide = false,
 		}, belt)
@@ -120,6 +315,51 @@ local function buildBase(index: number, parent: Instance): BasePart
 			CFrame = CFrame.new(cx, 1.5, cz + edge * World.BASE_WIDTH / 2),
 			Color = Style.PALETTE.plotEdge,
 			Material = Enum.Material.SmoothPlastic,
+		}, model)
+	end
+
+	-- A stone path from the kerb to the back wall. It tells a new player where
+	-- to walk without a single word of instruction.
+	part({
+		Name = "Path",
+		Size = Vector3.new(World.BASE_DEPTH, 0.12, 10),
+		CFrame = CFrame.new(cx, 0.06, cz),
+		Color = Style.PALETTE.plazaStone,
+		Material = Enum.Material.Concrete,
+		CanCollide = false,
+	}, model)
+
+	-- A striped awning over the base front, alternating brand colours. This is
+	-- the single cheapest thing that makes eight identical plots look like eight
+	-- market stalls.
+	local stripes = 9
+	local stripeWidth = World.BASE_WIDTH / stripes
+	for i = 0, stripes - 1 do
+		part({
+			Name = "Awning",
+			Size = Vector3.new(11, 0.5, stripeWidth),
+			CFrame = CFrame.new(
+				cx - side * (World.BASE_DEPTH / 2 - 5),
+				9.4,
+				cz - World.BASE_WIDTH / 2 + stripeWidth * (i + 0.5)
+			) * CFrame.Angles(0, 0, math.rad(side * -8)),
+			Color = if i % 2 == 0 then Style.PALETTE.nomOrange else Style.PALETTE.nomCream,
+			Material = Enum.Material.Fabric,
+			CanCollide = false,
+		}, model)
+	end
+	for _, edge in { -1, 1 } do
+		part({
+			Name = "AwningPost",
+			Size = Vector3.new(0.6, 9.4, 0.6),
+			CFrame = CFrame.new(
+				cx - side * (World.BASE_DEPTH / 2 - 9.5),
+				4.7,
+				cz + edge * (World.BASE_WIDTH / 2 - 1.5)
+			),
+			Color = Style.PALETTE.nomCocoa,
+			Material = Enum.Material.Wood,
+			CanCollide = false,
 		}, model)
 	end
 
@@ -167,6 +407,9 @@ function WorldService.start()
 
 	buildRoad(street)
 	buildBelt(street)
+	buildLamps(street)
+	buildPlanters(street)
+	buildBackdrop(street)
 
 	local bases = Instance.new("Folder")
 	bases.Name = "Bases"
