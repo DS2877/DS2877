@@ -105,6 +105,21 @@ local REMOTES: { [string]: RemoteSpec } = {
 		description = "Buys a Nomling off the delivery belt. Returns ok, reason.",
 	},
 
+	--- Client -> server. Takes one of YOUR OWN Nomlings off its pedestal and
+	--- back into the book, freeing the slot.
+	---
+	--- Without this a base fills at eight creatures and the belt starts
+	--- refusing purchases with no way out, which is a dead end rather than a
+	--- decision.
+	StoreNomling = {
+		name = "StoreNomling",
+		kind = "function",
+		direction = "clientToServer",
+		rateCapacity = 6,
+		rateRefill = 1,
+		description = "Moves one of your placed Nomlings back into the book.",
+	},
+
 	--- Client -> server. Fires the Bubble Wand.
 	--- The client says "I pressed it"; the server decides who is in range and
 	--- what happens. A client that could name its target could bubble anybody

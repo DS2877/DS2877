@@ -215,7 +215,8 @@ function ConveyorService.buy(player: Player, id: unknown): (boolean, string?)
 
 	local free = PlotService.firstFreePedestal(data)
 	if not free then
-		return false, "Your base is full."
+		-- Names the way out. A refusal that does not is a dead end.
+		return false, "Base full — tap one of yours and Put away to free a spot."
 	end
 	if #data.nomlings >= Economy.INVENTORY_CAP then
 		return false, "Your Nomling book is full."

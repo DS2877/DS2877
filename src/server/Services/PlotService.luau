@@ -22,6 +22,7 @@ local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 local Style = require(Shared:WaitForChild("Style"))
 local World = require(Shared:WaitForChild("Config"):WaitForChild("World"))
 local Genome = require(Shared:WaitForChild("Logic"):WaitForChild("Genome"))
+local Net = require(Shared:WaitForChild("Net"))
 local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 
 local DataService = require(script.Parent:WaitForChild("DataService"))
@@ -132,7 +133,41 @@ local function buildAnchor(nomling: Profile.Nomling, owner: Player): BasePart
 	label.Text = `{nomling.snack} {nomling.animal}{mutationLine}\n{rarity.label}`
 	label.Parent = gui
 
+	-- TWO prompts, and the client enables whichever applies (see
+	-- NomlingRenderController). A ProximityPrompt is replicated identically to
+	-- everyone, so this is the only way to offer "Store" to the owner and
+	-- "Snatch" to everybody else without two copies of the creature.
+	local store = Instance.new("ProximityPrompt")
+	store.Name = "Store"
+	store.ActionText = "Put away"
+	store.ObjectText = `{nomling.snack} {nomling.animal}`
+	store.HoldDuration = 0
+	store.MaxActivationDistance = 12
+	store.RequiresLineOfSight = false
+	-- Starts off. The owner's client turns it on; for everyone else it stays
+	-- off and they see the Snatch prompt instead.
+	store.Enabled = false
+	store.Parent = anchor
+
 	return anchor
+end
+
+--- Takes a placed Nomling back into the book. Returns ok, reason.
+function PlotService.store(player: Player, nomlingId: unknown): (boolean, string?)
+	if type(nomlingId) ~= "string" then
+		return false, "That Nomling is not there."
+	end
+	local data = DataService.get(player)
+	if not data then
+		return false, "Still loading -- try again in a second."
+	end
+	local pedestal = Profile.pedestalOf(data, nomlingId)
+	if not pedestal then
+		return false, "That one is already put away."
+	end
+	Profile.unplace(data, pedestal)
+	PlotService.render(player)
+	return true, nil
 end
 
 function PlotService.plotAt(x: number, z: number): Plot?
@@ -259,6 +294,11 @@ end
 
 function PlotService.init()
 	Players.PlayerRemoving:Connect(release)
+
+	local remote = Net.get("StoreNomling") :: RemoteFunction
+	remote.OnServerInvoke = function(player, nomlingId)
+		return PlotService.store(player, nomlingId)
+	end
 end
 
 --- Finding the pads belongs in start(), not init().

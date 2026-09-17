@@ -17,6 +17,7 @@
 	on a phone is not affordable. Only the ones near the camera move, at 20 Hz.
 ]]
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -24,6 +25,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local NomlingSpec = require(Shared:WaitForChild("Logic"):WaitForChild("NomlingSpec"))
 local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
+local Net = require(Shared:WaitForChild("Net"))
 local Style = require(Shared:WaitForChild("Style"))
 
 local NomlingRenderController = {}
@@ -58,6 +60,10 @@ type Live = {
 }
 
 local live: { [BasePart]: Live } = {}
+--- Prompts this client has already wired. Tracked here rather than by writing
+--- an attribute onto a server-owned instance, which is a local-only write and
+--- not something to rely on.
+local bound: { [Instance]: boolean } = {}
 
 local function readGenome(anchor: BasePart): NomlingSpec.Genome?
 	local snack = anchor:GetAttribute("Snack")
@@ -205,6 +211,31 @@ local function build(anchor: BasePart)
 		sparkle.Color = ColorSequence.new(light.Color)
 		sparkle.LightEmission = 0.8
 		sparkle.Parent = root
+	end
+
+	-- Ownership decides which prompt this player sees. Both exist on the
+	-- anchor; enabling one locally does not replicate, so every player gets the
+	-- right verb on the same creature.
+	local owner = tonumber(anchor:GetAttribute("OwnerUserId")) or 0
+	local mine = owner == Players.LocalPlayer.UserId
+	local store = anchor:FindFirstChild("Store")
+	local snatch = anchor:FindFirstChild("Snatch")
+	if store and store:IsA("ProximityPrompt") then
+		store.Enabled = mine
+		if mine and not bound[store] then
+			bound[store] = true
+			local nomlingId = tostring(anchor:GetAttribute("NomlingId") or "")
+			store.Triggered:Connect(function()
+				local remote = Net.get("StoreNomling") :: RemoteFunction
+				remote:InvokeServer(nomlingId)
+			end)
+		end
+	end
+	if snatch and snatch:IsA("ProximityPrompt") then
+		-- Never offer to steal from yourself. The server refuses it anyway, but
+		-- a prompt that always fails is noise on the one creature you look at
+		-- most.
+		snatch.Enabled = not mine
 	end
 
 	model.Parent = anchor
