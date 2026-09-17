@@ -51,6 +51,10 @@ local fuseButton: TextButton
 local fuseLabel: TextLabel
 local bubbleButton: TextButton
 local bubbleLabel: TextLabel
+local renomButton: TextButton
+local renomLabel: TextLabel
+local confirm: Frame
+local confirmText: TextLabel
 local toast: Frame
 local toastLabel: TextLabel
 local slots: { { button: TextButton, label: TextLabel, fill: Frame } } = {}
@@ -319,8 +323,13 @@ local function build()
 	bubbleLabel.Parent = bubbleButton
 
 	eggButton.Activated:Connect(function()
+		-- Buys the best tier this player has unlocked. Wiring this to "basic"
+		-- made five of the six egg tiers unreachable from the UI no matter how
+		-- many times somebody re-nommed.
+		local snap = snapshot
+		local tier = (snap and snap.bestEgg) or "basic"
 		local remote = Net.get("BuyEgg") :: RemoteFunction
-		local ok, reason = remote:InvokeServer("basic")
+		local ok, reason = remote:InvokeServer(tier)
 		if ok then
 			JuiceController.pop(eggButton, 0.14)
 		elseif reason then
@@ -334,6 +343,111 @@ local function build()
 		if ok then
 			JuiceController.pop(bubbleButton, 0.24)
 		elseif reason then
+			showToast(reason)
+		end
+	end)
+
+	-- --- Re-Nom ---
+	-- Hidden until affordable. A permanently greyed button for a milestone
+	-- hours away is clutter; one that appears the moment you can afford it is
+	-- an event.
+	renomButton = Instance.new("TextButton")
+	renomButton.Name = "ReNom"
+	renomButton.AnchorPoint = Vector2.new(1, 0)
+	renomButton.Position = UDim2.new(1, -14, 0, 78)
+	renomButton.Size = UDim2.new(0, 150, 0, 58)
+	renomButton.BackgroundColor3 = Color3.fromRGB(196, 132, 240)
+	renomButton.BorderSizePixel = 0
+	renomButton.Text = ""
+	renomButton.AutoButtonColor = false
+	renomButton.Visible = false
+	renomButton.ZIndex = 5
+	renomButton.Parent = gui
+	corner(renomButton, 16)
+	stroke(renomButton, Color3.fromRGB(128, 72, 172), 2, 0.2)
+
+	renomLabel = Instance.new("TextLabel")
+	renomLabel.Size = UDim2.fromScale(1, 1)
+	renomLabel.BackgroundTransparency = 1
+	renomLabel.Font = Enum.Font.FredokaOne
+	renomLabel.TextScaled = true
+	renomLabel.TextColor3 = Style.PALETTE.nomCream
+	renomLabel.Text = "🔁 RE-NOM"
+	renomLabel.Parent = renomButton
+
+	-- Irreversible, so it asks. The dialog names exactly what is lost and what
+	-- is gained, because "are you sure?" is not informed consent.
+	confirm = Instance.new("Frame")
+	confirm.Name = "ConfirmReNom"
+	confirm.AnchorPoint = Vector2.new(0.5, 0.5)
+	confirm.Position = UDim2.fromScale(0.5, 0.5)
+	confirm.Size = UDim2.new(0.86, 0, 0, 240)
+	confirm.BackgroundColor3 = Style.PALETTE.plazaStone
+	confirm.BorderSizePixel = 0
+	confirm.Visible = false
+	confirm.ZIndex = 30
+	confirm.Parent = gui
+	corner(confirm, 20)
+
+	confirmText = Instance.new("TextLabel")
+	confirmText.Size = UDim2.new(1, -28, 1, -90)
+	confirmText.Position = UDim2.new(0, 14, 0, 14)
+	confirmText.BackgroundTransparency = 1
+	confirmText.Font = Enum.Font.GothamMedium
+	confirmText.TextScaled = true
+	confirmText.TextWrapped = true
+	confirmText.TextColor3 = Style.PALETTE.ink
+	confirmText.Text = ""
+	confirmText.Parent = confirm
+
+	local yes = Instance.new("TextButton")
+	yes.Position = UDim2.new(0, 14, 1, -66)
+	yes.Size = UDim2.new(0.5, -21, 0, 52)
+	yes.BackgroundColor3 = Color3.fromRGB(196, 132, 240)
+	yes.BorderSizePixel = 0
+	yes.Font = Enum.Font.FredokaOne
+	yes.TextScaled = true
+	yes.TextColor3 = Style.PALETTE.nomCream
+	yes.Text = "RE-NOM!"
+	yes.Parent = confirm
+	corner(yes, 14)
+
+	local no = Instance.new("TextButton")
+	no.AnchorPoint = Vector2.new(1, 0)
+	no.Position = UDim2.new(1, -14, 1, -66)
+	no.Size = UDim2.new(0.5, -21, 0, 52)
+	no.BackgroundColor3 = Style.PALETTE.shadow
+	no.BorderSizePixel = 0
+	no.Font = Enum.Font.FredokaOne
+	no.TextScaled = true
+	no.TextColor3 = Style.PALETTE.ink
+	no.Text = "Not yet"
+	no.Parent = confirm
+	corner(no, 14)
+
+	renomButton.Activated:Connect(function()
+		local snap = snapshot
+		if not snap then
+			return
+		end
+		confirmText.Text = ("Re-Nom #%d?\n\nYou LOSE all your coins and every Nomling.\n\nYou KEEP your Fusion Book, and everything you earn from now on is multiplied by %.1f instead of %.1f — forever. You also get a free %s egg to restart with."):format(
+			(snap.rebirths or 0) + 1,
+			snap.nextMultiplier or 1,
+			snap.rebirthMultiplier or 1,
+			tostring(snap.bestEgg or "basic")
+		)
+		confirm.Visible = true
+	end)
+
+	no.Activated:Connect(function()
+		confirm.Visible = false
+	end)
+
+	yes.Activated:Connect(function()
+		confirm.Visible = false
+		local remote = Net.get("Rebirth") :: RemoteFunction
+		local ok, reason = remote:InvokeServer()
+		if not ok and reason then
 			showToast(reason)
 		end
 	end)
@@ -393,6 +507,17 @@ local function refresh(delta: number)
 	eggButton.BackgroundColor3 = if affordable
 		then Style.PALETTE.nomOrange
 		else Color3.fromRGB(176, 158, 146)
+
+	local cost = snap.rebirthCost
+	if cost and target >= cost then
+		if not renomButton.Visible then
+			renomButton.Visible = true
+			JuiceController.pop(renomButton, 0.3)
+		end
+		renomLabel.Text = `🔁 RE-NOM\n×{string.format("%.1f", snap.nextMultiplier or 1)}`
+	else
+		renomButton.Visible = false
+	end
 
 	local incubators = snap.incubators or {}
 	for i, slot in slots do

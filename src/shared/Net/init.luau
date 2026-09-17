@@ -105,6 +105,18 @@ local REMOTES: { [string]: RemoteSpec } = {
 		description = "Buys a Nomling off the delivery belt. Returns ok, reason.",
 	},
 
+	--- Client -> server. Re-Nom: trade everything for a permanent multiplier.
+	--- Irreversible, so the client confirms first and the server re-checks the
+	--- cost from Config rather than trusting that a confirmation happened.
+	Rebirth = {
+		name = "Rebirth",
+		kind = "function",
+		direction = "clientToServer",
+		rateCapacity = 2,
+		rateRefill = 0.2,
+		description = "Performs a Re-Nom. Returns ok, reason.",
+	},
+
 	--- Client -> server. Takes one of YOUR OWN Nomlings off its pedestal and
 	--- back into the book, freeing the slot.
 	---

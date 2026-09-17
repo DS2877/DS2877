@@ -231,3 +231,64 @@ h.test("an incubator saved before `total` existed still loads", function()
 	h.expectEqual(#data.incubators, 1, "the incubator should survive")
 	h.expectTrue(data.incubators[1].total >= 1, "total must never be zero or nil")
 end)
+
+h.test("rebirth clears the base and raises the multiplier", function()
+	local data = Profile.new(NOW)
+	Profile.addCoins(data, Economy.rebirthCost(0))
+	local n = Profile.addNomling(data, creature("taco", "rhino", "mythic"), CAP)
+	assert(n, "addNomling returned nil")
+	Profile.place(data, n.id, 1, PEDS)
+	table.insert(data.incubators, { eggKey = "basic", readyAt = NOW + 10, total = 10 })
+
+	h.expectTrue(Profile.rebirth(data, Economy.rebirthCost(0)), "affordable rebirth should succeed")
+	h.expectEqual(data.coins, 0, "coins cleared")
+	h.expectEqual(#data.nomlings, 0, "nomlings cleared")
+	h.expectEqual(next(data.pedestals), nil, "pedestals cleared")
+	h.expectEqual(#data.incubators, 0, "incubators cleared")
+	h.expectEqual(data.rebirths, 1, "rebirth counted")
+	h.expectTrue(
+		Economy.rebirthMultiplier(1) > Economy.rebirthMultiplier(0),
+		"the multiplier must actually go up"
+	)
+end)
+
+h.test("rebirth is refused when it cannot be afforded", function()
+	local data = Profile.new(NOW)
+	Profile.addCoins(data, Economy.rebirthCost(0) - 1)
+	h.expectTrue(
+		not Profile.rebirth(data, Economy.rebirthCost(0)),
+		"one coin short must be refused"
+	)
+	h.expectEqual(data.rebirths, 0, "and must not count")
+	h.expectTrue(data.coins > 0, "and must not take the coins")
+end)
+
+h.test("REGRESSION: a rebirthed player is stranded until granted an egg", function()
+	-- This is D-008 as an executable statement. Rebirth leaves coins and
+	-- income at zero and every egg costs coins, so the grant is not a nicety --
+	-- without it the player can never act again.
+	local data = Profile.new(NOW)
+	Profile.addCoins(data, Economy.rebirthCost(0))
+	Profile.rebirth(data, Economy.rebirthCost(0))
+	h.expectTrue(Profile.isStranded(data), "a freshly rebirthed profile is stranded")
+	h.expectTrue(
+		Profile.grantStarterEgg(data, Economy.STARTER_EGG, NOW + 5, 5),
+		"the grant must apply after a rebirth"
+	)
+	h.expectTrue(not Profile.isStranded(data), "and must un-strand them")
+end)
+
+h.test("each rebirth unlocks at least one new egg tier eventually", function()
+	-- Rebirth has to open something, or the multiplier is the only reward and
+	-- the shop never changes.
+	local unlockedAt: { [number]: number } = {}
+	for _, egg in Economy.EGGS do
+		unlockedAt[egg.unlockRebirth] = (unlockedAt[egg.unlockRebirth] or 0) + 1
+	end
+	h.expectTrue(unlockedAt[0] ~= nil, "something must be available at rebirth 0")
+	local tiers = 0
+	for _ in unlockedAt do
+		tiers += 1
+	end
+	h.expectTrue(tiers >= 3, `only {tiers} distinct unlock points across the egg tiers`)
+end)

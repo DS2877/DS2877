@@ -29,6 +29,7 @@ local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
 -- Safe at the top: FusionService requires DataService, FeedbackService,
 -- NetService and PlotService, none of which require this module back.
 local FusionService = require(script.Parent:WaitForChild("FusionService"))
+local RebirthService = require(script.Parent:WaitForChild("RebirthService"))
 local WeatherService = require(script.Parent:WaitForChild("WeatherService"))
 local NetService = require(script.Parent:WaitForChild("NetService"))
 local PlotService = require(script.Parent:WaitForChild("PlotService"))
@@ -219,6 +220,12 @@ function EggService.snapshot(data: Profile.Data): { [string]: any }
 		placed = data.pedestals,
 		incubators = data.incubators,
 		prices = prices,
+		-- The best tier this player has unlocked, so the buy button follows
+		-- their progress instead of being wired to "basic" forever.
+		bestEgg = RebirthService.bestEgg(data.rebirths),
+		rebirthCost = Economy.rebirthCost(data.rebirths),
+		rebirthMultiplier = Economy.rebirthMultiplier(data.rebirths),
+		nextMultiplier = Economy.rebirthMultiplier(data.rebirths + 1),
 		now = os.time(),
 		-- Filled in by EggService.sync, which can see FusionService. The
 		-- snapshot builder itself stays free of that dependency.

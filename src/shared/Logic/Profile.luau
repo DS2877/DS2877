@@ -104,6 +104,29 @@ end
 --- them so this module stays dependency-free).
 function Profile.sanitize(raw: any, now: number, inventoryCap: number, pedestalCount: number): Data
 	if type(raw) ~= "table" then
+		--- Re-Nom: wipes the base for a permanent multiplier.
+		---
+		--- WHAT IT KEEPS MATTERS AS MUCH AS WHAT IT TAKES (GDD 5.9). Coins and every
+		--- Nomling go. The Fusion Book, the stats and the rebirth count stay, because
+		--- what a player has DISCOVERED is the thing they cannot be asked to give up
+		--- twice -- and World First records live outside the profile entirely.
+		---
+		--- The caller must have already checked affordability and must grant the free
+		--- restart egg afterwards. Without that egg the player has no coins, no income
+		--- and no way to buy anything: permanently stuck, one minute into the reward
+		--- for their first half hour. See D-008; there is a regression test.
+		function Profile.rebirth(data: Data, cost: number): boolean
+			if data.coins < cost then
+				return false
+			end
+			data.coins = 0
+			data.nomlings = {}
+			data.pedestals = {}
+			data.incubators = {}
+			data.rebirths += 1
+			return true
+		end
+
 		return Profile.new(now)
 	end
 
