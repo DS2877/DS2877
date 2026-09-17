@@ -49,11 +49,32 @@ function IncomeService.perSecond(data: Profile.Data): number
 	)
 end
 
+--- What the base earns per second with NO stipend and at the long-run average
+--- weather factor. This is the offline rate, and it is deliberately not
+--- IncomeService.perSecond.
+---
+--- Two things had to come out of it. The STIPEND is a mid-session rescue, so
+--- multiplying it by a two-hour cap paid an empty base thousands of coins for
+--- owning nothing -- every time the app was opened. And the LIVE WEATHER
+--- FACTOR meant joining during a Galaxy Jelly paid two hours of offline income
+--- at TEN TIMES rate, for weather nobody was present for; the average factor is
+--- also what tools/simulate-economy models, so this is the number the pacing
+--- targets were actually tuned against.
+local function offlinePerSecond(data: Profile.Data): number
+	return Income.earnedPerSecond(
+		Profile.placedNomlings(data, Economy.VAULT_PEDESTAL) :: any,
+		Economy.BASE_INCOME,
+		MUTATION_MULTIPLIER,
+		Economy.rebirthMultiplier(data.rebirths),
+		Economy.averageWeatherFactor()
+	)
+end
+
 --- Pays for time spent offline, once, on load.
 local function payOffline(player: Player, data: Profile.Data)
 	local elapsed = os.time() - data.lastSeen
 	local earned = Income.offline(
-		IncomeService.perSecond(data),
+		offlinePerSecond(data),
 		elapsed,
 		Economy.OFFLINE_EFFICIENCY,
 		Economy.OFFLINE_CAP_SECONDS

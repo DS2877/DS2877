@@ -134,3 +134,73 @@ h.test("pocket money scales with rebirth like everything else", function()
 	local rebirthed = Income.perSecond({}, Economy.BASE_INCOME, MUT, 4, 1, stipend)
 	h.expectEqual(rebirthed, plain * 4, "the rebirth multiplier applies")
 end)
+
+h.test("REGRESSION: pocket money does not accrue while you are offline", function()
+	-- Reported from a playtest: "the 2/sec continues while not in game and
+	-- should not, my character suddenly has over 7k gold just from being
+	-- offline."
+	--
+	-- The stipend is a MID-SESSION rescue -- you have nothing, here is enough to
+	-- act -- and multiplying it by a two-hour cap turned it into a salary for
+	-- owning nothing, collectable every time the app was opened. The economy
+	-- simulator has never modelled a stipend at all, so this also quietly broke
+	-- every pacing number in docs/ECONOMY.md.
+	local empty: { Income.Earner } = {}
+	local rate = Income.earnedPerSecond(empty, Economy.BASE_INCOME, MUT, 1, 1)
+	h.expectEqual(rate, 0, "an empty base earns nothing to be paid offline")
+	h.expectEqual(
+		Income.offline(
+			rate,
+			Economy.OFFLINE_CAP_SECONDS,
+			Economy.OFFLINE_EFFICIENCY,
+			Economy.OFFLINE_CAP_SECONDS
+		),
+		0,
+		"and a full offline cap on an empty base pays zero"
+	)
+
+	-- The same call WITH a stipend is what the bug paid out, so this pins how
+	-- much was at stake rather than just asserting the fix.
+	local buggy =
+		Income.perSecond(empty, Economy.BASE_INCOME, MUT, 1, 1, Economy.STIPEND_PER_SECOND)
+	local wouldHavePaid = Income.offline(
+		buggy,
+		Economy.OFFLINE_CAP_SECONDS,
+		Economy.OFFLINE_EFFICIENCY,
+		Economy.OFFLINE_CAP_SECONDS
+	)
+	h.expectTrue(
+		wouldHavePaid > 1000,
+		`the bug paid {wouldHavePaid} coins per login for an empty base -- that is why this test exists`
+	)
+end)
+
+h.test("a base that DOES earn is still paid offline", function()
+	-- The fix must not take away the real offline grant, which is a tuned part
+	-- of pacing (docs/ECONOMY.md 4: 2 h at 25%).
+	local one: { Income.Earner } = { { rarity = "common" } }
+	local rate = Income.earnedPerSecond(one, Economy.BASE_INCOME, MUT, 1, 1)
+	h.expectTrue(rate > 0, "a placed common earns")
+	h.expectTrue(
+		Income.offline(rate, 3600, Economy.OFFLINE_EFFICIENCY, Economy.OFFLINE_CAP_SECONDS) > 0,
+		"an hour away pays something"
+	)
+end)
+
+h.test("offline pay must not ride the live weather multiplier", function()
+	-- Weather is a 90-second event worth up to x10. Paying the offline cap at
+	-- whatever happens to be running the moment a player opens the app would
+	-- multiply TWO HOURS of income by ten, for weather they were not there for.
+	-- The average factor is what the simulator models, so it is the number the
+	-- pacing targets were tuned against.
+	local one: { Income.Earner } = { { rarity = "common" } }
+	local average = Economy.averageWeatherFactor()
+	local atAverage = Income.earnedPerSecond(one, Economy.BASE_INCOME, MUT, 1, average)
+	local atGalaxyJelly = Income.earnedPerSecond(one, Economy.BASE_INCOME, MUT, 1, 10)
+
+	h.expectTrue(average < 1.5, `the long-run weather uplift is {average}, not a live multiplier`)
+	h.expectTrue(
+		atGalaxyJelly > atAverage * 5,
+		"a live event rate is many times the average -- which is the size of the exploit"
+	)
+end)

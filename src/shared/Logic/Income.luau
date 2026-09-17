@@ -69,12 +69,45 @@ function Income.perSecond(
 	return total * rebirthMultiplier * weatherFactor
 end
 
+--- The rate a base EARNS, with no pocket money in it.
+---
+--- Split out from perSecond so that the stipend cannot be multiplied by two
+--- hours. It is a mid-session rescue -- "you have nothing, here is enough to
+--- act" -- and a rescue that pays while you are asleep is a salary. A player
+--- with an empty base was collecting the cap every time they opened the app,
+--- for doing nothing and owning nothing.
+---
+--- The economy simulator has never modelled a stipend at all, so paying one
+--- offline also broke the pacing targets in docs/ECONOMY.md without any test
+--- noticing: parity compares constants, not consequences.
+function Income.earnedPerSecond(
+	earners: { Earner },
+	baseIncome: { [string]: number },
+	mutationMultiplier: { [string]: number },
+	rebirthMultiplier: number,
+	weatherFactor: number
+): number
+	return Income.perSecond(
+		earners,
+		baseIncome,
+		mutationMultiplier,
+		rebirthMultiplier,
+		weatherFactor
+	)
+end
+
 --- What accrued while the player was offline.
 ---
 --- Two limits, and they are both deliberate. `efficiency` (< 1) keeps playing
 --- worth more than not playing. `capSeconds` stops a player who leaves for a
 --- month from returning to a number that makes the rest of the game pointless
 --- -- the returning-player reward has to feel good without ending the game.
+--- `perSecond` must be the EARNED rate (Income.earnedPerSecond), at the AVERAGE
+--- weather factor rather than whatever weather happens to be running when the
+--- player opens the app. Both of those were wrong at the one call site: an
+--- empty base drew the stipend for the full two-hour cap, and joining during a
+--- Galaxy Jelly multiplied the whole offline payout by ten for weather the
+--- player was not there for.
 function Income.offline(
 	perSecond: number,
 	elapsedSeconds: number,

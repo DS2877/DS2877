@@ -4,6 +4,41 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### Offline pay was a salary for owning nothing · 2026-09-17
+
+**Reported:** *"The 2/sec continues while not in game and should not, my
+character suddenly has over 7k gold just from being offline."*
+
+Over 7k is exactly right, and the number says which two bugs fired together:
+**7,200 = 2/s stipend × 2 (Frost Sugar) × 7,200 s cap × 25% efficiency.**
+
+`payOffline` used `IncomeService.perSecond`, which carries two things that have
+no business in an offline calculation.
+
+**The stipend.** It is a mid-session rescue — you have nothing, here is enough
+to act — and `STIPEND_PER_SECOND`'s own comment says it pays only at zero so it
+"never touches normal play and cannot be farmed". Multiplied by a two-hour cap
+it became a salary for owning nothing, collectable on every single login:
+**3,600 coins** on a completely empty base, in a game where the first egg costs
+25. The economy simulator has never modelled a stipend at all, so this broke
+every pacing number in `docs/ECONOMY.md` without the parity test noticing —
+parity compares constants, not consequences.
+
+**The live weather multiplier, which was worse.** Weather is a 90-second event
+worth up to ×10. Opening the app while one happened to be running multiplied the
+*entire* two-hour offline payout by it — for weather the player was not there
+for. Galaxy Jelly would have paid **36,000** on an empty base. The simulator
+uses `average_weather_factor()`, a long-run ~1.05 uplift, which is what the
+pacing targets were actually tuned against; the game now uses the same.
+
+Offline pay now uses a new `Income.earnedPerSecond` — no stipend — at the
+average weather factor. The real offline grant is untouched: a base that
+genuinely earns is still paid 2 h at 25%, because that is a tuned part of
+pacing and a returning player should be rewarded.
+
+Three regression tests, one of which asserts the size of the old payout rather
+than only the fix, so the reason the test exists survives in the test.
+
 ### The Laser Gate, the Vault, and a typechecker that pays for itself · 2026-09-17
 
 **CI typechecks Luau now.** Philip approved it, so `luau-lsp` 1.69.0 runs over
