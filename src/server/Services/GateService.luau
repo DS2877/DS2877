@@ -23,7 +23,6 @@
 	into a different base with nothing on it.
 ]]
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -187,11 +186,12 @@ function GateService.init()
 		return GateService.raise(player)
 	end
 
-	Players.PlayerRemoving:Connect(function(player)
-		local plot = PlotService.plotFor(player)
-		if plot then
-			GateService.clear(plot.index)
-		end
+	-- A hook, NOT a PlayerRemoving connection. PlotService connects its own
+	-- first and clears plot.owner in it, so by the time a second handler here
+	-- ran, plotFor() would already return nil -- and the base would keep the
+	-- gate its departed owner raised, with nothing to say why.
+	PlotService.onPlotReleased(function(baseIndex)
+		GateService.clear(baseIndex)
 	end)
 end
 

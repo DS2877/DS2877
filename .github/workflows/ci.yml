@@ -131,17 +131,23 @@ jobs:
       # This is the one check that cannot also run in a cloud session: luau-lsp
       # is a C++ project with no crates.io package, and the sandbox's egress
       # proxy blocks GitHub release downloads. A runner has neither problem.
-      - name: Cache luau-lsp and rojo
+      # RESTORE-ONLY, and sharing the CHECK JOB'S key rather than owning one.
+      # A cache this job wrote would only ever be saved on a run where the
+      # analyzer passed, because actions/cache skips its post step when the job
+      # fails -- so every red run would rebuild Rojo from source on the next
+      # attempt, which is the slowest possible moment to spend two and a half
+      # minutes. The check job's cache is written whenever formatting and tests
+      # pass, which is almost always, and it already contains this exact Rojo.
+      - name: Restore the toolchain cache (for rojo)
         id: analyze-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
-          path: |
-            ~/.local/bin/luau-lsp
-            ~/.cargo/bin/rojo
-          key: analyze-bin-${{ runner.os }}-${{ env.LUAU_LSP_VERSION }}-${{ env.ROJO_VERSION }}
+          path: ~/.cargo/bin
+          key: toolchain-bin-${{ runner.os }}-${{ env.ROJO_VERSION }}-${{ env.SELENE_VERSION }}-${{ env.STYLUA_VERSION }}-${{ env.LUNE_VERSION }}
 
+      # Not cached: it is a 3 MB download that takes about a second, and a cache
+      # entry for it would cost more to manage than it saves.
       - name: Install luau-lsp
-        if: steps.analyze-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           mkdir -p "$HOME/.local/bin"

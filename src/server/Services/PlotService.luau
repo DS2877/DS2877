@@ -448,6 +448,18 @@ local function assign(player: Player)
 	notify:FireClient(player, `All {PLOT_COUNT} bases are taken right now — try another server!`)
 end
 
+--- Called with the base index whenever a plot stops being owned. A hook rather
+--- than a second PlayerRemoving connection, because ordering would decide
+--- whether it worked: PlotService connects first, so by the time anyone else's
+--- PlayerRemoving handler runs, plotFor() already returns nil and the plot they
+--- wanted to clean up cannot be found. That is a bug with no symptom except a
+--- base that keeps a defence its owner took with them.
+local released: { (baseIndex: number) -> () } = {}
+
+function PlotService.onPlotReleased(fn: (baseIndex: number) -> ())
+	table.insert(released, fn)
+end
+
 local function release(player: Player)
 	local plot = PlotService.plotFor(player)
 	if not plot then
@@ -460,6 +472,13 @@ local function release(player: Player)
 	plot.owner = nil
 	plot.pad:SetAttribute("OwnerUserId", nil)
 	setSign(plot, "EMPTY BASE")
+
+	for _, fn in released do
+		local ok, err = pcall(fn :: (number) -> any, plot.index)
+		if not ok then
+			warn(`[PlotService] release hook failed for base {plot.index}: {err}`)
+		end
+	end
 end
 
 function PlotService.init()
