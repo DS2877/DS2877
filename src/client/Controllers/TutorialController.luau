@@ -15,6 +15,8 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
@@ -31,7 +33,15 @@ local bannerText: TextLabel
 local helpPanel: Frame
 local snapshot: { [string]: any }? = nil
 
-type Step = { text: string, done: (snap: { [string]: any }) -> boolean }
+--- `target` names where in the world this step happens, if anywhere. The banner
+--- says WHAT to do; the marker says WHERE, which is the half a nine-year-old
+--- actually needs. "I don't know what to press" and "I don't know where to go"
+--- are different complaints and the first playtest raised both.
+type Step = {
+	text: string,
+	done: (snap: { [string]: any }) -> boolean,
+	target: ("belt" | "kitchen" | "market" | "neighbour")?,
+}
 
 --- In order. The first step that is not done is the one shown.
 local STEPS: { Step } = {
@@ -46,14 +56,17 @@ local STEPS: { Step } = {
 		done = function(snap)
 			return (snap.nomlings or 0) >= 2
 		end,
+		target = "belt",
 	},
 	{
 		text = "Buy a Nomling off the belt — check for a ✨ MUTATION ✨, they earn much more",
 		done = function(snap)
 			return (snap.nomlings or 0) >= 3
 		end,
+		target = "belt",
 	},
 	{
+		target = "kitchen",
 		text = "Tap 🧪 FUSE and combine two Nomlings — you'll get one nobody has ever seen",
 		done = function(snap)
 			-- Cleared once they own something gen 2 or better, which only
@@ -71,6 +84,7 @@ local STEPS: { Step } = {
 		done = function(snap)
 			return (snap.playtime or 0) > 300
 		end,
+		target = "neighbour",
 	},
 }
 
@@ -192,6 +206,87 @@ local function build()
 	end)
 end
 
+--- A bobbing arrow over wherever the current step happens.
+local marker: BasePart? = nil
+local markerTarget: Vector3? = nil
+
+local function ensureMarker(): BasePart?
+	if marker and marker.Parent then
+		return marker
+	end
+	local part = Instance.new("Part")
+	part.Name = "TutorialMarker"
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	-- A wedge points, which is the entire job. A glowing block would only be a
+	-- glowing block.
+	part.Shape = Enum.PartType.Block
+	part.Size = Vector3.new(3, 3, 3)
+	part.Color = Color3.fromRGB(255, 214, 92)
+	part.Material = Enum.Material.Neon
+	part.Transparency = 0.15
+	part.Parent = Workspace
+
+	local light = Instance.new("PointLight")
+	light.Brightness = 2
+	light.Range = 18
+	light.Color = part.Color
+	light.Parent = part
+
+	marker = part
+	return part
+end
+
+--- Where a step's target is, in world space. Resolved fresh each time so it
+--- follows the player down the street rather than pointing at one fixed spot.
+local function resolveTarget(kind: string): Vector3?
+	local street = Workspace:FindFirstChild("Street")
+	if not street then
+		return nil
+	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local at = if root and root:IsA("BasePart") then root.Position else nil
+
+	if kind == "belt" then
+		-- The nearest point ON the belt, so the arrow is always a short walk
+		-- away instead of at one end of a 520-stud road.
+		local z = if at then math.clamp(at.Z, -240, 240) else 0
+		return Vector3.new(0, 8, z)
+	elseif kind == "kitchen" then
+		local lab = street:FindFirstChild("FusionLab")
+		local counter = lab and lab:FindFirstChild("Counter")
+		return if counter and counter:IsA("BasePart")
+			then counter.Position + Vector3.new(0, 8, 0)
+			else nil
+	elseif kind == "market" then
+		local market = street:FindFirstChild("EggMarket")
+		local counter = market and market:FindFirstChild("Counter")
+		return if counter and counter:IsA("BasePart")
+			then counter.Position + Vector3.new(0, 8, 0)
+			else nil
+	elseif kind == "neighbour" then
+		-- Any base that is not yours. Points at a real destination rather than
+		-- a vague instruction to "go find someone".
+		local bases = street:FindFirstChild("Bases")
+		if not bases then
+			return nil
+		end
+		for _, base in bases:GetChildren() do
+			local pad = base:FindFirstChild("Pad")
+			if pad and pad:IsA("BasePart") then
+				local owner = pad:GetAttribute("OwnerUserId")
+				if owner ~= player.UserId then
+					return pad.Position + Vector3.new(0, 10, 0)
+				end
+			end
+		end
+	end
+	return nil
+end
+
 local function refresh()
 	local snap = snapshot
 	if not snap then
@@ -201,11 +296,19 @@ local function refresh()
 		if not step.done(snap) then
 			bannerText.Text = step.text
 			banner.Visible = true
+			markerTarget = if step.target then resolveTarget(step.target) else nil
+			if marker then
+				marker.Transparency = if markerTarget then 0.15 else 1
+			end
 			return
 		end
 	end
-	-- Every step cleared. The banner goes; the help button stays.
+	-- Every step cleared. The banner goes, the marker goes, the help button stays.
 	banner.Visible = false
+	markerTarget = nil
+	if marker then
+		marker.Transparency = 1
+	end
 end
 
 function TutorialController.start()
@@ -216,6 +319,34 @@ function TutorialController.start()
 		if type(snap) == "table" then
 			snapshot = snap
 			refresh()
+		end
+	end)
+
+	-- The marker bobs and spins so it reads as a marker rather than as scenery.
+	RunService.RenderStepped:Connect(function()
+		local target = markerTarget
+		local part = ensureMarker()
+		if not part then
+			return
+		end
+		if not target then
+			part.Transparency = 1
+			return
+		end
+		local clock = os.clock()
+		part.Transparency = 0.15
+		part.CFrame = CFrame.new(target + Vector3.new(0, math.sin(clock * 2.4) * 0.7, 0))
+			* CFrame.Angles(0, clock * 1.6, math.rad(45))
+	end)
+
+	-- The target has to be re-resolved as the player moves, or the belt marker
+	-- stays where they first saw it.
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			if snapshot then
+				pcall(refresh)
+			end
 		end
 	end)
 end
