@@ -108,8 +108,16 @@ def main() -> int:
 
     print("All audio assets are approved and owned correctly.")
     print(
-        "So silence is NOT the assets. Look next at whether AudioController.start()\n"
-        "ran at all -- the client bootstrap now reports a failed controller on screen."
+        "So silence is NOT the assets, and on 2026-09-17 it was not: SoundGroup.Volume\n"
+        "MULTIPLIES Sound.Volume, and the music group was being set to the track's own\n"
+        "level, so the theme played at 0.32 x 0.32 -- about 3% of full scale. Fixed.\n"
+        "\n"
+        "If it is silent again, the remaining candidates, in order:\n"
+        "  1. The client never got the asset. AudioController reports a fault on\n"
+        "     screen if the theme has not loaded ten seconds after Play().\n"
+        "  2. AudioController.start() never ran -- the red CLIENT FAULT panel names\n"
+        "     any controller that threw.\n"
+        "  3. The device is muted, or Roblox's own volume slider is down."
     )
     return 0
 
