@@ -28,6 +28,7 @@ local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 local Net = require(Shared:WaitForChild("Net"))
 local Style = require(Shared:WaitForChild("Style"))
 
+local Fault = require(script.Parent.Parent:WaitForChild("Fault"))
 local BaseHudController = require(script.Parent:WaitForChild("BaseHudController"))
 
 local NomlingRenderController = {}
@@ -249,10 +250,12 @@ local function build(anchor: BasePart)
 			bound[store] = true
 			local nomlingId = tostring(anchor:GetAttribute("NomlingId") or "")
 			store.Triggered:Connect(function()
-				local remote = Net.get("StoreNomling") :: RemoteFunction
 				-- Say why when it refuses. A prompt that swallows its reason is
 				-- the same broken-button bug the belt had.
-				local ok, reason = remote:InvokeServer(nomlingId)
+				local ok, reason, fault = Net.invoke("StoreNomling", nomlingId)
+				if fault then
+					Fault.report(fault)
+				end
 				if not ok and reason then
 					BaseHudController.toast(reason)
 				end
@@ -273,12 +276,14 @@ local function build(anchor: BasePart)
 			bound[vault] = true
 			local nomlingId = tostring(anchor:GetAttribute("NomlingId") or "")
 			vault.Triggered:Connect(function()
-				local remote = Net.get("VaultNomling") :: RemoteFunction
 				-- Toast on success too, not only on refusal: putting a creature
 				-- in the fridge costs it its income, and a silent change to
 				-- what your base earns is the kind of thing a player finds out
 				-- much later and does not connect to the button they pressed.
-				local ok, reason = remote:InvokeServer(nomlingId)
+				local ok, reason, fault = Net.invoke("VaultNomling", nomlingId)
+				if fault then
+					Fault.report(fault)
+				end
 				if reason then
 					BaseHudController.toast(reason)
 				elseif not ok then

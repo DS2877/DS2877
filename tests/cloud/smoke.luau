@@ -36,6 +36,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local StarterPlayer = game:GetService("StarterPlayer")
+local Workspace = game:GetService("Workspace")
 
 local checks = 0
 local failures: { string } = {}
@@ -301,6 +302,67 @@ if services then
 			`all {present + #absent} declared remotes exist with the right class`,
 			#absent == 0,
 			table.concat(absent, ", ")
+		)
+	end
+
+	-- EVERY THING YOU CAN WALK UP TO AND PRESS, AND THE PROMPT ON IT.
+	--
+	-- This is the check that would have caught the round that started with
+	-- "none of the buttons in game works. I tried buying, activating the laser
+	-- gate, and opening the kitchen". Each of those is a ProximityPrompt built
+	-- at run time by a service that walks the world looking for the part to put
+	-- it on -- and every one of those walks ends in `continue` when it does not
+	-- find what it wanted. A prompt that is never created is not an error
+	-- anywhere: it is a landmark you can stand in front of that does nothing.
+	--
+	-- Cheap to assert and impossible to notice otherwise, which is the whole
+	-- argument for having it.
+	local street = Workspace:FindFirstChild("Street")
+	check("the street was built", street ~= nil)
+	if street then
+		local absentPrompts: { string } = {}
+		local function wantPrompt(path: string, container: Instance?, promptName: string)
+			local prompt = container and container:FindFirstChild(promptName)
+			if not (prompt and prompt:IsA("ProximityPrompt")) then
+				table.insert(absentPrompts, `{path}/{promptName}`)
+			end
+		end
+
+		local bases = street:FindFirstChild("Bases")
+		check("the bases folder exists", bases ~= nil)
+		if bases then
+			local config = shared:FindFirstChild("Config")
+			local World = require(config:FindFirstChild("World") :: ModuleScript) :: any
+			for index = 1, World.BASE_COUNT do
+				local base = bases:FindFirstChild(`Base{index}`)
+				if not base then
+					table.insert(absentPrompts, `Base{index}`)
+					continue
+				end
+				wantPrompt(`Base{index}/GateButton`, base:FindFirstChild("GateButton"), "RaiseGate")
+				-- The egg nest is furniture, not a prompt: the eggs and their
+				-- prompts are drawn per player by HatcheryController. What has
+				-- to exist here are the cups it puts them in.
+				local hatchery = base:FindFirstChild("Hatchery")
+				if not (hatchery and hatchery:FindFirstChild("Nest1")) then
+					table.insert(absentPrompts, `Base{index}/Hatchery/Nest1`)
+				end
+			end
+		end
+
+		for _, landmark in { "EggMarket", "FusionLab" } do
+			local model = street:FindFirstChild(landmark)
+			if not model then
+				table.insert(absentPrompts, landmark)
+				continue
+			end
+			wantPrompt(`{landmark}/Counter`, model:FindFirstChild("Counter"), "Use")
+		end
+
+		check(
+			"every landmark and base has the prompt the client binds to",
+			#absentPrompts == 0,
+			table.concat(absentPrompts, ", ")
 		)
 	end
 end

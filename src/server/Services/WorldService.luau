@@ -11,12 +11,30 @@
 	Every base is OPEN to the road on purpose. Nothing here has a wall or a
 	door: walking into someone's base has to be effortless or nobody will ever
 	try it, and defending is meant to be the Laser Gate (GDD 5.8), not geometry.
+
+	IF YOU CAN SEE IT, YOU CAN STAND ON IT. From a playtest: "the physics needs
+	to be correct, for everything we can see on the map we need to be able to
+	interact with it like walking on it and such." So `part()` collides by
+	default and there are exactly three kinds of exception, each of which has to
+	earn it at the call site:
+
+	  * DECALS -- road dashes, belt chevrons, the base path. Millimetre-thin
+	    skins lying flush on something that is already solid, so the collision
+	    is the surface underneath, not the skin.
+	  * INVISIBLE ANCHORS -- a one-stud transparent part whose only job is to
+	    hang a BillboardGui at a height. There is nothing to see and therefore
+	    nothing to walk into.
+	  * THE LASER BARS -- a gameplay rule, argued out where they are built.
+
+	Anything else that is visible collides, including the shrubbery and the
+	cooking pots, which used to be ghosts.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Economy = require(Shared:WaitForChild("Config"):WaitForChild("Economy"))
 local Style = require(Shared:WaitForChild("Style"))
 local World = require(Shared:WaitForChild("Config"):WaitForChild("World"))
 
@@ -197,7 +215,6 @@ local function buildPlanters(parent: Instance)
 					),
 					Color = Color3.fromRGB(104 + leaf * 14, 164 + leaf * 10, 92),
 					Material = Enum.Material.Grass,
-					CanCollide = false,
 				}, planters)
 			end
 		end
@@ -368,39 +385,155 @@ local function buildBase(index: number, parent: Instance): BasePart
 		CanCollide = false,
 	}, model)
 
-	-- A striped awning over the base front, alternating brand colours. This is
-	-- the single cheapest thing that makes eight identical plots look like eight
-	-- market stalls.
+	-- A striped market-stall awning across the base front.
+	--
+	-- REBUILT after a playtest: "the roof thingy between the road and the base
+	-- looks a bit off. I like the idea but want it improved." It was right.
+	-- The old one was a 108-stud-wide slab floating nine studs up on two thin
+	-- posts at the far ends -- nothing was holding up the middle, the posts
+	-- were four studs behind the weight, and every part of it passed straight
+	-- through you. It read as a texture rather than as a structure.
+	--
+	-- What makes a market stall read as a market stall is the FRONT EDGE: a
+	-- row of posts, a beam across them, and a scalloped valance hanging off it.
+	-- So it now has all three, at a real pitch, and every piece of it is solid.
+	--
+	-- HEIGHTS ARE CHOSEN, not guessed. The underside of the front beam is at
+	-- AWNING_LIP - BEAM_H and the valance hangs a stud below that, which puts
+	-- the lowest thing here at 13.1 studs. A jumping character's head tops out
+	-- around 12.7 (about 5.5 studs standing, plus a 7.2-stud jump), so you can
+	-- run and jump into your own base without ever knocking your head on it.
+	local AWNING_LIP = 15.0
+	local AWNING_DEPTH = 14
+	local AWNING_RISE = 2.4
+	local BEAM_H = 0.9
+	--- Where the front edge of the awning sits, measured in from the kerb.
+	local lipX = cx - side * (World.BASE_DEPTH / 2 - 2)
+	local pitch = math.atan(AWNING_RISE / AWNING_DEPTH)
+
 	local stripes = 9
 	local stripeWidth = World.BASE_WIDTH / stripes
 	for i = 0, stripes - 1 do
 		part({
 			Name = "Awning",
-			Size = Vector3.new(11, 0.5, stripeWidth),
+			Size = Vector3.new(AWNING_DEPTH, 0.45, stripeWidth),
 			CFrame = CFrame.new(
-				cx - side * (World.BASE_DEPTH / 2 - 5),
-				9.4,
+				lipX + side * AWNING_DEPTH / 2,
+				AWNING_LIP + AWNING_RISE / 2,
 				cz - World.BASE_WIDTH / 2 + stripeWidth * (i + 0.5)
-			) * CFrame.Angles(0, 0, math.rad(side * -8)),
+			) * CFrame.Angles(0, 0, side * pitch),
 			Color = if i % 2 == 0 then Style.PALETTE.nomOrange else Style.PALETTE.nomCream,
 			Material = Enum.Material.Fabric,
-			CanCollide = false,
 		}, model)
 	end
-	for _, edge in { -1, 1 } do
+
+	-- The beam the canopy sits on, and the posts that carry it. SOLID, both of
+	-- them: "the physics needs to be correct, for everything we can see on the
+	-- map we need to be able to interact with it".
+	part({
+		Name = "AwningBeam",
+		Size = Vector3.new(1.1, BEAM_H, World.BASE_WIDTH),
+		CFrame = CFrame.new(lipX, AWNING_LIP - BEAM_H / 2, cz),
+		Color = Style.PALETTE.nomCocoa,
+		Material = Enum.Material.Wood,
+	}, model)
+
+	local posts = 6
+	local postPitch = (World.BASE_WIDTH - 4) / (posts - 1)
+	for i = 0, posts - 1 do
 		part({
 			Name = "AwningPost",
-			Size = Vector3.new(0.6, 9.4, 0.6),
+			Size = Vector3.new(0.9, AWNING_LIP - BEAM_H, 0.9),
 			CFrame = CFrame.new(
-				cx - side * (World.BASE_DEPTH / 2 - 9.5),
-				4.7,
-				cz + edge * (World.BASE_WIDTH / 2 - 1.5)
+				lipX,
+				(AWNING_LIP - BEAM_H) / 2,
+				cz - (World.BASE_WIDTH - 4) / 2 + postPitch * i
 			),
 			Color = Style.PALETTE.nomCocoa,
 			Material = Enum.Material.Wood,
-			CanCollide = false,
 		}, model)
 	end
+
+	-- The valance: short tabs hanging off the beam, alternating with the
+	-- stripes above them. This is the detail that says "stall" rather than
+	-- "carport", and it costs nine parts.
+	for i = 0, stripes - 1 do
+		part({
+			Name = "AwningValance",
+			Size = Vector3.new(0.35, 1.0, stripeWidth * 0.82),
+			CFrame = CFrame.new(
+				lipX - side * 0.5,
+				AWNING_LIP - BEAM_H - 0.5,
+				cz - World.BASE_WIDTH / 2 + stripeWidth * (i + 0.5)
+			),
+			Color = if i % 2 == 0 then Style.PALETTE.nomCream else Style.PALETTE.nomOrange,
+			Material = Enum.Material.Fabric,
+		}, model)
+	end
+
+	-- --- the egg nest -------------------------------------------------------
+	-- Where eggs hatch, in the world, beside the path you walk in on.
+	--
+	-- Straight from a playtest: "the 'tap to hatch' should be grounded on
+	-- something next to what's about to hatch." It was a button floating in the
+	-- middle of the screen with nothing under it. The bench and its cups are
+	-- built here, for everyone; the EGGS in them are drawn by each player's own
+	-- HatcheryController, because whose eggs they are is a private fact.
+	local nest = Instance.new("Model")
+	nest.Name = "Hatchery"
+
+	local nestZ = cz - 17
+	local nestX = cx - side * (World.BASE_DEPTH / 2 - 14)
+
+	part({
+		Name = "Bench",
+		Size = Vector3.new(7, 2.6, 25),
+		CFrame = CFrame.new(nestX, 1.3, nestZ),
+		Color = Style.PALETTE.nomCocoa,
+		Material = Enum.Material.Wood,
+	}, nest)
+
+	local cupPitch = 5.8
+	for i = 1, Economy.INCUBATORS_MAX do
+		part({
+			Name = `Nest{i}`,
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.9, 4.2, 4.2),
+			CFrame = CFrame.new(
+				nestX,
+				3.05,
+				nestZ + (i - (Economy.INCUBATORS_MAX + 1) / 2) * cupPitch
+			) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = Style.PALETTE.surfaceCream,
+			Material = Enum.Material.Sand,
+		}, nest)
+	end
+
+	local nestSignPost = part({
+		Name = "NestSign",
+		Size = Vector3.new(1, 1, 1),
+		CFrame = CFrame.new(nestX, 7.5, nestZ),
+		CanCollide = false,
+		Transparency = 1,
+	}, nest)
+
+	local nestGui = Instance.new("BillboardGui")
+	nestGui.Name = "Sign"
+	nestGui.Size = UDim2.fromScale(14, 3.4)
+	nestGui.MaxDistance = 220
+	nestGui.Parent = nestSignPost
+
+	local nestLabel = Instance.new("TextLabel")
+	nestLabel.Size = UDim2.fromScale(1, 1)
+	nestLabel.BackgroundTransparency = 1
+	nestLabel.Font = Enum.Font.FredokaOne
+	nestLabel.TextScaled = true
+	nestLabel.TextColor3 = Style.PALETTE.nomCream
+	nestLabel.TextStrokeTransparency = 0.2
+	nestLabel.Text = "🥚 EGG NEST"
+	nestLabel.Parent = nestGui
+
+	nest.Parent = model
 
 	-- --- the Laser Gate ----------------------------------------------------
 	-- The base has no walls and no door by design (GDD 5.3), so the front of
@@ -613,7 +746,6 @@ local function buildLandmark(parent: Instance, name: string, z: number, facing: 
 					* CFrame.Angles(0, 0, math.rad(90)),
 				Color = Style.PALETTE.shadow,
 				Material = Enum.Material.Metal,
-				CanCollide = false,
 			}, model)
 		end
 	end

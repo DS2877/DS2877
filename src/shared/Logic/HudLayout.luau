@@ -40,11 +40,13 @@ HudLayout.BAR_H = 50
 --- Stretched across a tablet a row of three is a worse row of three.
 HudLayout.BAR_MAX_W = 520
 
---- One incubator, in the tray that sits on top of the bar.
---- 44, not 42. The touch floor is not a suggestion, and the test below caught
---- this one before a phone did.
-HudLayout.SLOT_H = 44
-HudLayout.SLOT_W = 108
+-- THE INCUBATOR TRAY IS GONE FROM THE SCREEN. It used to sit on top of the
+-- bar, and a playtester asked for two things at once: "the buttons and layout
+-- on the screen is way too much", and "the 'tap to hatch' should be grounded
+-- on something next to what's about to hatch". Both are answered by the same
+-- move -- the eggs are now a nest you walk up to in your own base, built by
+-- HatcheryController, so the screen gets a whole band back and the thing you
+-- press is where the thing you are waiting for actually is.
 
 HudLayout.TOAST_H = 40
 
@@ -59,9 +61,8 @@ HudLayout.RAIL_TOP = HudLayout.TOP_Y + HudLayout.TOP_H + HudLayout.GAP
 HudLayout.BANNER_H = 44
 
 HudLayout.BAR_TOP = HudLayout.EDGE + HudLayout.BAR_H
-HudLayout.TRAY_TOP = HudLayout.BAR_TOP + HudLayout.GAP + HudLayout.SLOT_H
 --- The toast is anchored by its BOTTOM edge, so this is the gap under it.
-HudLayout.TOAST_TOP = HudLayout.TRAY_TOP + HudLayout.GAP
+HudLayout.TOAST_TOP = HudLayout.BAR_TOP + HudLayout.GAP
 
 --- Everything the rail must not run into, so its height is derived rather
 --- than guessed.
@@ -104,7 +105,6 @@ function HudLayout.bands(height: number): { Band }
 			fromBottom = false,
 		},
 		up("toast", HudLayout.TOAST_TOP + HudLayout.TOAST_H, HudLayout.TOAST_H),
-		up("tray", HudLayout.TRAY_TOP, HudLayout.SLOT_H),
 		up("bar", HudLayout.BAR_TOP, HudLayout.BAR_H),
 	}
 end
@@ -112,15 +112,12 @@ end
 --- How much of a `height`-tall screen the top and bottom furniture covers, as
 --- a fraction. The middle is the game; this is the tax.
 ---
---- Two numbers, because the incubator tray is not always there: `withTray` is
---- the peak, while eggs are hatching, and the resting figure is what a player
---- sees most of the time. Measuring only the peak would let the resting layout
---- quietly bloat; measuring only the resting one would miss the case the
---- playtest actually complained about.
-function HudLayout.chromeFraction(height: number, withTray: boolean): number
+--- One number now that the incubator tray has moved into the world. It used to
+--- take two, because the tray came and went and measuring only the resting
+--- layout would have missed the case the playtest complained about.
+function HudLayout.chromeFraction(height: number): number
 	local top = HudLayout.TOP_Y + HudLayout.TOP_H
-	local bottom = if withTray then HudLayout.TRAY_TOP else HudLayout.BAR_TOP
-	return (top + bottom) / height
+	return (top + HudLayout.BAR_TOP) / height
 end
 
 --- Widths of the three bottom-bar buttons, as fractions of the row. They MUST

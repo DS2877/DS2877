@@ -1,6 +1,6 @@
 --!strict
 --[[
-	The HUD: purse, income rate, incubators, the egg button, toasts.
+	The HUD: purse, income rate, the egg button, the fuse button, toasts.
 
 	PHONE FIRST, and that shapes every choice here. Everything tappable is at
 	least 44 px on its shortest side -- Apple's and Google's floor, and the
@@ -42,6 +42,7 @@ local Income = require(Shared:WaitForChild("Logic"):WaitForChild("Income"))
 local Net = require(Shared:WaitForChild("Net"))
 local Style = require(Shared:WaitForChild("Style"))
 
+local Fault = require(script.Parent.Parent:WaitForChild("Fault"))
 local JuiceController = require(script.Parent:WaitForChild("JuiceController"))
 
 local BaseHudController = {}
@@ -62,10 +63,7 @@ local PURSE_W = HudLayout.PURSE_W
 local RAIL_W = HudLayout.RAIL_W
 local BAR_H = HudLayout.BAR_H
 local BAR_MAX_W = HudLayout.BAR_MAX_W
-local SLOT_H = HudLayout.SLOT_H
-local SLOT_W = HudLayout.SLOT_W
 local RAIL_TOP = HudLayout.RAIL_TOP
-local BAR_TOP = HudLayout.BAR_TOP
 local TOAST_H = HudLayout.TOAST_H
 local TOAST_TOP = HudLayout.TOAST_TOP
 local SPLIT = HudLayout.BAR_SPLIT
@@ -95,7 +93,6 @@ local toast: Frame
 local toastLabel: TextLabel
 --- `ready` is remembered so the pulse fires once on the transition rather than
 --- twenty times a second for as long as the egg sits unclaimed.
-local slots: { { button: TextButton, label: TextLabel, fill: Frame, ready: boolean } } = {}
 
 -- --- small builders --------------------------------------------------------
 
@@ -313,73 +310,6 @@ local function build()
 
 	JuiceController.setPurseTarget(purse)
 
-	-- --- incubator slots ---
-	-- Docked directly on top of the bottom bar, not floating at a hand-picked
-	-- offset. In the playtest screenshot "TAP TO HATCH!" sat alone in the middle
-	-- of the screen with nothing under it, so it read as a stray label rather
-	-- than as the thing you are meant to press.
-	local tray = Instance.new("Frame")
-	tray.Name = "Incubators"
-	tray.AnchorPoint = Vector2.new(0.5, 1)
-	tray.Position = UDim2.new(0.5, 0, 1, -(BAR_TOP + GAP))
-	tray.Size = UDim2.new(
-		0,
-		SLOT_W * Economy.INCUBATORS_BASE + GAP * (Economy.INCUBATORS_BASE - 1),
-		0,
-		SLOT_H
-	)
-	tray.BackgroundTransparency = 1
-	tray.ZIndex = 4
-	tray.Parent = gui
-
-	local layout = Instance.new("UIListLayout")
-	layout.FillDirection = Enum.FillDirection.Horizontal
-	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	layout.Padding = UDim.new(0, GAP)
-	layout.Parent = tray
-
-	for i = 1, Economy.INCUBATORS_BASE do
-		local button = Instance.new("TextButton")
-		button.Name = `Slot{i}`
-		button.Size = UDim2.new(0, SLOT_W, 0, SLOT_H)
-		button.BackgroundColor3 = Style.PALETTE.nomMint
-		button.BorderSizePixel = 0
-		button.Text = ""
-		button.AutoButtonColor = false
-		button.Visible = false
-		button.ZIndex = 4
-		button.Parent = tray
-		corner(button, 13)
-		stroke(button, Style.PALETTE.nomCocoa, 1.5, 0.8)
-
-		-- A progress fill behind the text, so a countdown is something you
-		-- watch rather than something you read.
-		local progress = Instance.new("Frame")
-		progress.Name = "Fill"
-		progress.Size = UDim2.new(0, 0, 1, 0)
-		progress.BackgroundColor3 = Color3.fromRGB(150, 232, 206)
-		progress.BorderSizePixel = 0
-		progress.ZIndex = 3
-		progress.Parent = button
-		corner(progress, 13)
-
-		local text = buttonText(button, Enum.Font.FredokaOne, Style.PALETTE.ink, 17)
-		text.ZIndex = 5
-		text.Text = "-"
-
-		slots[i] = { button = button, label = text, fill = progress, ready = false }
-
-		button.Activated:Connect(function()
-			local remote = Net.get("ClaimHatch") :: RemoteFunction
-			local ok, reason = remote:InvokeServer(i)
-			if ok then
-				JuiceController.pop(button, 0.22)
-			elseif reason then
-				showToast(reason)
-			end
-		end)
-	end
-
 	-- --- bottom bar ---
 	-- Three buttons in ONE row with proportional widths. An earlier version
 	-- anchored FUSE and Buy Egg to the bottom independently, and on a 390-point
@@ -485,8 +415,10 @@ local function build()
 		-- many times somebody re-nommed.
 		local snap = snapshot
 		local tier = (snap and snap.bestEgg) or "basic"
-		local remote = Net.get("BuyEgg") :: RemoteFunction
-		local ok, reason = remote:InvokeServer(tier)
+		local ok, reason, fault = Net.invoke("BuyEgg", tier)
+		if fault then
+			Fault.report(fault)
+		end
 		if ok then
 			JuiceController.pop(eggButton, 0.14)
 		elseif reason then
@@ -495,8 +427,10 @@ local function build()
 	end)
 
 	bubbleButton.Activated:Connect(function()
-		local remote = Net.get("Bubble") :: RemoteFunction
-		local ok, reason = remote:InvokeServer()
+		local ok, reason, fault = Net.invoke("Bubble")
+		if fault then
+			Fault.report(fault)
+		end
 		if ok then
 			JuiceController.pop(bubbleButton, 0.24)
 		elseif reason then
@@ -510,7 +444,7 @@ local function build()
 	-- short screen (landscape on a small phone) the stack would run into the
 	-- bottom bar. A list layout cannot collide, so one module owns the rail and
 	-- hands out slots.
-	-- Starts below the top row and stops above the tray, so the "?" can never
+	-- Starts below the top row and stops above the toast, so the "?" can never
 	-- land on the objective banner the way it did in the playtest screenshot.
 	rail = Instance.new("Frame")
 	rail.Name = "Rail"
@@ -615,17 +549,19 @@ local function build()
 
 	yes.Activated:Connect(function()
 		confirm.Visible = false
-		local remote = Net.get("Rebirth") :: RemoteFunction
-		local ok, reason = remote:InvokeServer()
+		local ok, reason, fault = Net.invoke("Rebirth")
+		if fault then
+			Fault.report(fault)
+		end
 		if not ok and reason then
 			showToast(reason)
 		end
 	end)
 
 	-- --- toast ---
-	-- Sits directly above the tray, which is the top of the control stack, so
-	-- it can never end up behind a button. It is also the ONLY thing that
-	-- explains a refusal, so it outranks everything else on screen.
+	-- Sits directly above the bottom bar, which is now the whole of the
+	-- control stack, so it can never end up behind a button. It is also the
+	-- ONLY thing that explains a refusal, so it outranks everything on screen.
 	toast = Instance.new("Frame")
 	toast.Name = "Toast"
 	toast.AnchorPoint = Vector2.new(0.5, 1)
@@ -784,45 +720,6 @@ local function refresh(delta: number)
 	end
 
 	bubbleButton.Visible = isCarrierNear()
-
-	local incubators = snap.incubators or {}
-	for i, slot in slots do
-		local entry = incubators[i]
-		if not entry then
-			slot.button.Visible = false
-			continue
-		end
-		slot.button.Visible = true
-
-		local now = (snap.now or os.time()) + (os.clock() - (snap.at or os.clock()))
-		local remaining = math.max(0, entry.readyAt - now)
-		local total = math.max(1, entry.total or remaining + 1)
-
-		if remaining <= 0 then
-			slot.label.Text = "TAP TO HATCH!"
-			slot.button.BackgroundColor3 = Style.PALETTE.nomPink
-			slot.fill.Size = UDim2.new(1, 0, 1, 0)
-			slot.fill.BackgroundColor3 = Color3.fromRGB(255, 176, 204)
-			-- PULSE, once, the moment it becomes ready. An egg that finishes
-			-- while the player is looking somewhere else just quietly changes
-			-- colour, and a playtester sat on an unclaimed hatch long enough
-			-- that both nest slots filled and every purchase was refused --
-			-- reported as "even if I have money, buying doesn't work". The
-			-- blocked button now says so too, but the better fix is that the
-			-- thing to press asks for attention when it is ready.
-			if not slot.ready then
-				slot.ready = true
-				JuiceController.pop(slot.button, 0.3)
-			end
-		else
-			slot.ready = false
-			slot.label.Text = `{math.ceil(remaining)}s`
-			slot.button.BackgroundColor3 = Style.PALETTE.nomMint
-			local progress = math.clamp(1 - remaining / total, 0, 1)
-			slot.fill.Size = UDim2.new(progress, 0, 1, 0)
-			slot.fill.BackgroundColor3 = Color3.fromRGB(150, 232, 206)
-		end
-	end
 end
 
 --- Adds a round button to the right-hand rail. `order` decides where it sits,

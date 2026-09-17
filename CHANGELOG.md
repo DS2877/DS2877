@@ -4,6 +4,68 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### The playtest round: dead buttons, silent music, eggs in the world · 2026-09-17
+
+Philip's report was *"none of the buttons in game works. I tried buying,
+activating the laser gate, and opening the kitchen"*, plus *"I don't have any of
+the relevant sounds you said you added. And I don't have a themesong playing in
+the background"*, plus a list of things to fix before going further. The server
+was proven healthy first — all 19 services survive `init()` and `start()` in the
+real engine, and all 8 audio assets came back Approved and correctly owned — so
+everything here is client-side or world-building, which is where the evidence
+pointed.
+
+**The kitchen prompt had no handler.** `ShopController` walked the world once at
+startup: `WaitForChild("FusionLab")` and then a plain `FindFirstChild("Counter")`.
+`WaitForChild` on a Model returns when the MODEL replicates, not when its
+children have — and under `StreamingEnabled` a landmark far down the street has
+no parts on the client at all. The lookup returned nil, nothing was connected,
+and later the prompt streamed in, drew its "Open the Kitchen" label and did
+nothing when tapped. It now listens to `ProximityPromptService.PromptTriggered`,
+which needs nothing to be found and has nothing to race.
+
+**StreamingEnabled is off** (D-027). The radius was 512 and the street is 520.
+
+**The theme was playing at 3% of full scale.** `SoundGroup.Volume` multiplies
+`Sound.Volume`, and both were being set to the track's level: 0.32 × 0.32, of a
+number already chosen to be discreet on a phone. Approved, loaded, playing, and
+inaudible. The group is now a plain 0..1 fader and the level lives in one place.
+`AudioController` also reports a fault if the theme asset has not loaded after
+ten seconds, which is the one remaining way silence could still be the assets.
+
+**Every failure now lands on the phone screen.** The fault panel moved into its
+own dependency-free `src/client/Fault.luau`, and `Net.invoke()` routes every
+client→server call through it: a missing remote, a handler that errors, and a
+handler that never answers are three different bugs that all used to look like
+"the button does nothing". A `RemoteFunction` with no `OnServerInvoke` does not
+error when invoked — it yields forever — so there is a six-second deadline.
+
+**Eggs are in the world now** (D-028). A nest bench in your own base, an egg per
+occupied slot, the countdown on a sign above it, and a prompt that appears the
+moment it is ready. The HUD tray is gone and the chrome budget dropped to 30%.
+
+**The awning is a market stall rather than a floating slab.** It was 108 studs
+wide, held up by two thin posts at the far ends that were four studs behind the
+weight, and you walked through all of it. It now has six posts along the front
+edge, a beam across them and a scalloped valance, at a height a jumping player
+clears (13.1 studs of clearance against a ~12.7-stud head at the top of a jump).
+
+**Visible scenery collides** (D-029) — the shrubbery and the cooking pots were
+ghosts.
+
+**The SAVE button only appears when there is something to save**, and says
+"SAVE IT!". *"The save button I don't even know what the function is for."*
+
+**The tutorial stops promising a green button that never existed.** It now names
+the nest and puts a marker on it.
+
+**`tests/cloud/smoke.luau` asserts every world prompt exists** — the gate button
+on all eight bases, both landmark counters, and the nest cups. Each of those is
+built by a service that `continue`s past a part it cannot find, so a missing
+prompt is not an error anywhere: it is a landmark you can stand in front of that
+does nothing.
+
+
 ### The rest of the analytics · 2026-09-17
 
 Six events that `docs/ANALYTICS.md` has specified since Phase 1 and nothing

@@ -31,6 +31,7 @@ local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 local Style = require(Shared:WaitForChild("Style"))
 
 local AudioController = require(script.Parent:WaitForChild("AudioController"))
+local Fault = require(script.Parent.Parent:WaitForChild("Fault"))
 local BaseHudController = require(script.Parent:WaitForChild("BaseHudController"))
 local JuiceController = require(script.Parent:WaitForChild("JuiceController"))
 local ShopController = require(script.Parent:WaitForChild("ShopController"))
@@ -558,8 +559,10 @@ function FusionController.start()
 		local _, ready = labState()
 		local snap = snapshot
 		if ready then
-			local remote = Net.get("ClaimFusion") :: RemoteFunction
-			local ok, reason = remote:InvokeServer()
+			local ok, reason, fault = Net.invoke("ClaimFusion")
+			if fault then
+				Fault.report(fault)
+			end
 			if not ok and reason then
 				pickerStatus.Text = reason
 			end
@@ -580,8 +583,10 @@ function FusionController.start()
 		if #selected < 2 then
 			return
 		end
-		local remote = Net.get("StartFusion") :: RemoteFunction
-		local ok, reason = remote:InvokeServer(selected[1], selected[2])
+		local ok, reason, fault = Net.invoke("StartFusion", selected[1], selected[2])
+		if fault then
+			Fault.report(fault)
+		end
 		if ok then
 			picker.Visible = false
 			selected = {}

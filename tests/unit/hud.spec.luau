@@ -37,18 +37,14 @@ h.test("REGRESSION: chrome leaves the game most of the screen", function()
 	-- furniture, with the game playing through the gap. The game has to be the
 	-- biggest thing on screen.
 	--
-	-- Two budgets, because the tray only exists while an egg is hatching.
+	-- Tightened from 0.32 to 0.30 when the incubator tray moved into the world.
+	-- A budget that is not tightened when something is removed just leaves room
+	-- for the next thing to creep in. 0.30 and not less: the worst case is
+	-- 110pt of furniture on a 375pt screen, which is 29.3%, so there is exactly
+	-- one point of slack left and the next band has to take something out.
 	for _, height in SCREEN_HEIGHTS do
-		local resting = HudLayout.chromeFraction(height, false)
-		h.expectTrue(
-			resting <= 0.32,
-			`at {height}pt the resting HUD covers {math.floor(resting * 100)}%`
-		)
-		local peak = HudLayout.chromeFraction(height, true)
-		h.expectTrue(
-			peak <= 0.45,
-			`at {height}pt the HUD with the tray up covers {math.floor(peak * 100)}%`
-		)
+		local chrome = HudLayout.chromeFraction(height)
+		h.expectTrue(chrome <= 0.30, `at {height}pt the HUD covers {math.floor(chrome * 100)}%`)
 	end
 end)
 
@@ -56,7 +52,6 @@ h.test("every touch target clears the 44pt floor", function()
 	local targets = {
 		bar = HudLayout.BAR_H,
 		rail = HudLayout.RAIL_W,
-		incubator = HudLayout.SLOT_H,
 	}
 	for name, size in targets do
 		h.expectTrue(

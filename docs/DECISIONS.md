@@ -8,6 +8,22 @@ Platform facts with source URLs and check dates live in `docs/VERIFY.md`.
 
 ## 2026-09-17 — Phase 4 (M2 core fun)
 
+### D-029 · If you can see it, you can stand on it
+**Decision.** Everything visible in the world collides. `part()` in `WorldService` defaults to `CanCollide = true` and there are exactly three exceptions, each argued at the call site: millimetre-thin decals lying flush on something already solid (road dashes, belt chevrons, the base path), invisible one-stud anchors that only exist to hang a `BillboardGui`, and the Laser Gate bars (D-025, a gameplay rule).
+**Why.** From a playtest: *"the physics needs to be correct, for everything we can se on the map we need to be able to interact with it like walking on it and such."* Shrubbery and the kitchen's cooking pots were ghosts. An earlier note in `World.luau` justified non-colliding street dressing as protecting a fleeing player from being snagged — a real concern, but it was my guess, not a playtest finding, and a planter you walk through reads as a bug long before anyone notices it helped them escape.
+**What would reverse it.** Chases feeling snagged. The fix is then to thin the planters out (they are already only on the pavement, every other slot), not to make solid-looking scenery walk-through again.
+
+### D-028 · The incubators moved out of the HUD and into the base
+**Decision.** Eggs are physical objects in a nest bench in your own base, with the countdown on a sign above them and a `ProximityPrompt` that appears the moment one is ready. The on-screen incubator tray is gone; `HudLayout` lost a whole band and the chrome budget tightened from 32% to 30% of a 375pt screen.
+**Why.** Two playtest notes with one answer: *"the 'tap to hatch' should be grounded on something next to what's about to hatch"* and *"the buttons and layout on the screen is way to much."* The bench is built by `WorldService` for everyone; the eggs are drawn per player on the client, because what is in your nest is a private fact and nobody else needs to see it.
+**The cost, stated.** You can no longer see your eggs from across the street. That is the trade: the toast still fires when one is ready, the tutorial marker points at the nest, and the prompt appearing is now literally the "wait for the button" the tutorial used to promise and never deliver.
+**What would reverse it.** A playtest where eggs go unclaimed for long stretches because players are away from home. The fix would be a small ready-only chip on the HUD, not the tray coming back.
+
+### D-027 · StreamingEnabled is off
+**Decision.** `Workspace.StreamingEnabled = false`. It was `true` with a 512-stud radius.
+**Why.** The street is 520 studs long, so the radius never covered it, and the whole world is under a thousand parts — streaming bought nothing and cost correctness. Anything on the client that looks for a part by name can find nothing at all, and every one of those lookups fails silently. `HomeController` had already been rewritten once for exactly this (the beacon was missing precisely when you were far from home); `ShopController` had the same bug and it is the reason *"opening the kitchen"* did nothing: the prompt existed in the world, showed its label, and had no handler connected because the counter had not replicated when the client went looking for it.
+**What would reverse it.** A map big enough to matter — a second street, or an interior. At that point the lookups have to be event-driven anyway, which is what `ProximityPromptService.PromptTriggered` now does for the landmarks regardless.
+
 ### D-026 · The death screen says WASTED — Philip's call, flagged not softened
 **Decision.** Dying desaturates the world and fades up **WASTED** in red, with a sound. Asked for directly: *"When you die I want something exactly similar to when you do it in gta."*
 **The concern, stated once and then dropped.** Everything else in this game avoids the vocabulary of dying on purpose — the PvP is "friendly snatchers", and `tools/validate-kid-safe.py` rejects the whole violent word list in any player-facing string. WASTED is a quotation from an 18-rated game and is the only place the project points at that register. It trips no automated rule, and a single stylised word is not what decides a Roblox maturity questionnaire — the questionnaire asks about blood, realistic violence and gambling, none of which this is. So it ships.

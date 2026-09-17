@@ -26,6 +26,7 @@ local Net = require(Shared:WaitForChild("Net"))
 local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 local Style = require(Shared:WaitForChild("Style"))
 
+local Fault = require(script.Parent.Parent:WaitForChild("Fault"))
 local BaseHudController = require(script.Parent:WaitForChild("BaseHudController"))
 local JuiceController = require(script.Parent:WaitForChild("JuiceController"))
 
@@ -200,8 +201,17 @@ local function build()
 			panel.Visible = false
 			return
 		end
-		local remote = Net.get("GetBook") :: RemoteFunction
-		local result = remote:InvokeServer()
+		-- pcall'd like every other client->server call. GetBook returns a
+		-- table rather than the usual (ok, reason), so it cannot go through
+		-- Net.invoke -- but a handler that errors would still leave the button
+		-- doing nothing at all, which is the symptom this whole round is about.
+		local called, result = pcall(function()
+			return (Net.get("GetBook") :: RemoteFunction):InvokeServer()
+		end)
+		if not called then
+			Fault.report(`GetBook: {result}`)
+			return
+		end
 		if type(result) ~= "table" then
 			return
 		end

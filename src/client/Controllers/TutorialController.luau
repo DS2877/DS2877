@@ -46,7 +46,7 @@ local snapshot: { [string]: any }? = nil
 type Step = {
 	text: string,
 	done: (snap: { [string]: any }) -> boolean,
-	target: ("belt" | "kitchen" | "market" | "neighbour")?,
+	target: ("belt" | "kitchen" | "market" | "neighbour" | "nest")?,
 	live: ((snap: { [string]: any }) -> string?)?,
 }
 
@@ -57,15 +57,18 @@ local BELT_FLOOR = math.max(1, math.floor(Economy.BASE_INCOME.common * World.BEL
 --- In order. The first step that is not done is the one shown.
 local STEPS: { Step } = {
 	{
-		-- NOT "wait for the green button". The hatch slot is mint-green while it
-		-- is still COUNTING DOWN and turns pink saying TAP TO HATCH when it is
-		-- ready, so the old wording pointed at the state that means "not yet"
-		-- and a playtester waited through it: "nothing ever happens, there is
-		-- no green button."
-		text = "Your first Nomling is hatching — tap the egg timer when it says TAP",
+		-- NOT "wait for the green button". There was no green button: the old
+		-- HUD tray went mint-green while an egg was still COUNTING DOWN, so the
+		-- wording pointed at the state that means "not yet", and a playtester
+		-- waited through it -- "nothing ever happens, there is no green button."
+		--
+		-- The egg is now a real egg in a nest in your base, and the marker below
+		-- points at it, so the instruction can name a place instead of a colour.
+		text = "Your first egg is in the NEST in your base — tap it when it says TAP TO HATCH",
 		done = function(snap)
 			return (snap.hatched or 0) >= 1
 		end,
+		target = "nest",
 	},
 	{
 		text = "It's earning coins! Now walk to the BELT in the middle of the street",
@@ -290,7 +293,22 @@ local function resolveTarget(kind: string): Vector3?
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local at = if root and root:IsA("BasePart") then root.Position else nil
 
-	if kind == "belt" then
+	if kind == "nest" then
+		-- Your own base's egg bench. Resolved from the profile's base index
+		-- rather than by searching for a pad you own, for the same reason the
+		-- home beacon is: the base you want may be the far end of the street.
+		local index = tonumber(snapshot and snapshot.baseIndex)
+		if not index then
+			return nil
+		end
+		local bases = street:FindFirstChild("Bases")
+		local base = bases and bases:FindFirstChild(`Base{index}`)
+		local hatchery = base and base:FindFirstChild("Hatchery")
+		local bench = hatchery and hatchery:FindFirstChild("Bench")
+		return if bench and bench:IsA("BasePart")
+			then bench.Position + Vector3.new(0, 9, 0)
+			else nil
+	elseif kind == "belt" then
 		-- The nearest point ON the belt, so the arrow is always a short walk
 		-- away instead of at one end of a 520-stud road.
 		local z = if at then math.clamp(at.Z, -240, 240) else 0

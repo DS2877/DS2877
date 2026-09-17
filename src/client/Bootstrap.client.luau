@@ -3,9 +3,11 @@
 	Client entry point. Mirrors the server bootstrap: init everything, then
 	start everything, in a declared order.
 
-	M0 has one controller. Its only job is to prove the client is alive and the
-	transport works, so that "the place published and actually runs" is a thing
-	we can see rather than assume.
+	Every load and every phase is pcall'd, and every failure ends up on the red
+	Fault panel. One controller that throws must never be able to take the rest
+	of the client with it -- that turns a broken feature into a game that shows
+	a HUD and responds to nothing, which is exactly the report this had to be
+	debugged from once already.
 ]]
 
 local CONTROLLER_ORDER = {
@@ -17,6 +19,9 @@ local CONTROLLER_ORDER = {
 	"AudioController",
 	"JuiceController",
 	"BaseHudController",
+	-- After the HUD (it toasts through it) and before the tutorial, which
+	-- points a marker at the nest it builds.
+	"HatcheryController",
 	"TutorialController",
 	"NomlingRenderController",
 	-- Needs nothing from the others; it only reads the pads' OwnerUserId.
@@ -39,65 +44,12 @@ type Controller = {
 }
 
 -- --- the one thing that can never fail -------------------------------------
--- A CLIENT ERROR THE PLAYER CAN SEE. This project has exactly one instrument
--- for what happens on a phone, and it is Philip typing what he saw. Until now
--- a controller that threw printed a warn() into a log nobody can open, and the
--- symptom reaching me was "nothing happens when I press it" -- which is the
--- hardest possible bug report to act on and has now cost three rounds.
---
--- So failures go ON SCREEN. Built with no requires and no dependencies, before
--- anything else runs, because the thing that reports a broken controller must
--- not be able to break with one.
-local Players = game:GetService("Players")
-local localPlayer = Players.LocalPlayer
-
-local faultLines: { string } = {}
-local faultLabel: TextLabel? = nil
-
-local function reportFault(line: string)
-	table.insert(faultLines, line)
-	warn(`[Bootstrap] {line}`)
-
-	local label = faultLabel
-	if not label then
-		local screen = Instance.new("ScreenGui")
-		screen.Name = "ClientFaults"
-		screen.ResetOnSpawn = false
-		screen.IgnoreGuiInset = true
-		screen.DisplayOrder = 1000
-		screen.Parent = localPlayer:WaitForChild("PlayerGui")
-
-		local frame = Instance.new("Frame")
-		frame.Size = UDim2.new(1, -20, 0, 0)
-		frame.AutomaticSize = Enum.AutomaticSize.Y
-		frame.Position = UDim2.new(0, 10, 0, 90)
-		frame.BackgroundColor3 = Color3.fromRGB(120, 24, 32)
-		frame.BackgroundTransparency = 0.15
-		frame.BorderSizePixel = 0
-		-- Never swallows a tap. A diagnostic that blocks the buttons it is
-		-- reporting on would be worse than no diagnostic.
-		frame.Active = false
-		frame.Parent = screen
-
-		local made = Instance.new("TextLabel")
-		made.Size = UDim2.new(1, -16, 0, 0)
-		made.Position = UDim2.new(0, 8, 0, 6)
-		made.AutomaticSize = Enum.AutomaticSize.Y
-		made.BackgroundTransparency = 1
-		made.Font = Enum.Font.Code
-		made.TextSize = 13
-		made.TextWrapped = true
-		made.TextXAlignment = Enum.TextXAlignment.Left
-		made.TextColor3 = Color3.fromRGB(255, 226, 226)
-		made.Active = false
-		made.Parent = frame
-		faultLabel = made
-		label = made
-	end
-
-	label.Text = `CLIENT FAULT ({#faultLines}) — please send this to Claude:\n`
-		.. table.concat(faultLines, "\n")
-end
+-- A CLIENT ERROR THE PLAYER CAN SEE. Lives in its own dependency-free module
+-- so the controllers can reach it too: a button whose remote call fails has
+-- exactly the same "nothing happens" symptom as a controller that never
+-- started, and both need to end up on the same red panel.
+local Fault = require(script.Parent:WaitForChild("Fault"))
+local reportFault = Fault.report
 
 local controllersFolder = script.Parent:WaitForChild("Controllers")
 local controllers: { Controller } = {}
@@ -134,4 +86,4 @@ end
 runPhase("init")
 runPhase("start")
 
-print(`[Bootstrap] {#controllers} controllers ready, {#faultLines} faults`)
+print(`[Bootstrap] {#controllers} controllers ready, {Fault.count()} faults`)

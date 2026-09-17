@@ -298,6 +298,78 @@ function Net.build(): Folder
 	return created
 end
 
+--- How long the client waits for a RemoteFunction to answer before giving up.
+---
+--- Not paranoia. A RemoteFunction whose OnServerInvoke was never assigned does
+--- NOT error when a client invokes it -- it yields, forever. On a phone that
+--- is a button that does nothing, with no message, no log the player can open
+--- and no way to tell it apart from a button that is not wired to anything.
+--- Six seconds is far longer than any handler here legitimately takes.
+local INVOKE_TIMEOUT = 6
+
+--- Client-side. Calls a declared RemoteFunction and NEVER throws, never hangs.
+---
+--- Returns `ok, reason, fault`:
+---   ok      -- what the server said
+---   reason  -- the server's player-facing refusal, if any
+---   fault   -- a TECHNICAL description of why the call itself did not happen.
+---              Never shown to a player as-is; it goes to the client Fault
+---              panel, which exists to be read by a developer holding a phone.
+---
+--- Three things can go wrong and they need telling apart: the remote is
+--- missing, the server handler errored, or nothing answered at all. Before
+--- this, all three looked identical from the outside -- "the button doesn't
+--- work" -- which is how a dead kitchen prompt survived a playtest.
+function Net.invoke(name: string, ...): (boolean, string?, string?)
+	if not RunService:IsClient() then
+		return false, nil, "Net.invoke() is client-only"
+	end
+
+	local found, resolved = pcall(Net.get, name)
+	if not found then
+		return false, nil, `{name}: {resolved}`
+	end
+	local remote = resolved :: Instance
+	if not remote:IsA("RemoteFunction") then
+		return false, nil, `{name}: declared as a {remote.ClassName}, not a RemoteFunction`
+	end
+
+	local args = table.pack(...)
+	local answered = false
+	local serverOk = false
+	local serverReason: string? = nil
+	local failure: string? = nil
+
+	task.spawn(function()
+		local results = table.pack(
+			pcall((remote :: RemoteFunction).InvokeServer, remote, table.unpack(args, 1, args.n))
+		)
+		if results[1] then
+			serverOk = results[2] == true
+			serverReason = if type(results[3]) == "string" then results[3] else nil
+		else
+			failure = tostring(results[2])
+		end
+		answered = true
+	end)
+
+	local deadline = os.clock() + INVOKE_TIMEOUT
+	while not answered and os.clock() < deadline do
+		task.wait(0.05)
+	end
+
+	if not answered then
+		-- The spawned thread stays parked on the yield for the rest of the
+		-- session. That is the cost of not being able to cancel an invoke, and
+		-- it is worth paying to turn a permanently dead button into a message.
+		return false, nil, `{name}: server never answered ({INVOKE_TIMEOUT}s) -- no OnServerInvoke?`
+	end
+	if failure then
+		return false, nil, `{name}: server handler errored -- {failure}`
+	end
+	return serverOk, serverReason, nil
+end
+
 --- Resolves a declared remote by name. Errors on anything undeclared, which
 --- makes a typo a startup failure rather than a silent no-op.
 function Net.get(name: string): Instance

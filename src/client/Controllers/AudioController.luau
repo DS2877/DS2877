@@ -26,6 +26,8 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Audio = require(Shared:WaitForChild("Config"):WaitForChild("Audio"))
 
+local Fault = require(script.Parent.Parent:WaitForChild("Fault"))
+
 local AudioController = {}
 AudioController.Name = "AudioController"
 
@@ -34,6 +36,11 @@ local sfxGroup: SoundGroup
 local theme: Sound? = nil
 local duckUntil = 0
 local rng = Random.new()
+
+--- Where the music fader starts before it rides up. Not zero: a fade that
+--- begins at silence makes "the tween never ran" and "there is no music"
+--- indistinguishable, which cost a whole playtest round.
+local MUSIC_FADE_FROM = 0.35
 
 --- A small pool per cue. Creating a Sound per play would churn instances on a
 --- phone; reusing a handful does not.
@@ -79,12 +86,11 @@ function AudioController.duck(seconds: number?)
 	if not theme then
 		return
 	end
-	local track = Audio.MUSIC.theme
 	duckUntil = os.clock() + (seconds or Audio.DUCK_SECONDS)
 	TweenService:Create(
 		musicGroup,
 		TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{ Volume = track.volume * Audio.DUCK_VOLUME }
+		{ Volume = Audio.DUCK_VOLUME }
 	):Play()
 end
 
@@ -106,23 +112,36 @@ local function startMusic()
 	sound.Parent = SoundService
 	theme = sound
 
-	-- AUDIBLE FIRST, PRETTY SECOND. This used to set the group to 0 and rely on
-	-- a tween to bring it up, which means any failure between here and the
-	-- tween completing leaves the music playing at silence -- indistinguishable
-	-- from no music at all, and impossible to tell apart from a missing asset.
+	-- THE GROUP IS A FADER, NOT A LEVEL. This is the whole reason for "I don't
+	-- have a themesong playing in the background" while Roblox reported every
+	-- asset Approved and owned by the right account.
 	--
-	-- Roblox confirmed all eight assets Approved while a playtester reported
-	-- total silence, so the fault is on this side and this is the one place
-	-- where a fade could swallow it. Start at volume, fade from slightly under
-	-- it: still a fade in, but the failure mode is "it started a bit loud"
-	-- rather than "there is no music in this game".
-	musicGroup.Volume = track.volume * 0.35
+	-- SoundGroup.Volume MULTIPLIES Sound.Volume. The old code set the sound to
+	-- track.volume (0.32) and then set the GROUP to track.volume as well, so
+	-- what came out was 0.32 x 0.32 -- about 10% -- of a level that was already
+	-- chosen to be discreet on a phone in public. Roughly 3% of full scale.
+	-- Playing, correct, loaded, entirely inaudible, and invisible from the code
+	-- because both numbers looked reasonable on their own line.
+	--
+	-- So: the sound carries the mix level, the group carries 0..1 and nothing
+	-- else. It fades in from MUSIC_FADE_FROM rather than from zero, so a failure
+	-- between here and the tween finishing is quiet music rather than no music.
+	musicGroup.Volume = MUSIC_FADE_FROM
 	sound:Play()
 	TweenService:Create(
 		musicGroup,
 		TweenInfo.new(track.fadeSeconds, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
-		{ Volume = track.volume }
+		{ Volume = 1 }
 	):Play()
+
+	-- DID THE ASSET ACTUALLY ARRIVE? An id that is valid, approved and owned
+	-- still plays nothing if this client failed to fetch it, and Sound gives no
+	-- error for that. Ten seconds is far longer than a two-minute ogg needs.
+	task.delay(10, function()
+		if theme == sound and not sound.IsLoaded then
+			Fault.report(`theme {track.assetId} never loaded on this client`)
+		end
+	end)
 end
 
 function AudioController.start()
@@ -154,7 +173,7 @@ function AudioController.start()
 				TweenService:Create(
 					musicGroup,
 					TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-					{ Volume = Audio.MUSIC.theme.volume }
+					{ Volume = 1 }
 				):Play()
 			end
 		end

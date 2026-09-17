@@ -18,6 +18,13 @@
 	Volumes are deliberately low. This is a phone game played in public, often
 	near other people, and a loop that is too loud is the fastest way to get
 	muted permanently -- after which none of the audio design matters.
+
+	EVERY NUMBER HERE IS THE FINAL LEVEL. It is what comes out of the speaker,
+	not a value something else scales again. AudioController's SoundGroups are
+	plain 0..1 faders; for a while the music group was being set to a track
+	volume as well, which multiplied 0.32 by 0.32 and made the theme inaudible
+	while every asset was approved, loaded and playing. If a level needs
+	changing, change it here -- and nowhere else.
 ]]
 
 local Audio = {}

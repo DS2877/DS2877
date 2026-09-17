@@ -21,9 +21,9 @@
 ]]
 
 local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Economy = require(Shared:WaitForChild("Config"):WaitForChild("Economy"))
@@ -32,6 +32,7 @@ local Net = require(Shared:WaitForChild("Net"))
 local Odds = require(Shared:WaitForChild("Logic"):WaitForChild("Odds"))
 local Style = require(Shared:WaitForChild("Style"))
 
+local Fault = require(script.Parent.Parent:WaitForChild("Fault"))
 local BaseHudController = require(script.Parent:WaitForChild("BaseHudController"))
 local JuiceController = require(script.Parent:WaitForChild("JuiceController"))
 
@@ -307,10 +308,14 @@ local function refreshShop()
 
 		if unlocked then
 			buy.Activated:Connect(function()
-				local remote = Net.get("BuyEgg") :: RemoteFunction
-				local ok = remote:InvokeServer(key)
+				local ok, reason, fault = Net.invoke("BuyEgg", key)
+				if fault then
+					Fault.report(fault)
+				end
 				if ok then
 					JuiceController.pop(buy, 0.2)
+				elseif reason then
+					BaseHudController.toast(reason)
 				end
 			end)
 		end
@@ -362,27 +367,40 @@ end
 
 --- Wires the prompts on the two landmark counters. Client-side because they
 --- only open a panel; nothing about them changes state.
+---
+--- LISTENS TO THE SERVICE, DOES NOT HUNT FOR THE PART. This used to walk
+--- Workspace once at startup -- WaitForChild("FusionLab") then a plain
+--- FindFirstChild("Counter") -- and connect to the prompt it found. That is
+--- the bug behind "none of the buttons in game works. I tried buying,
+--- activating the laser gate, and opening the kitchen": WaitForChild on a
+--- Model returns as soon as the MODEL replicates, which is not when its
+--- children have, and under StreamingEnabled a landmark 200 studs away may
+--- have no parts on this client at all. FindFirstChild then returned nil, the
+--- connection was never made, and later -- once the counter had streamed in --
+--- the prompt appeared in the world, showed its "Open the Kitchen" label, and
+--- did absolutely nothing when tapped. A silent failure that looks exactly
+--- like a dead button.
+---
+--- ProximityPromptService.PromptTriggered fires for every prompt this player
+--- triggers, whenever it exists, however it got there. There is nothing to
+--- find and nothing to race.
 local function bindLandmarks()
-	task.spawn(function()
-		local street = Workspace:WaitForChild("Street", 30)
-		if not street then
+	ProximityPromptService.PromptTriggered:Connect(function(prompt, who)
+		if who ~= player or prompt.Name ~= "Use" then
 			return
 		end
-		local function bind(modelName: string, open: () -> ())
-			local model = street:WaitForChild(modelName, 15)
-			local counter = model and model:FindFirstChild("Counter")
-			local prompt = counter and counter:FindFirstChild("Use")
-			if prompt and prompt:IsA("ProximityPrompt") then
-				prompt.Triggered:Connect(open)
-			end
+		local model = prompt:FindFirstAncestorOfClass("Model")
+		if not model then
+			return
 		end
-		bind("EggMarket", ShopController.openShop)
-		bind("FusionLab", function()
+		if model.Name == "EggMarket" then
+			ShopController.openShop()
+		elseif model.Name == "FusionLab" then
 			-- The kitchen's own picker lives in FusionController; opening it from
 			-- here would duplicate that state. Its odds panel is the part this
 			-- module owns.
 			ShopController.showFusionOdds()
-		end)
+		end
 	end)
 end
 

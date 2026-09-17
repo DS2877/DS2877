@@ -81,9 +81,9 @@ World.BELT_PAYBACK_SECONDS = 90
 --- Chance a belt Nomling arrives already mutated.
 World.BELT_MUTATION_CHANCE = 0.12
 
---- Street dressing. Every value here is scenery, streamed in by Roblox, and
---- none of it collides except the lamp posts -- a phone player must never be
---- stopped by a planter they did not see.
+--- Street dressing. All of it collides: see the header of WorldService for
+--- why, and for the three narrow exceptions. The spacing below is what keeps
+--- solid scenery from making the pavement feel like an obstacle course.
 World.LAMP_SPACING = 88
 World.LAMP_HEIGHT = 15
 World.PLANTER_SPACING = 44
