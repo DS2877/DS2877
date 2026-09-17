@@ -113,17 +113,13 @@ Roblox earnings are taxable in Sweden. Talk to Skatteverket or an accountant onc
 
 ## Decisions for you
 
-### ⬜ 14. May I add a typecheck job to CI? (one-word answer, costs nothing)
+### ✅ 14. Typecheck job in CI — APPROVED 2026-09-17, shipped
 
-**The problem.** Nothing in this project checks Luau types. Every file starts with `--!strict` and no tool ever reads it. `docs/DECISIONS.md` D-014 said "typecheck runs in CI" — it never did; the job was never written.
+**The problem was.** Nothing in this project checked Luau types. Every file starts with `--!strict` and no tool ever read it. `docs/DECISIONS.md` D-014 said "typecheck runs in CI" — it never did; the job was never written. The "no base, every sign says EMPTY BASE" bug was one line of exactly the kind a typechecker prints in a second, and it ate two of your playtests instead.
 
-**What it cost you.** The "no base, every sign says EMPTY BASE" bug you hit twice was one line: a function wanted a base *pad* and was handed a *number*. That is exactly the error a typechecker prints in a second. Instead it passed formatting, linting, 142 unit tests, parity, the kid-safe gate and the Rojo build, shipped to TEST, and ate two of your playtests.
+→ ✅ **Approved and added.** `luau-lsp` 1.69.0 runs over `src` on every CI run, blocking like every other check. Free, open-source, runs on GitHub's machines, costs you nothing. Recorded as **D-023**.
 
-**What I want to add.** One job in `.github/workflows/ci.yml` that downloads `luau-lsp` (Roblox's own analyser) and runs it over `src` and `tests`. It is free, open-source and maintained by the Roblox community. It runs on GitHub's machines, not yours.
-
-**Why I am asking rather than doing it.** CLAUDE.md: don't add a dependency without asking. This is a new tool in the build, so it is your call.
-
-**Reply "yes, add the typecheck" and it lands in the next push.** I cannot run it in my own sessions (the sandbox blocks GitHub release downloads, which is genuinely why it was skipped), so it would be a push-then-read-the-result loop for me — still far better than a playtester finding it.
+**One thing to know about it:** I cannot run it in my own sessions — the sandbox blocks GitHub release downloads, which is genuinely why it was skipped originally. So for me it is push-then-read-CI rather than part of `./scripts/check.sh`. Still far better than a playtester finding it.
 
 ---
 

@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "Settings for the CI typecheck job (.github/workflows/ci.yml).",
+    "",
+    "platform.type = roblox turns on DataModel awareness, so game:GetService,",
+    "Instance.new and the sourcemap tree are understood rather than being any.",
+    "",
+    "strictDatamodelTypes is OFF on purpose. With it on, the analyzer treats the",
+    "sourcemap as the complete shape of the DataModel and rejects every lookup of",
+    "an instance built at runtime -- and this game builds its entire world at",
+    "runtime (WorldService makes the street, the bases and the belt). It would be",
+    "hundreds of errors about instances that are genuinely there, which is the",
+    "fastest way to make a check people start ignoring."
+  ],
+  "luau-lsp.platform.type": "roblox",
+  "luau-lsp.diagnostics.strictDatamodelTypes": false
+}

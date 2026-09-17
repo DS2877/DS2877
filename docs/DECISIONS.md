@@ -37,12 +37,15 @@ Platform facts with source URLs and check dates live in `docs/VERIFY.md`.
 **Decision.** `wally.toml` declares no dependencies. React-Lua and ProfileStore — both approved — land in M1.
 **Why.** Publishing an empty plaza needs neither, and adding them now would put the Wally registry's reachability on the critical path for the first deploy. One risk at a time.
 
-### D-023 · Typechecking is a gap, not a plan — proposal open with Philip
-**Problem.** D-014 assumed CI typechecks. It does not (see the correction there). A plain argument-type error reached a playtester.
-**Proposed.** Add a `typecheck` job to `.github/workflows/ci.yml` that downloads the `luau-lsp` release binary and runs `luau-lsp analyze --settings .luaurc --definitions globalTypes.d.luau src tests`. GitHub Actions runners can reach GitHub releases; only the cloud sandbox's egress proxy cannot, so this works in CI even though it cannot work in a Claude session.
-**Blocked on Philip** — a new tool in CI is a dependency, and CLAUDE.md says ask first. `docs/PHILIP-TODO.md` §14.
-**Interim mitigation, already shipped.** Structural work no longer depends on decorative work succeeding: `discoverPlots()` registers each plot *before* building its pedestals and pcalls the build, so a throw costs one base its pedestals instead of costing the whole server its bases.
-**Reversal condition.** If `luau-lsp analyze` proves too noisy on this codebase to gate a push, downgrade it to a non-blocking annotation job rather than deleting it — a warning that is read beats a check that is not there.
+### D-023 · CI typechecks Luau — approved by Philip 2026-09-17
+**Problem.** D-014 assumed CI typechecks. It did not (see the correction there). A plain argument-type error reached a playtester twice.
+**Decision.** A `typecheck` job in `.github/workflows/ci.yml` pins `luau-lsp` **1.69.0**, generates a Rojo sourcemap, fetches Roblox's type definitions, and runs `luau-lsp analyze` over `src`. Blocking, like every other check.
+**Three things it needs, and why each one matters.**
+- **The sourcemap.** Roblox resolves a require through the DataModel tree (`script.Parent`), not the filesystem. Without `--sourcemap` every cross-module require is `any`, and a typecheck where everything is `any` is theatre.
+- **`globalTypes.d.luau`.** Roblox's own API as Luau types. Without it every Instance, service and Enum is `any` — including `BasePart`, which is precisely the type the bug turned on.
+- **`strictDatamodelTypes: false`** (`.github/luau-lsp-settings.json`). With it on, the sourcemap is treated as the complete DataModel and every lookup of a runtime-built instance is an error — and this game builds its entire world at runtime. Hundreds of false errors is how a check gets ignored.
+**Cost.** It cannot run in a cloud session: `luau-lsp` is C++ with no crates.io package, and the sandbox's egress proxy blocks GitHub release downloads (the crates.io toolchain and `raw.githubusercontent.com` both work — it is specifically releases). So for Claude this is push-then-read-CI rather than part of `./scripts/check.sh`. Accepted: the alternative was no typecheck at all.
+**Reversal condition.** If it proves too noisy to gate a push, downgrade it to a non-blocking annotation job rather than deleting it — a warning that is read beats a check that is not there.
 
 ### D-014 · Typechecking is CI-only
 **Decision.** No `luau-lsp` in cloud sessions. Cloud gets format, lint, unit tests and parity; CI adds typecheck.

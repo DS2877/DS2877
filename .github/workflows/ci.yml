@@ -33,6 +33,7 @@ env:
   SELENE_VERSION: "0.31.0"
   STYLUA_VERSION: "2.5.2"
   LUNE_VERSION: "0.10.5"
+  LUAU_LSP_VERSION: "1.69.0"
 
 jobs:
   check:
@@ -113,6 +114,79 @@ jobs:
           name: place
           path: build/nomling.rbxl
           retention-days: 7
+
+  typecheck:
+    name: Typecheck (luau-lsp)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # THE JOB THAT SHOULD HAVE EXISTED ALL ALONG. Every file in src/ opens
+      # with --!strict and, until this landed, nothing ever read it. A function
+      # that wanted a BasePart was handed a number for four commits; it threw on
+      # the first base, no player on any server was ever assigned one, and
+      # format, lint, 142 unit tests, parity, the kid-safe gate and the Rojo
+      # build were all green over it. docs/DECISIONS.md D-014 (corrected), D-023.
+      #
+      # This is the one check that cannot also run in a cloud session: luau-lsp
+      # is a C++ project with no crates.io package, and the sandbox's egress
+      # proxy blocks GitHub release downloads. A runner has neither problem.
+      - name: Cache luau-lsp and rojo
+        id: analyze-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/bin/luau-lsp
+            ~/.cargo/bin/rojo
+          key: analyze-bin-${{ runner.os }}-${{ env.LUAU_LSP_VERSION }}-${{ env.ROJO_VERSION }}
+
+      - name: Install luau-lsp
+        if: steps.analyze-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL -o /tmp/luau-lsp.zip \
+            "https://github.com/JohnnyMorganz/luau-lsp/releases/download/${LUAU_LSP_VERSION}/luau-lsp-linux-x86_64.zip"
+          unzip -o -j /tmp/luau-lsp.zip luau-lsp -d "$HOME/.local/bin"
+          chmod +x "$HOME/.local/bin/luau-lsp"
+
+      - name: Install Rojo
+        if: steps.analyze-cache.outputs.cache-hit != 'true'
+        run: cargo install --locked rojo --version "$ROJO_VERSION"
+
+      - name: Confirm the analyzer is present
+        run: |
+          set -euo pipefail
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/luau-lsp" --version
+          rojo --version
+
+      # Roblox's own API surface, as Luau types. Without it every Instance,
+      # every service and every Enum is `any` -- which would quietly pass the
+      # exact class of mistake this job exists to catch.
+      - name: Fetch Roblox type definitions
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/globalTypes.d.luau \
+            "https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/main/scripts/globalTypes.d.luau"
+          wc -l /tmp/globalTypes.d.luau
+
+      # Roblox resolves a require through the DataModel tree (script.Parent),
+      # not the filesystem. The sourcemap is how the analyzer learns which file
+      # is which instance; without it every cross-module require is `any`.
+      - name: Sourcemap
+        run: rojo sourcemap default.project.json --output /tmp/sourcemap.json
+
+      - name: Analyze
+        run: |
+          set -euo pipefail
+          luau-lsp analyze \
+            --sourcemap=/tmp/sourcemap.json \
+            --definitions=/tmp/globalTypes.d.luau \
+            --base-luaurc=.luaurc \
+            --settings=.github/luau-lsp-settings.json \
+            --ignore="**/Packages/**" \
+            src
 
   publish-test:
     name: Publish to TEST (Saved)
