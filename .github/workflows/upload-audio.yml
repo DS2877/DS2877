@@ -6,9 +6,21 @@ on:
   workflow_dispatch:
     inputs:
       directory:
-        description: "Directory of .ogg files to upload"
+        description: "Directory of .ogg files to upload (ignored when 'file' is set)"
         default: "assets/audio"
         required: true
+      file:
+        description: >-
+          Upload ONE file instead of the whole directory, e.g.
+          assets/audio/sfx-deny.ogg. Use this first: it proves the API key, the
+          creator id and the file format before spending the monthly quota on
+          all eight.
+        required: false
+        default: ""
+      name:
+        description: "Display name, only used with 'file'"
+        required: false
+        default: "Nomling Audio"
 
 jobs:
   upload:
@@ -28,7 +40,12 @@ jobs:
             echo "ROBLOX_USER_ID variable is not set; falling back to the known creator id"
             export ROBLOX_USER_ID=7185134469
           fi
-          python3 tools/upload-audio.py --all "${{ inputs.directory }}"
+          if [ -n "${{ inputs.file }}" ]; then
+            python3 tools/upload-audio.py \
+              --file "${{ inputs.file }}" --name "${{ inputs.name }}"
+          else
+            python3 tools/upload-audio.py --all "${{ inputs.directory }}"
+          fi
 
       - name: Summary
         if: always()
@@ -37,7 +54,7 @@ jobs:
             echo "### Audio upload"
             echo ""
             echo '```'
-            echo "${{ steps.upload.outputs.uploaded }}"
+            echo "${{ steps.upload.outputs.uploaded }}${{ steps.upload.outputs.asset_id }}"
             echo '```'
             echo ""
             echo "Put these in \`src/shared/Config/Audio.luau\`."
