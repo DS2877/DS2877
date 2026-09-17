@@ -4,6 +4,66 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### The Laser Gate, the Vault, and a typechecker that pays for itself · 2026-09-17
+
+**CI typechecks Luau now.** Philip approved it, so `luau-lsp` 1.69.0 runs over
+`src` on every run, blocking like every other check. Getting it to mean anything
+took three things beyond installing it: a Rojo **sourcemap**, because Roblox
+resolves a require through the DataModel tree and without one every cross-module
+require is `any`; **`globalTypes.d.luau`**, Roblox's own API as types, without
+which `BasePart` — the exact type the base bug turned on — is also `any`; and
+**`strictDatamodelTypes` off**, because this game builds its whole world at
+runtime and the strict setting would report every one of those instances as an
+error.
+
+**It found nine things on its first run, and one was live.** `EggService.buy`
+inserted an incubator with no `total`, so every *bought* egg — the ordinary
+case, every egg after the free starter — drew its hatch progress ring with no
+denominator. Nothing errored; the ring was simply wrong. The same field was
+missing from the Comeback Egg. The other eight were three patterns: config
+tables sealed to their literal fields so `for key, value in Economy.EGGS` typed
+both as `unknown`, `UpdateAsync` transforms whose abort path made Luau infer
+`nil` as the whole return type, and `pcall(f)` destructured into two values
+where `f` returns none.
+
+**The Laser Gate.** A button beside the path on every base, and five lasers
+across its front that are invisible until it goes up. 60 seconds up, 90 seconds
+of cooldown measured **from the raise** — so a base can be locked at most 60
+seconds in every 90, and the gap between one gate falling and the next going up
+is 30. Measured from the *drop* it would be a very different game, which is why
+`tests/unit/gate.spec.luau` asserts which one it is rather than trusting the
+comment.
+
+The lasers do **not** collide. A solid barrier traps the owner on whichever side
+they are standing and puts client physics in charge of who gets robbed; the
+refusal is a server rule and the lasers are how a thief sees it coming from the
+road. Proximity is checked server-side on both entry points, because defending
+has to mean being home rather than a button you press while robbing somebody
+else.
+
+**The Vault.** Pedestal 9 — a fridge against the back wall, so reaching it means
+crossing the whole base. A creature in it cannot be snatched and does not mutate
+(GDD 5.7), **and does not earn** (D-024). That third one is ours, not the GDD's:
+"safe but no mutation" alone makes the Vault a strictly better ninth pedestal
+and the correct play becomes "vault your best one and never think about it
+again". Costing its income makes it a decision. It also keeps the economy
+simulator honest, which models exactly eight earners.
+
+It is a SLOT, not a flag, so placing, rendering, storing and sanitizing a
+vaulted Nomling are all the same code as any other pedestal — only auto-placement
+and snatching treat it specially. `DataService` now sanitizes against
+`PEDESTALS_TOTAL` rather than `PEDESTALS_BASE`; with the old bound every vaulted
+creature would have been silently dropped on load.
+
+**Sneaky Sam respects both.** The NPC snatchers exist because Philip is
+phone-only and cannot run two clients, so a defence they ignore is a defence
+that is never actually tested — and from inside the game it would read as the
+gate simply not working.
+
+`snatch_attempted` now logs its `blocked_reason`, which is the only way to learn
+whether the new defences protect victims or just frustrate attackers, plus a new
+`gate_raised` row in `docs/ANALYTICS.md`.
+
 ### Every base was empty, and one number is why · 2026-09-17
 
 **Fixed: no player, on any server, was ever assigned a base.** Philip reported it

@@ -94,7 +94,10 @@ local function acquire(userId: number): Profile.Data?
 	local now = os.time()
 	local rejected = false
 
-	local ok = retry(`acquire {userId}`, function()
+	-- `: any?` and an explicit `return nil` at the end. retry() is generic over
+	-- what its callback returns, and a callback that returns nothing on every
+	-- path gives it nothing to be generic over.
+	local ok = retry(`acquire {userId}`, function(): any?
 		store:UpdateAsync(key(userId), function(old: any): any?
 			local lock = if type(old) == "table" then old.lock else nil
 			if type(lock) == "table" and lock.server ~= serverId then
@@ -110,6 +113,7 @@ local function acquire(userId: number): Profile.Data?
 			updated.lock = { server = serverId, at = now }
 			return updated
 		end)
+		return nil
 	end)
 
 	if not ok or rejected then
@@ -120,14 +124,17 @@ local function acquire(userId: number): Profile.Data?
 		return store:GetAsync(key(userId))
 	end)
 
-	return Profile.migrate(raw, os.time(), Economy.INVENTORY_CAP, Economy.PEDESTALS_BASE)
+	-- PEDESTALS_TOTAL, not PEDESTALS_BASE: the bound here is the largest legal
+	-- pedestal index, and the Vault is one past the ordinary ones. With BASE,
+	-- sanitize would silently drop whatever was in the fridge on every load.
+	return Profile.migrate(raw, os.time(), Economy.INVENTORY_CAP, Economy.PEDESTALS_TOTAL)
 end
 
 --- Writes the profile. `release` also drops the lock, so another server can
 --- pick the player up immediately rather than waiting out the stale timeout.
 local function write(userId: number, data: Profile.Data, release: boolean): boolean
 	data.lastSeen = os.time()
-	local ok = retry(`save {userId}`, function()
+	local ok = retry(`save {userId}`, function(): any?
 		store:UpdateAsync(key(userId), function(old: any): any?
 			-- Refuse to overwrite a save another live server owns. Without this
 			-- a stale session could stamp on fresh progress.
@@ -143,6 +150,7 @@ local function write(userId: number, data: Profile.Data, release: boolean): bool
 			payload.lock = if release then nil else { server = serverId, at = os.time() }
 			return payload
 		end)
+		return nil
 	end)
 	return ok
 end

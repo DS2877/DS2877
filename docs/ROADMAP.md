@@ -76,12 +76,20 @@ the shared plaza reveal screen for two players in one server.
 **KPIs:** `fusion_completed`, `world_first_claimed`.
 **Risk: this is the highest-risk milestone in the project.** It contains the differentiator, and "procedurally generated creature that looks good" is the hardest thing to verify without Studio. Budget screenshot round-trips.
 
-### M2b — Weather, snatching, rebirth · Nov 8 — 🟡 mostly done
+### M2b — Weather, snatching, rebirth · Nov 8 — 🟡 nearly done
 Weather, mutations, snatching, the Bubble Wand, Sneaky Sam and rebirth all
-shipped early. **Open: the Laser Gate and the Vault** — note that
-`SnatchRules.luau` already implements and tests both, and `StealService` simply
-passes `gateUp = false, protected = false`. The rules are done; the feature is
-unwired. Also open: three of the four leaderboards (one is live).
+shipped early. **The Laser Gate and the Vault landed 2026-09-17** — the gate is
+a button on each base with lasers across its front (60 s up, 90 s cooldown from
+the raise, D-025), and the Vault is pedestal 9, where a creature is
+unsnatchable and does not mutate or earn (D-024). Both are wired into
+`SnatchRules`, and the NPC snatchers respect them too — a defence Sneaky Sam
+ignores is a defence nobody ever tests.
+
+**Still open: three of the four leaderboards** (one is live), and a HUD button
+for the gate. Today the only way to raise it is the button on the base, which
+teaches the mechanic but means you cannot defend from across the street — that
+is deliberate (D-025), but a HUD button that respects the same proximity rule
+would be kinder on a phone.
 
 Weather and mutations; snatching, Bubble Wand, Laser Gate, Vault, Sneaky Sam; rebirth; four leaderboards.
 

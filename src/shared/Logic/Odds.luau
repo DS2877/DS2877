@@ -26,19 +26,19 @@ Odds.TOTAL_PPM = 1_000_000
 
 --- Every rarity, weakest first. Order is meaningful: rolls walk it cumulatively.
 ---
---- The first element is cast even though the whole table is annotated. Luau
---- widens a string literal to `string` in a mutable array slot, so without the
---- cast the element type comes back as plain `string` and `Odds.pick` cannot
---- return what it just read out of its own order table.
-local RARITY_ORDER: { Rarity } = {
-	"common" :: Rarity,
+--- The CAST is what makes this work, not the annotation. Luau widens a string
+--- literal to plain `string` in a mutable array slot, so an annotated local
+--- still ends up holding `{ string }` -- and `Odds.pick` then cannot return
+--- what it just read out of its own order table.
+local RARITY_ORDER = {
+	"common",
 	"uncommon",
 	"rare",
 	"epic",
 	"legendary",
 	"mythic",
 	"secret",
-}
+} :: { Rarity }
 
 Odds.RARITY_ORDER = RARITY_ORDER
 

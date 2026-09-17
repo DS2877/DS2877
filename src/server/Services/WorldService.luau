@@ -396,6 +396,54 @@ local function buildBase(index: number, parent: Instance): BasePart
 		}, model)
 	end
 
+	-- --- the Laser Gate ----------------------------------------------------
+	-- The base has no walls and no door by design (GDD 5.3), so the front of
+	-- the plot is a row of lasers that are INVISIBLE until the gate is raised.
+	-- Built here, switched by GateService.
+	--
+	-- CanCollide stays FALSE even while the gate is up. A solid barrier would
+	-- trap the owner on whichever side they happened to be standing, and it
+	-- would be client physics deciding who gets robbed. The refusal is a
+	-- server rule (SnatchRules); these bars are how a thief sees it coming
+	-- from the road, which is the whole point of a defence that is visible.
+	local gateBars = Instance.new("Folder")
+	gateBars.Name = "GateBars"
+	local barCount = 5
+	for i = 1, barCount do
+		part({
+			Name = `Laser{i}`,
+			Size = Vector3.new(0.35, 0.35, World.BASE_WIDTH - 3),
+			CFrame = CFrame.new(cx - side * (World.BASE_DEPTH / 2 - 0.5), i * 1.7, cz),
+			Color = Style.PALETTE.nomPink,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			Transparency = 1,
+		}, gateBars)
+	end
+	gateBars.Parent = model
+
+	-- The button, beside the path at the road end -- where you arrive, and
+	-- where you run back to. GateService puts the prompt on it.
+	local gateButton = part({
+		Name = "GateButton",
+		Size = Vector3.new(3, 4.5, 3),
+		CFrame = CFrame.new(
+			cx - side * (World.BASE_DEPTH / 2 - 6),
+			2.25,
+			cz + World.BASE_WIDTH / 2 - 7
+		),
+		Color = Style.PALETTE.nomCocoa,
+		Material = Enum.Material.Wood,
+	}, model)
+	part({
+		Name = "GateLamp",
+		Size = Vector3.new(1.6, 1.6, 1.6),
+		CFrame = gateButton.CFrame * CFrame.new(0, 3, 0),
+		Color = Style.PALETTE.nomPink,
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, model)
+
 	-- Owner sign, over the back wall, readable from the road.
 	local signPost = part({
 		Name = "Sign",

@@ -38,6 +38,7 @@ local World = require(Shared:WaitForChild("Config"):WaitForChild("World"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
 local PlotService = require(script.Parent:WaitForChild("PlotService"))
+local GateService = require(script.Parent:WaitForChild("GateService"))
 
 local SnatchNpcService = {}
 SnatchNpcService.Name = "SnatchNpcService"
@@ -183,8 +184,20 @@ local function pickTarget(): (Player?, Profile.Nomling?, number?)
 		if #data.nomlings < Snatch.NPC_MIN_TARGET_NOMLINGS then
 			continue
 		end
+		-- THE GATE STOPS THE NPCs TOO. Sneaky Sam exists to exercise the same
+		-- rules a real thief hits (Philip is phone-only and cannot run two
+		-- clients), so a defence he ignores is a defence that is never actually
+		-- tested -- and from inside the game it would read as the gate simply
+		-- not working.
+		if GateService.isUp(plot.index) then
+			continue
+		end
 		for key, id in data.pedestals do
 			local index = tonumber(key)
+			-- Never the Vault.
+			if index == Economy.VAULT_PEDESTAL then
+				continue
+			end
 			local nomling = Profile.findNomling(data, id)
 			if index and nomling then
 				table.insert(candidates, { player = player, nomling = nomling, pedestal = index })

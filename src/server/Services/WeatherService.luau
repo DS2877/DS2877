@@ -70,13 +70,18 @@ end
 
 local function announce(phase: string, kind: string, seconds: number)
 	local spec = Weather.KINDS[kind]
+	-- Looked up once and branched on, rather than `(Economy.WEATHER[kind] or {}).mult`.
+	-- That `or {}` makes the type a union with an empty table, which has no `mult`
+	-- at all -- so the fallback that was meant to make it safe was the thing that
+	-- made it unsound.
+	local event = Economy.WEATHER[kind]
 	local remote = Net.get("Weather") :: RemoteEvent
 	remote:FireAllClients({
 		phase = phase,
 		kind = kind,
 		label = if spec then spec.label else kind,
 		mutation = if spec then spec.mutation else nil,
-		multiplier = (Economy.WEATHER[kind] or {}).mult or 1,
+		multiplier = if event then event.mult else 1,
 		seconds = seconds,
 	})
 end
@@ -95,7 +100,15 @@ local function applyMutations(kind: string)
 		end
 
 		local gained = 0
-		for _, id in data.pedestals do
+		for key, id in data.pedestals do
+			-- The Vault is skipped, and that is the trade the whole feature
+			-- turns on (GDD 5.7): vaulted Nomlings are safe but do NOT mutate.
+			-- Weather is the only way a creature a player already owns becomes
+			-- something rarer, so putting your best one in the fridge costs you
+			-- its chance at that as well as its income.
+			if tonumber(key) == Economy.VAULT_PEDESTAL then
+				continue
+			end
 			local nomling = Profile.findNomling(data, id)
 			-- Never touches a creature that already has one. Stacking mutations
 			-- would compound income past anything the economy model accounts for.

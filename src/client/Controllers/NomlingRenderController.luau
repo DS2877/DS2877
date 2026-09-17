@@ -267,6 +267,35 @@ local function build(anchor: BasePart)
 			end)
 		end
 	end
+	local vault = anchor:FindFirstChild("Vault")
+	if vault and vault:IsA("ProximityPrompt") then
+		vault.Enabled = mine
+		if mine then
+			-- Relabelled from the anchor's own state rather than from anything
+			-- this client decided, so the verb always matches what the server
+			-- will actually do with it.
+			local vaulted = anchor:GetAttribute("Vaulted") == true
+			vault.ActionText = if vaulted then "Out of the fridge" else "Into the fridge"
+		end
+		if mine and not bound[vault] then
+			bound[vault] = true
+			local nomlingId = tostring(anchor:GetAttribute("NomlingId") or "")
+			vault.Triggered:Connect(function()
+				local remote = Net.get("VaultNomling") :: RemoteFunction
+				-- Toast on success too, not only on refusal: putting a creature
+				-- in the fridge costs it its income, and a silent change to
+				-- what your base earns is the kind of thing a player finds out
+				-- much later and does not connect to the button they pressed.
+				local ok, reason = remote:InvokeServer(nomlingId)
+				if reason then
+					BaseHudController.toast(reason)
+				elseif not ok then
+					BaseHudController.toast("Could not move that one.")
+				end
+			end)
+		end
+	end
+
 	if snatch and snatch:IsA("ProximityPrompt") then
 		-- Never offer to steal from yourself. The server refuses it anyway, but
 		-- a prompt that always fails is noise on the one creature you look at

@@ -38,7 +38,9 @@ end
 
 function IncomeService.perSecond(data: Profile.Data): number
 	return Income.perSecond(
-		Profile.placedNomlings(data) :: any,
+		-- The Vault slot is skipped: a vaulted Nomling is safe and does not
+		-- earn, which is the whole trade (D-024).
+		Profile.placedNomlings(data, Economy.VAULT_PEDESTAL) :: any,
 		Economy.BASE_INCOME,
 		MUTATION_MULTIPLIER,
 		Economy.rebirthMultiplier(data.rebirths),

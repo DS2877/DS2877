@@ -6,6 +6,31 @@ Platform facts with source URLs and check dates live in `docs/VERIFY.md`.
 
 ---
 
+## 2026-09-17 — Phase 4 (M2 core fun)
+
+### D-025 · The Laser Gate is 60 s up in every 90, and does not collide
+**Decision.** `GATE_SECONDS = 60`, `GATE_COOLDOWN_SECONDS = 90` measured **from the raise**, and the lasers are `CanCollide = false`.
+**Why from the raise.** Measured from the drop it would be 60 up then 90 down — 40% of the time locked. From the raise it is 60 in every 90, so the real gap between one gate falling and the next going up is 30 s. That is the difference between a defence and a wall, and it is easy to implement the wrong one by accident, so `tests/unit/gate.spec.luau` asserts which it is.
+**Why it does not collide.** A solid barrier traps the owner on whichever side they are standing, and it puts client physics in charge of who gets robbed. The refusal is a server rule (`SnatchRules`); the lasers exist so a thief can see it from the road. A defence that is invisible until you are refused is not a defence, it is a bug report.
+**Not saved across sessions, on purpose.** Leaving releases your base (`PlotService.release`), so rejoining to reset a cooldown means rejoining into a different, empty plot. There is nothing to exploit, and a persisted cooldown would instead punish a player for a disconnect.
+**Reversal condition.** If `gate_raised` shows raise rates near the cap with no relationship to snatches on that base, the cooldown is making the decision rather than the player — lengthen it until choosing the moment matters.
+
+### D-024 · A vaulted Nomling does not earn
+**Decision.** The Vault is pedestal 9. A creature in it cannot be snatched and cannot mutate (GDD 5.7) — and it also earns nothing.
+**Why the third one is ours and not the GDD's.** The GDD's trade is "safe but does not mutate". On its own that makes the Vault a strictly better ninth pedestal: mutation is a 6% roll per weather event, so giving it up costs almost nothing most sessions, and the correct play for every player becomes "vault your best creature and never think about it again". A defence nobody has to think about is not a decision, it is a chore with an obvious answer.
+**It also keeps the economy honest.** `tools/simulate-economy` models exactly `PEDESTALS_BASE` earners. An earning Vault is +12.5% income at base that the simulator does not know about, which would quietly falsify every pacing claim in `docs/ECONOMY.md` — and the parity test would not catch it, because it compares constants, not consequences. `VAULT_PEDESTAL` and `PEDESTALS_TOTAL` are mirrored into `config.py` precisely so that a future change making the Vault earn cannot land without the simulator growing a ninth slot in the same commit.
+**Reversal condition.** If playtests show the Vault sitting empty — nobody using it at all — the cost is too high; make it earn at a reduced rate and re-run `tune.py` in the same change. Empty is the failure signal, not "used rarely": rarely is correct for a slot you spend on your one irreplaceable creature.
+
+### D-023 · CI typechecks Luau — approved by Philip 2026-09-17
+**Problem.** D-014 assumed CI typechecks. It did not (see the correction there). A plain argument-type error reached a playtester twice.
+**Decision.** A `typecheck` job in `.github/workflows/ci.yml` pins `luau-lsp` **1.69.0**, generates a Rojo sourcemap, fetches Roblox's type definitions, and runs `luau-lsp analyze` over `src`. Blocking, like every other check.
+**Three things it needs, and why each one matters.**
+- **The sourcemap.** Roblox resolves a require through the DataModel tree (`script.Parent`), not the filesystem. Without `--sourcemap` every cross-module require is `any`, and a typecheck where everything is `any` is theatre.
+- **`globalTypes.d.luau`.** Roblox's own API as Luau types. Without it every Instance, service and Enum is `any` — including `BasePart`, which is precisely the type the bug turned on.
+- **`strictDatamodelTypes: false`** (`.github/luau-lsp-settings.json`). With it on, the sourcemap is treated as the complete DataModel and every lookup of a runtime-built instance is an error — and this game builds its entire world at runtime. Hundreds of false errors is how a check gets ignored.
+**Cost.** It cannot run in a cloud session: `luau-lsp` is C++ with no crates.io package, and the sandbox's egress proxy blocks GitHub release downloads (the crates.io toolchain and `raw.githubusercontent.com` both work — it is specifically releases). So for Claude this is push-then-read-CI rather than part of `./scripts/check.sh`. Accepted: the alternative was no typecheck at all.
+**Reversal condition.** If it proves too noisy to gate a push, downgrade it to a non-blocking annotation job rather than deleting it — a warning that is read beats a check that is not there.
+
 ## 2026-09-16 — Phase 2 (pipeline)
 
 ### D-019 · M1 ships without ProfileStore and without React-Lua — both still approved
@@ -36,16 +61,6 @@ Platform facts with source URLs and check dates live in `docs/VERIFY.md`.
 ### D-015 · M0 ships with zero Wally dependencies
 **Decision.** `wally.toml` declares no dependencies. React-Lua and ProfileStore — both approved — land in M1.
 **Why.** Publishing an empty plaza needs neither, and adding them now would put the Wally registry's reachability on the critical path for the first deploy. One risk at a time.
-
-### D-023 · CI typechecks Luau — approved by Philip 2026-09-17
-**Problem.** D-014 assumed CI typechecks. It did not (see the correction there). A plain argument-type error reached a playtester twice.
-**Decision.** A `typecheck` job in `.github/workflows/ci.yml` pins `luau-lsp` **1.69.0**, generates a Rojo sourcemap, fetches Roblox's type definitions, and runs `luau-lsp analyze` over `src`. Blocking, like every other check.
-**Three things it needs, and why each one matters.**
-- **The sourcemap.** Roblox resolves a require through the DataModel tree (`script.Parent`), not the filesystem. Without `--sourcemap` every cross-module require is `any`, and a typecheck where everything is `any` is theatre.
-- **`globalTypes.d.luau`.** Roblox's own API as Luau types. Without it every Instance, service and Enum is `any` — including `BasePart`, which is precisely the type the bug turned on.
-- **`strictDatamodelTypes: false`** (`.github/luau-lsp-settings.json`). With it on, the sourcemap is treated as the complete DataModel and every lookup of a runtime-built instance is an error — and this game builds its entire world at runtime. Hundreds of false errors is how a check gets ignored.
-**Cost.** It cannot run in a cloud session: `luau-lsp` is C++ with no crates.io package, and the sandbox's egress proxy blocks GitHub release downloads (the crates.io toolchain and `raw.githubusercontent.com` both work — it is specifically releases). So for Claude this is push-then-read-CI rather than part of `./scripts/check.sh`. Accepted: the alternative was no typecheck at all.
-**Reversal condition.** If it proves too noisy to gate a push, downgrade it to a non-blocking annotation job rather than deleting it — a warning that is read beats a check that is not there.
 
 ### D-014 · Typechecking is CI-only
 **Decision.** No `luau-lsp` in cloud sessions. Cloud gets format, lint, unit tests and parity; CI adds typecheck.

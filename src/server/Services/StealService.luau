@@ -30,6 +30,9 @@ local AnalyticsService = require(script.Parent:WaitForChild("AnalyticsService"))
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
 local PlotService = require(script.Parent:WaitForChild("PlotService"))
+-- GateService requires PlotService, FeedbackService, NetService and Net, none
+-- of which require this module back.
+local GateService = require(script.Parent:WaitForChild("GateService"))
 
 local StealService = {}
 StealService.Name = "StealService"
@@ -168,14 +171,47 @@ local function deposit(carry: Carry)
 	-- and "I lost my afternoon".
 	local victimData = DataService.get(carry.victim)
 	if victimData and #victimData.incubators < Economy.INCUBATORS_BASE then
+		-- `total` matters: the client draws the hatch ring from elapsed/total.
+		-- The same field was missing from the bought-egg insert in EggService and
+		-- the typechecker found it there; this is the second one.
 		table.insert(victimData.incubators, {
 			eggKey = Snatch.COMEBACK_EGG,
 			readyAt = os.time() + Snatch.COMEBACK_HATCH_SECONDS,
+			total = Snatch.COMEBACK_HATCH_SECONDS,
 		})
 		notify(carry.victim, "You were snatched! A Comeback Egg is hatching for you.")
 	else
 		notify(carry.victim, "You were snatched!")
 	end
+end
+
+--- Turns a player-facing refusal into a stable analytics key.
+---
+--- Derived from the message rather than returned alongside it, because
+--- SnatchRules is pure and its whole contract is "a sentence a child can read".
+--- Giving it a second, machine-shaped return value would put the analytics
+--- schema inside the rules module, where it does not belong -- and the mapping
+--- has to live somewhere, so it lives next to the only caller that needs it.
+local function classify(reason: string?): string
+	if not reason then
+		return "unknown"
+	end
+	if string.find(reason, "Vault") then
+		return "vault"
+	elseif string.find(reason, "Laser Gate") then
+		return "gate"
+	elseif string.find(reason, "brand new") then
+		return "shield"
+	elseif string.find(reason, "own size") then
+		return "income_ratio"
+	elseif string.find(reason, "Too soon") then
+		return "cooldown"
+	elseif string.find(reason, "base is full") then
+		return "no_room"
+	elseif string.find(reason, "already carrying") then
+		return "carrying"
+	end
+	return "other"
 end
 
 function StealService.attempt(thief: Player, victim: Player, nomlingId: string): (boolean, string?)
@@ -201,11 +237,20 @@ function StealService.attempt(thief: Player, victim: Player, nomlingId: string):
 		targetIncomePerSecond = incomeOf(victim),
 		lastAttemptAt = bucket[victim.UserId],
 		now = os.clock(),
-		gateUp = false, -- the Laser Gate is M2b
-		protected = false, -- the Vault is M2b
+		gateUp = GateService.isUpFor(victim),
+		protected = Profile.pedestalOf(victimData, nomlingId) == Economy.VAULT_PEDESTAL,
 		thiefHasFreePedestal = PlotService.firstFreePedestal(thiefData) ~= nil,
 		thiefCarrying = carrying[thief] ~= nil,
 	}, Snatch)
+
+	-- LOGGED ON FAILURE, deliberately (docs/ANALYTICS.md 3). The fair-play rules
+	-- are guesses, and the Gate and the Vault are two more of them. A high block
+	-- rate on either means the defence is frustrating attackers rather than
+	-- protecting victims, and nothing else would tell us apart.
+	AnalyticsService.report(thief, "snatch_attempted", 1, {
+		blocked_reason = if ok then "none" else classify(reason),
+		rarity = nomling.rarity,
+	})
 
 	if not ok then
 		return false, reason
@@ -293,6 +338,13 @@ function StealService.start()
 		-- The anchor IS the interaction target: it is the only queryable part,
 		-- because the visual parts are built client-side and set CanQuery false.
 		if not anchor:IsA("BasePart") then
+			return
+		end
+		-- No Snatch prompt on a vaulted creature. SnatchRules would refuse it
+		-- anyway, but offering a button that always says no is worse than
+		-- offering none: it reads as the game being broken rather than the
+		-- fridge working. PlotService sets this before decorate runs.
+		if anchor:GetAttribute("Vaulted") == true then
 			return
 		end
 		local prompt = Instance.new("ProximityPrompt")

@@ -38,7 +38,8 @@ logic split into the pure, Lune-tested `src/shared/Logic/Funnel.luau`.
 | ✅ | `fusion_started`, `fusion_completed`, `world_first_claimed` |
 | ✅ | `snatch_succeeded`, `rebirth` |
 | ✅ | `coins_source` / `coins_sink` (offline, egg, belt, rebirth) |
-| ⬜ | `weather_started`, `mutation_gained`, `snatch_attempted`, `snatch_defended` |
+| ✅ | `snatch_attempted` (with `blocked_reason`), `gate_raised` |
+| ⬜ | `weather_started`, `mutation_gained`, `snatch_defended` |
 | ⬜ | everything under §4 monetisation — the features do not exist yet (M3) |
 
 **Three properties the funnel guarantees**, each tested in
@@ -101,12 +102,15 @@ Logged via `AnalyticsService` onboarding funnel, one step per FTUE beat (`docs/G
 | `snatch_attempted` | `blocked_reason` (nil/shield/income_ratio/cooldown/gate/vault) |
 | `snatch_succeeded` | `rarity`, `carry_seconds` |
 | `snatch_defended` | `method` (bubble/gate/timeout) |
+| `gate_raised` | `base_index` |
 | `comeback_egg_granted` | `egg_tier` |
 | `rebirth` | `rebirth_number`, `playtime_seconds`, `coins_at_rebirth` |
 | `quest_completed` | `quest_id`, `quest_type` |
 | `daily_claimed` | `day_index`, `used_grace` |
 | `invite_sent` / `invite_accepted` | `-` / `referrer_present` |
 | `code_redeemed` | `code` |
+
+**`gate_raised` answers whether the Laser Gate is a real decision or a reflex.** The Gate is up 60 s in every 90 (D-025), so a player who simply mashes it whenever it is ready will show a raise rate near the cap with no correlation to `snatch_attempted` on their base. If that is what the data says, the cooldown is doing the deciding rather than the player, and the numbers need to change.
 
 **`snatch_attempted` with `blocked_reason` is deliberately logged on failure.** The fair-play rules are guesses; this is the only way to learn whether they protect people or just frustrate them. A high `income_ratio` block rate means the servers are badly matched, not that the rule works.
 

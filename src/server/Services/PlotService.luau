@@ -27,6 +27,9 @@ local Net = require(Shared:WaitForChild("Net"))
 local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 
 local DataService = require(script.Parent:WaitForChild("DataService"))
+-- NetService only owns the rate limiter and requires nothing back, so this is
+-- safe at the top even though PlotService is required by half the server.
+local NetService = require(script.Parent:WaitForChild("NetService"))
 
 local PlotService = {}
 PlotService.Name = "PlotService"
@@ -95,6 +98,39 @@ local function buildPedestals(plot: Plot)
 		table.insert(plot.pedestals, post)
 	end
 
+	-- THE VAULT, index PEDESTALS_BASE + 1. Against the back wall, behind the
+	-- ring, so reaching it means crossing the whole base -- the same geometry
+	-- rule as the back row of pedestals (GDD 5.3), and it reads as the safest
+	-- spot on the plot before anybody explains what it is.
+	--
+	-- Deliberately NOT a safe, a strongbox or anything with a lock on it. The
+	-- Fusion Lab is a kitchen and the Egg Market is a market stall
+	-- (docs/COMPLIANCE.md 1); this is the fridge.
+	local _, _, side = World.baseCenter(plot.index)
+	local vault = Instance.new("Part")
+	vault.Name = `Pedestal{Economy.VAULT_PEDESTAL}`
+	vault.Anchored = true
+	vault.CanCollide = true
+	vault.Size = Vector3.new(5, PEDESTAL_HEIGHT + 1, 5)
+	vault.CFrame = plot.pad.CFrame
+		* CFrame.new(side * (World.BASE_DEPTH / 2 - 9), (PEDESTAL_HEIGHT + 1) / 2, 0)
+	vault.Color = Style.PALETTE.nomMint
+	vault.Material = Enum.Material.SmoothPlastic
+	vault.TopSurface = Enum.SurfaceType.Smooth
+	vault:SetAttribute("PedestalIndex", Economy.VAULT_PEDESTAL)
+	vault:SetAttribute("IsVault", true)
+	vault.Parent = folder
+	plot.pedestals[Economy.VAULT_PEDESTAL] = vault
+
+	Nameplate.build(vault, {
+		headline = "🛡️ FRIDGE",
+		headlineColor = Style.PALETTE.nomMint,
+		detail = "safe from snatching",
+		detailColor = Style.PALETTE.nomCream,
+		height = PEDESTAL_HEIGHT + 2,
+		maxDistance = 60,
+	})
+
 	folder.Parent = plot.pad
 end
 
@@ -152,6 +188,20 @@ local function buildAnchor(nomling: Profile.Nomling, owner: Player): BasePart
 	store.Enabled = false
 	store.Parent = anchor
 
+	-- THE FRIDGE, and the same owner-only trick. One prompt for both
+	-- directions: the server decides whether this creature is going in or
+	-- coming out, because it is the only one that knows where it currently is.
+	-- The client relabels it (NomlingRenderController) once it can see.
+	local vault = Instance.new("ProximityPrompt")
+	vault.Name = "Vault"
+	vault.ActionText = "Into the fridge"
+	vault.ObjectText = `{nomling.snack} {nomling.animal}`
+	vault.HoldDuration = 0
+	vault.MaxActivationDistance = 12
+	vault.RequiresLineOfSight = false
+	vault.Enabled = false
+	vault.Parent = anchor
+
 	return anchor
 end
 
@@ -171,6 +221,69 @@ function PlotService.store(player: Player, nomlingId: unknown): (boolean, string
 	Profile.unplace(data, pedestal)
 	PlotService.render(player)
 	return true, nil
+end
+
+--- Moves one of your own Nomlings into the Vault, or back out of it onto the
+--- first free ordinary pedestal. Returns ok, reason.
+---
+--- ONE CALL FOR BOTH DIRECTIONS on purpose: it is one button in the world, and
+--- "vault this" / "un-vault this" as separate remotes would be two chances for
+--- the client to ask for the wrong one. Which way it goes is decided here, from
+--- where the creature actually is.
+---
+--- The client never names a pedestal index. Which slot is the Vault is exactly
+--- the thing a client would like to be wrong about.
+function PlotService.vault(player: Player, nomlingId: unknown): (boolean, string?)
+	if not NetService.allow(player, "VaultNomling") then
+		return false, "One at a time!"
+	end
+	if type(nomlingId) ~= "string" then
+		return false, "That Nomling is not there."
+	end
+	local data = DataService.get(player)
+	if not data then
+		return false, "Still loading -- try again in a second."
+	end
+	-- OWNERSHIP. findNomling searches THIS player's profile, so a client naming
+	-- somebody else's creature simply does not find one.
+	if not Profile.findNomling(data, nomlingId) then
+		return false, "That one is not yours."
+	end
+
+	local at = Profile.pedestalOf(data, nomlingId)
+
+	if at == Economy.VAULT_PEDESTAL then
+		local free = PlotService.firstFreePedestal(data)
+		if not free then
+			return false, "No free pedestal to move it to."
+		end
+		Profile.unplace(data, Economy.VAULT_PEDESTAL)
+		Profile.place(data, nomlingId, free, Economy.PEDESTALS_TOTAL)
+		PlotService.render(player)
+		return true, "Out of the fridge — it can earn and mutate again."
+	end
+
+	if data.pedestals[tostring(Economy.VAULT_PEDESTAL)] then
+		return false, "The fridge is full — take that one out first."
+	end
+
+	-- Off its current pedestal first, or place() refuses: a Nomling cannot be
+	-- in two places, and the Vault is a pedestal like any other.
+	if at then
+		Profile.unplace(data, at)
+	end
+	local ok, reason =
+		Profile.place(data, nomlingId, Economy.VAULT_PEDESTAL, Economy.PEDESTALS_TOTAL)
+	if not ok then
+		-- Put it back where it was rather than leaving it in limbo.
+		if at then
+			Profile.place(data, nomlingId, at, Economy.PEDESTALS_TOTAL)
+		end
+		return false, reason
+	end
+
+	PlotService.render(player)
+	return true, "In the fridge — safe, but it stops earning."
 end
 
 function PlotService.plotAt(x: number, z: number): Plot?
@@ -229,8 +342,13 @@ function PlotService.render(player: Player)
 			continue
 		end
 		local anchor = buildAnchor(nomling, player)
-		anchor.CFrame = pedestal.CFrame * CFrame.new(0, PEDESTAL_HEIGHT / 2 + 0.1, 0)
+		-- The pedestal's OWN height, not the constant. The Vault is taller than
+		-- an ordinary pedestal, and a fixed offset would bury its occupant.
+		anchor.CFrame = pedestal.CFrame * CFrame.new(0, pedestal.Size.Y / 2 + 0.1, 0)
 		anchor.Parent = plot.pad
+		-- Set BEFORE decorate, because decorate is what attaches the Snatch
+		-- prompt and it needs to know not to offer one here.
+		anchor:SetAttribute("Vaulted", index == Economy.VAULT_PEDESTAL)
 		plot.models[nomlingId] = anchor :: any
 		if decorate then
 			-- `-> any` widens the callee's return purely so the error value can be
@@ -350,6 +468,11 @@ function PlotService.init()
 	local remote = Net.get("StoreNomling") :: RemoteFunction
 	remote.OnServerInvoke = function(player, nomlingId)
 		return PlotService.store(player, nomlingId)
+	end
+
+	local vaultRemote = Net.get("VaultNomling") :: RemoteFunction
+	vaultRemote.OnServerInvoke = function(player, nomlingId)
+		return PlotService.vault(player, nomlingId)
 	end
 end
 

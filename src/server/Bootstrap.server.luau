@@ -29,6 +29,9 @@ local SERVICE_ORDER = {
 	-- so they must all run before DataService's.
 	"FeedbackService",
 	"PlotService",
+	-- After PlotService, whose plots it keys its gates by, and before
+	-- StealService and SnatchNpcService, which ask it whether a base is locked.
+	"GateService",
 	"EggService",
 	"ConveyorService",
 	"BookService",
