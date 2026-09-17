@@ -19,7 +19,12 @@
 # are cached for about a week, so this is a cold-start cost only.
 #
 # luau-lsp is NOT installable here -- it is a C++ project with no crates.io
-# package. Typechecking is CI-only. See docs/DECISIONS.md D-014.
+# package, and GitHub release downloads are blocked by the egress proxy.
+#
+# It is NOT in CI either, despite what D-014 claimed for a week. Nothing in this
+# project typechecks Luau today; the --!strict headers are unenforced. That gap
+# shipped a base-assignment bug to a playtester (DECISIONS.md D-014 correction).
+# Adding the CI job is proposed as D-023 and waiting on Philip.
 
 set -euo pipefail
 
@@ -83,4 +88,4 @@ for t in stylua selene lune rojo wally; do
   fi
 done
 
-echo "==> Note: luau-lsp is unavailable here by design; typecheck runs in CI."
+echo "==> Note: luau-lsp is unavailable here, and there is no typecheck in CI either (D-023)."

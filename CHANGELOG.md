@@ -4,6 +4,52 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### Every base was empty, and one number is why · 2026-09-17
+
+**Fixed: no player, on any server, was ever assigned a base.** Philip reported it
+three times, each report sharper than the last — first "I don't seem to get a
+base", then "I still don't get assigned a base", finally the one that solved it:
+*"all bases are labelled as empty base."* Not his base. All of them. That is not a
+player being unlucky, it is a server where assignment never ran once.
+
+It was one argument. `buildPedestals` called `pedestalPositions(plot.index)` where
+the function takes `pad: BasePart`. Indexing a number throws, the throw happened on
+the **first** base, and it aborted the discovery loop before a single plot was
+registered — so `plots` stayed empty, `assign()` had nothing to hand out, and every
+sign kept the "EMPTY BASE" text it was built with. The line was introduced four
+commits ago in the street rebuild (`65d722c`), where `plot.pad` became `plot.index`.
+
+**Nothing in this project typechecks Luau.** Every file says `--!strict`; no tool
+reads it. `DECISIONS.md` D-014 claimed CI covered it — the job was never written.
+So a plain argument-type error passed formatting, linting, 142 unit tests, economy
+parity, the kid-safe gate and the Rojo build, published to TEST, and cost Philip
+two playtests. D-014 is corrected in place and D-023 proposes the CI job; it adds a
+tool, so it is a question for Philip rather than a commit.
+
+Three structural changes so the next mistake of this shape is survivable:
+
+- **A plot is registered before its pedestals are built**, and the build is
+  pcall'd. A throw now costs one base its pedestals instead of costing every
+  player on the server their home.
+- **Subscribing to a profile is also a delivery.** `DataService` connects
+  `PlayerAdded` in `init()`, services subscribe in `start()`, and every `init()`
+  runs before any `start()` — so a player who joined during boot loaded against a
+  callback list that was empty, and no service ever heard about them. The new
+  `Subscribers` registry replays every profile already loaded to whoever subscribes
+  next, in arrival order. This was a second, independent cause of exactly the same
+  symptom, and it was live.
+- **A profile cannot be delivered twice.** `load()` is reachable from both the
+  `PlayerAdded` connection and `start()`'s sweep, and the DataStore call between
+  them yields for a second or more — long enough for both to be in flight. That
+  handed one player two bases and left two respawn handlers arguing. Guarded at the
+  load, and `assign()` is idempotent as well.
+
+`Subscribers` is engine-free under `src/shared/Logic/`, so the ordering properties
+that are impossible to reproduce by hand in a live server are covered by six unit
+tests: late subscriber caught up, replay in arrival order, a forgotten key not
+replayed, no duplicate on re-publish, and one broken listener not stopping the
+rest. 142 tests pass.
+
 ### Sound, a working key, and a test that had never run · 2026-09-17
 
 **The game has sound.** The theme and all seven effects are uploaded, live, and

@@ -32,7 +32,9 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Economy = require(Shared:WaitForChild("Config"):WaitForChild("Economy"))
-local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
+local Logic = Shared:WaitForChild("Logic")
+local Profile = require(Logic:WaitForChild("Profile"))
+local Subscribers = require(Logic:WaitForChild("Subscribers"))
 
 local DataService = {}
 DataService.Name = "DataService"
@@ -160,27 +162,67 @@ function DataService.save(player: Player, release: boolean?): boolean
 	return write(player.UserId, session.data, release == true)
 end
 
-local onLoaded: { (Player, Profile.Data) -> () } = {}
+local loaded: Subscribers.Registry<Player, Profile.Data> = Subscribers.new()
+
+--- Runs one subscriber. A service that throws in here must not stop the
+--- services behind it -- that is how one bad callback used to cost a player
+--- their base.
+local function deliver(fn: (Player, Profile.Data) -> (), player: Player, data: Profile.Data)
+	local ok, err = pcall(fn, player, data)
+	if not ok then
+		warn(`[DataService] onLoaded callback failed for {player.Name}: {err}`)
+	end
+end
 
 --- Registers a callback for "this player's profile is ready". Services that
 --- need the profile subscribe rather than polling, so the order they start in
---- does not matter.
+--- does not matter -- and it really does not: subscribing late replays every
+--- profile that already loaded, including players who joined during boot.
 function DataService.onLoaded(fn: (Player, Profile.Data) -> ())
-	table.insert(onLoaded, fn)
+	Subscribers.subscribe(loaded, fn, deliver)
 end
 
+--- Players whose profile is being fetched right now. Two paths call load():
+--- the PlayerAdded connection from init(), and start()'s sweep of players who
+--- were already here. acquire() yields on the DataStore for a second or more,
+--- and `sessions[player]` is only set after it returns -- so without this both
+--- paths can be in flight at once, fire onLoaded twice, and hand the player two
+--- bases.
+local loading: { [Player]: boolean } = {}
+
 local function load(player: Player)
+	if sessions[player] or loading[player] then
+		return
+	end
+	loading[player] = true
 	local data = acquire(player.UserId)
+	loading[player] = nil
+
+	local left = player.Parent == nil
 
 	if not data then
 		-- Someone else holds the lock, or the DataStore is down. Kicking is the
 		-- honest outcome: letting them play on a profile we cannot save means
 		-- they lose whatever they do next, which is far worse than a message
 		-- asking them to rejoin.
-		player:Kick(
-			"Your Nomlings are still packing up from another server.\n"
-				.. "Please rejoin in a moment -- nothing has been lost."
-		)
+		if not left then
+			player:Kick(
+				"Your Nomlings are still packing up from another server.\n"
+					.. "Please rejoin in a moment -- nothing has been lost."
+			)
+		end
+		return
+	end
+
+	if left then
+		-- They left while the DataStore was answering, so PlayerRemoving has
+		-- already been and gone -- unload() found no session and did nothing.
+		-- RELEASE THE LOCK HERE or nobody does: acquire() took it a moment ago,
+		-- and a lock nothing drops keeps them out of their own save on the next
+		-- server for LOCK_STALE_SECONDS. Registering a session would be worse
+		-- still -- it would publish a profile nobody can use and leave it in the
+		-- replay list for every service that subscribes afterwards.
+		write(player.UserId, data, true)
 		return
 	end
 
@@ -201,12 +243,7 @@ local function load(player: Player)
 	end
 
 	sessions[player] = { data = data, active = true, lastSave = os.clock() }
-	for _, fn in onLoaded do
-		local ok, err = pcall(fn, player, data)
-		if not ok then
-			warn(`[DataService] onLoaded callback failed for {player.Name}: {err}`)
-		end
-	end
+	Subscribers.publish(loaded, player, data, deliver)
 end
 
 local function unload(player: Player)
@@ -215,6 +252,7 @@ local function unload(player: Player)
 		return
 	end
 	session.active = false
+	Subscribers.forget(loaded, player)
 	write(player.UserId, session.data, true)
 	sessions[player] = nil
 end
@@ -224,6 +262,7 @@ function DataService.init()
 		task.spawn(load, player)
 	end)
 	Players.PlayerRemoving:Connect(function(player)
+		loading[player] = nil
 		task.spawn(unload, player)
 	end)
 end

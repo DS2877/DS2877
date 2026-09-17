@@ -1,7 +1,7 @@
 # PHILIP-TODO
 
 Things only Philip can do. Claude keeps this current (brief §12, §11.11).
-Last updated: 2026-09-17 (API key scopes granted — **the game has sound**, all 8 assets uploaded and live; cloud smoke test runs and passes 25/25).
+Last updated: 2026-09-17 (bases fixed — the "EMPTY BASE" bug was a one-line type error; **new question for you in §14**).
 
 **Status key:** ⬜ not started · 🟡 in progress · ✅ done · ⏸️ not needed yet
 
@@ -108,6 +108,22 @@ Roblox earnings are taxable in Sweden. Talk to Skatteverket or an accountant onc
 - Approve releases.
 - Send phone screenshots whenever something looks wrong — with no Studio, that is Claude's only view of the game.
 - *Optional:* an hour at the computer with Studio open, if you ever get one. Not assumed by the plan.
+
+---
+
+## Decisions for you
+
+### ⬜ 14. May I add a typecheck job to CI? (one-word answer, costs nothing)
+
+**The problem.** Nothing in this project checks Luau types. Every file starts with `--!strict` and no tool ever reads it. `docs/DECISIONS.md` D-014 said "typecheck runs in CI" — it never did; the job was never written.
+
+**What it cost you.** The "no base, every sign says EMPTY BASE" bug you hit twice was one line: a function wanted a base *pad* and was handed a *number*. That is exactly the error a typechecker prints in a second. Instead it passed formatting, linting, 142 unit tests, parity, the kid-safe gate and the Rojo build, shipped to TEST, and ate two of your playtests.
+
+**What I want to add.** One job in `.github/workflows/ci.yml` that downloads `luau-lsp` (Roblox's own analyser) and runs it over `src` and `tests`. It is free, open-source and maintained by the Roblox community. It runs on GitHub's machines, not yours.
+
+**Why I am asking rather than doing it.** CLAUDE.md: don't add a dependency without asking. This is a new tool in the build, so it is your call.
+
+**Reply "yes, add the typecheck" and it lands in the next push.** I cannot run it in my own sessions (the sandbox blocks GitHub release downloads, which is genuinely why it was skipped), so it would be a push-then-read-the-result loop for me — still far better than a playtester finding it.
 
 ---
 

@@ -37,10 +37,20 @@ Platform facts with source URLs and check dates live in `docs/VERIFY.md`.
 **Decision.** `wally.toml` declares no dependencies. React-Lua and ProfileStore — both approved — land in M1.
 **Why.** Publishing an empty plaza needs neither, and adding them now would put the Wally registry's reachability on the critical path for the first deploy. One risk at a time.
 
+### D-023 · Typechecking is a gap, not a plan — proposal open with Philip
+**Problem.** D-014 assumed CI typechecks. It does not (see the correction there). A plain argument-type error reached a playtester.
+**Proposed.** Add a `typecheck` job to `.github/workflows/ci.yml` that downloads the `luau-lsp` release binary and runs `luau-lsp analyze --settings .luaurc --definitions globalTypes.d.luau src tests`. GitHub Actions runners can reach GitHub releases; only the cloud sandbox's egress proxy cannot, so this works in CI even though it cannot work in a Claude session.
+**Blocked on Philip** — a new tool in CI is a dependency, and CLAUDE.md says ask first. `docs/PHILIP-TODO.md` §14.
+**Interim mitigation, already shipped.** Structural work no longer depends on decorative work succeeding: `discoverPlots()` registers each plot *before* building its pedestals and pcalls the build, so a throw costs one base its pedestals instead of costing the whole server its bases.
+**Reversal condition.** If `luau-lsp analyze` proves too noisy on this codebase to gate a push, downgrade it to a non-blocking annotation job rather than deleting it — a warning that is read beats a check that is not there.
+
 ### D-014 · Typechecking is CI-only
 **Decision.** No `luau-lsp` in cloud sessions. Cloud gets format, lint, unit tests and parity; CI adds typecheck.
 **Why.** Confirmed by experiment: `luau-lsp` is not published to crates.io (it is a C++ project released as GitHub binaries), and GitHub release downloads are blocked by the egress proxy. Committing a ~30 MB binary to git was the alternative and is worse.
 **Cost.** Type errors surface in CI rather than before the push. Acceptable — CI is fast and the inner loop still catches most problems.
+
+> ⚠️ **Correction, 2026-09-17: the second half of this was never built.** `.github/workflows/ci.yml` has no typecheck job. Nothing, anywhere, typechecks this repo — the `--!strict` headers are decoration. It cost a real bug: `PlotService` passed `plot.index` (a number) to `pedestalPositions(pad: BasePart)` for four commits. Indexing a number threw on the first base, `plots` stayed empty, and **no player on any server was ever assigned a base** — every sign read "EMPTY BASE" and a playtester lost two sessions to it. Format, lint, 142 unit tests, parity, kid-safe and the Rojo build all passed on that code, because none of them look at types.
+> **Superseded by D-023.**
 
 ### D-014a · Toolchain timings, measured
 Cold `cargo install` on a 4-core runner, measured twice: **440 s** and **573 s** total (7–10 min) — over the brief's ~5-minute setup budget either way. Per-tool on the faster run: stylua 44 s, selene 54 s, wally 69 s, rojo 101 s, lune 172 s. `scripts/setup-cloud.sh` therefore installs in priority order (format, lint, tests, then build, then packages) so a truncated run still leaves the important tools. Results cache for about a week.

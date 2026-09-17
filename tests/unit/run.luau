@@ -28,5 +28,6 @@ require("./weather.spec")
 require("./hud.spec")
 require("./visual.spec")
 require("./funnel.spec")
+require("./subscribers.spec")
 
 process.exit(h.report())

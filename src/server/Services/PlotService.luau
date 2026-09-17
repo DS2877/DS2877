@@ -73,7 +73,14 @@ local function buildPedestals(plot: Plot)
 	local folder = Instance.new("Folder")
 	folder.Name = `Pedestals_{plot.index}`
 
-	for i, cframe in pedestalPositions(plot.index) do
+	-- plot.pad, NOT plot.index. It was the index for four commits, and indexing a
+	-- number threw on the very first base -- which aborted discoverPlots() before
+	-- it registered a single plot, so `plots` stayed empty and NOBODY on the
+	-- server was ever given a base. Every sign read "EMPTY BASE" because every
+	-- base genuinely was. Nothing in CI typechecks Luau, so a plain
+	-- argument-type error walked through lint, tests and the Rojo build
+	-- untouched -- see docs/PHILIP-TODO.md.
+	for i, cframe in pedestalPositions(plot.pad) do
 		local post = Instance.new("Part")
 		post.Name = `Pedestal{i}`
 		post.Anchored = true
@@ -281,6 +288,16 @@ local function moveToBase(player: Player, plot: Plot)
 end
 
 local function assign(player: Player)
+	-- Already housed. Two paths can deliver the same profile: DataService
+	-- connects PlayerAdded in init() and also sweeps Players:GetPlayers() in
+	-- start(), and a subscriber registered after a load is replayed. Without this
+	-- guard a double delivery hands one player two bases, taking one away from
+	-- somebody else and leaving two CharacterAdded handlers fighting over where
+	-- they respawn.
+	if PlotService.plotFor(player) then
+		return
+	end
+
 	for _, plot in plots do
 		if not plot.owner then
 			plot.owner = player
@@ -359,8 +376,15 @@ local function discoverPlots(): boolean
 		local pad = base and base:FindFirstChild("Pad")
 		if pad and pad:IsA("BasePart") then
 			local plot: Plot = { index = i, pad = pad, owner = nil, pedestals = {}, models = {} }
-			buildPedestals(plot)
+			-- The plot is registered BEFORE its pedestals are built, and building
+			-- them cannot abort the loop. A base you can stand on with no pedestals
+			-- is a bad afternoon; a street with no bases at all is an unplayable
+			-- server, and that is what the ordering here used to produce.
 			table.insert(plots, plot)
+			local ok, err = pcall(buildPedestals, plot)
+			if not ok then
+				warn(`[PlotService] Base{i} has no pedestals: {err}`)
+			end
 		end
 	end
 	return #plots > 0
