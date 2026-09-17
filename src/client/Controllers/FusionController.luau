@@ -31,6 +31,7 @@ local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 local Style = require(Shared:WaitForChild("Style"))
 
 local AudioController = require(script.Parent:WaitForChild("AudioController"))
+local BaseHudController = require(script.Parent:WaitForChild("BaseHudController"))
 local JuiceController = require(script.Parent:WaitForChild("JuiceController"))
 
 local FusionController = {}
@@ -307,29 +308,9 @@ local function build()
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Parent = player:WaitForChild("PlayerGui")
 
-	-- The FUSE button sits above the egg button, left of centre so it never
-	-- lands under a thumb reaching for Buy.
-	fuseButton = Instance.new("TextButton")
-	fuseButton.Name = "Fuse"
-	fuseButton.AnchorPoint = Vector2.new(0, 1)
-	fuseButton.Position = UDim2.new(0, 14, 1, -20)
-	fuseButton.Size = UDim2.new(0, 116, 0, 70)
-	fuseButton.BackgroundColor3 = Style.PALETTE.nomMint
-	fuseButton.BorderSizePixel = 0
-	fuseButton.Text = ""
-	fuseButton.AutoButtonColor = false
-	fuseButton.ZIndex = 5
-	fuseButton.Parent = gui
-	corner(fuseButton, 20)
-
-	fuseLabel = Instance.new("TextLabel")
-	fuseLabel.Size = UDim2.fromScale(1, 1)
-	fuseLabel.BackgroundTransparency = 1
-	fuseLabel.Font = Enum.Font.FredokaOne
-	fuseLabel.TextScaled = true
-	fuseLabel.TextColor3 = Style.PALETTE.ink
-	fuseLabel.Text = "🧪 FUSE"
-	fuseLabel.Parent = fuseButton
+	-- The FUSE button lives in the HUD's bottom bar, so exactly one module
+	-- decides the bottom-of-screen layout and the three buttons cannot collide.
+	fuseButton, fuseLabel = BaseHudController.fuseButton()
 
 	-- --- picker ---
 	picker = Instance.new("Frame")

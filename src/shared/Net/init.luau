@@ -105,6 +105,19 @@ local REMOTES: { [string]: RemoteSpec } = {
 		description = "Buys a Nomling off the delivery belt. Returns ok, reason.",
 	},
 
+	--- Client -> server. Fires the Bubble Wand.
+	--- The client says "I pressed it"; the server decides who is in range and
+	--- what happens. A client that could name its target could bubble anybody
+	--- on the street from anywhere.
+	Bubble = {
+		name = "Bubble",
+		kind = "function",
+		direction = "clientToServer",
+		rateCapacity = 3,
+		rateRefill = 0.34,
+		description = "Fires the Bubble Wand at the nearest carrier. Returns ok, reason.",
+	},
+
 	--- Client -> server. Starts a fusion from two owned Nomling ids.
 	--- The client names two things it owns; the server decides everything
 	--- about what comes out.

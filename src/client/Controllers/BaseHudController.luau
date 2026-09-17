@@ -47,6 +47,10 @@ local rateLabel: TextLabel
 local eggButton: TextButton
 local eggLabel: TextLabel
 local eggPrice: TextLabel
+local fuseButton: TextButton
+local fuseLabel: TextLabel
+local bubbleButton: TextButton
+local bubbleLabel: TextLabel
 local toast: Frame
 local toastLabel: TextLabel
 local slots: { { button: TextButton, label: TextLabel, fill: Frame } } = {}
@@ -187,7 +191,7 @@ local function build()
 	local tray = Instance.new("Frame")
 	tray.Name = "Incubators"
 	tray.AnchorPoint = Vector2.new(0.5, 1)
-	tray.Position = UDim2.new(0.5, 0, 1, -96)
+	tray.Position = UDim2.new(0.5, 0, 1, -100)
 	tray.Size = UDim2.new(0, 320, 0, TOUCH_MIN)
 	tray.BackgroundTransparency = 1
 	tray.ZIndex = 4
@@ -246,31 +250,73 @@ local function build()
 		end)
 	end
 
-	-- --- buy egg ---
-	eggButton = Instance.new("TextButton")
-	eggButton.Name = "BuyEgg"
-	eggButton.AnchorPoint = Vector2.new(0.5, 1)
-	eggButton.Position = UDim2.new(0.5, 0, 1, -20)
-	eggButton.Size = UDim2.new(0, 320, 0, 70)
-	eggButton.BackgroundColor3 = Style.PALETTE.nomOrange
-	eggButton.BorderSizePixel = 0
-	eggButton.Text = ""
-	eggButton.AutoButtonColor = false
-	eggButton.ZIndex = 4
-	eggButton.Parent = gui
-	corner(eggButton, 20)
-	gradient(eggButton, Color3.fromRGB(255, 176, 98), Color3.fromRGB(240, 128, 44))
-	stroke(eggButton, Color3.fromRGB(186, 88, 24), 2, 0.3)
-	shadow(eggButton, 5)
+	-- --- bottom bar ---
+	-- Three buttons in ONE row with proportional widths. An earlier version
+	-- anchored FUSE and Buy Egg to the bottom independently, and on a 390-point
+	-- phone screen they overlapped -- a 320-wide centred button leaves 35 points
+	-- either side and FUSE was 116 wide at x=14. A row cannot do that at any
+	-- width, which is the point of using one.
+	local bar = Instance.new("Frame")
+	bar.Name = "BottomBar"
+	bar.AnchorPoint = Vector2.new(0.5, 1)
+	bar.Position = UDim2.new(0.5, 0, 1, -18)
+	bar.Size = UDim2.new(1, -28, 0, 72)
+	bar.BackgroundTransparency = 1
+	bar.ZIndex = 4
+	bar.Parent = gui
 
+	local barLayout = Instance.new("UIListLayout")
+	barLayout.FillDirection = Enum.FillDirection.Horizontal
+	barLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	barLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	barLayout.Padding = UDim.new(0, 8)
+	barLayout.Parent = bar
+
+	local function barButton(name: string, widthScale: number, fill: Color3): TextButton
+		local button = Instance.new("TextButton")
+		button.Name = name
+		-- Scale widths minus the gaps, so the row always fits exactly.
+		button.Size = UDim2.new(widthScale, -6, 1, 0)
+		button.BackgroundColor3 = fill
+		button.BorderSizePixel = 0
+		button.Text = ""
+		button.AutoButtonColor = false
+		button.Parent = bar
+		corner(button, 20)
+		stroke(button, Style.PALETTE.nomCocoa, 1.5, 0.6)
+		return button
+	end
+
+	fuseButton = barButton("Fuse", 0.26, Style.PALETTE.nomMint)
+	fuseLabel = Instance.new("TextLabel")
+	fuseLabel.Size = UDim2.fromScale(1, 1)
+	fuseLabel.BackgroundTransparency = 1
+	fuseLabel.Font = Enum.Font.FredokaOne
+	fuseLabel.TextScaled = true
+	fuseLabel.TextColor3 = Style.PALETTE.ink
+	fuseLabel.Text = "🧪 FUSE"
+	fuseLabel.Parent = fuseButton
+
+	eggButton = barButton("BuyEgg", 0.46, Style.PALETTE.nomOrange)
+	gradient(eggButton, Color3.fromRGB(255, 176, 98), Color3.fromRGB(240, 128, 44))
 	eggLabel =
-		label(eggButton, Enum.Font.FredokaOne, UDim2.new(1, -24, 0, 30), UDim2.new(0, 18, 0, 10))
+		label(eggButton, Enum.Font.FredokaOne, UDim2.new(1, -16, 0, 28), UDim2.new(0, 12, 0, 10))
 	eggLabel.TextColor3 = Style.PALETTE.nomCream
 	eggLabel.Text = "Buy Egg"
 	eggPrice =
-		label(eggButton, Enum.Font.GothamBold, UDim2.new(1, -24, 0, 20), UDim2.new(0, 18, 0, 40))
+		label(eggButton, Enum.Font.GothamBold, UDim2.new(1, -16, 0, 20), UDim2.new(0, 12, 0, 40))
 	eggPrice.TextColor3 = Color3.fromRGB(255, 240, 220)
 	eggPrice.Text = ""
+
+	bubbleButton = barButton("Bubble", 0.26, Style.PALETTE.nomBlue)
+	bubbleLabel = Instance.new("TextLabel")
+	bubbleLabel.Size = UDim2.fromScale(1, 1)
+	bubbleLabel.BackgroundTransparency = 1
+	bubbleLabel.Font = Enum.Font.FredokaOne
+	bubbleLabel.TextScaled = true
+	bubbleLabel.TextColor3 = Style.PALETTE.nomCream
+	bubbleLabel.Text = "🫧"
+	bubbleLabel.Parent = bubbleButton
 
 	eggButton.Activated:Connect(function()
 		local remote = Net.get("BuyEgg") :: RemoteFunction
@@ -282,11 +328,21 @@ local function build()
 		end
 	end)
 
+	bubbleButton.Activated:Connect(function()
+		local remote = Net.get("Bubble") :: RemoteFunction
+		local ok, reason = remote:InvokeServer()
+		if ok then
+			JuiceController.pop(bubbleButton, 0.24)
+		elseif reason then
+			showToast(reason)
+		end
+	end)
+
 	-- --- toast ---
 	toast = Instance.new("Frame")
 	toast.Name = "Toast"
 	toast.AnchorPoint = Vector2.new(0.5, 1)
-	toast.Position = UDim2.new(0.5, 0, 1, -176)
+	toast.Position = UDim2.new(0.5, 0, 1, -178)
 	toast.Size = UDim2.new(0, 320, 0, 46)
 	toast.BackgroundColor3 = Style.PALETTE.ink
 	toast.BackgroundTransparency = 0.08
@@ -364,6 +420,16 @@ local function refresh(delta: number)
 			slot.fill.BackgroundColor3 = Color3.fromRGB(150, 232, 206)
 		end
 	end
+end
+
+--- The fusion controller owns the picker and the reveal, but the bar lives
+--- here so there is exactly one thing deciding the bottom-of-screen layout.
+function BaseHudController.fuseButton(): (TextButton, TextLabel)
+	return fuseButton, fuseLabel
+end
+
+function BaseHudController.toast(message: string)
+	showToast(message)
 end
 
 function BaseHudController.start()

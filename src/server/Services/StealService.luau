@@ -229,6 +229,39 @@ function StealService.attempt(thief: Player, victim: Player, nomlingId: string):
 	return true, nil
 end
 
+--- Bubbles the nearest PLAYER carrier to a position. Returns ok, reason.
+--- Mirrors SnatchNpcService.bubbleNear so BubbleService can try both without
+--- caring which kind of thief it found.
+function StealService.bubbleNear(position: Vector3, firedBy: Player): (boolean, string?)
+	local best: Carry? = nil
+	local bestDistance = Snatch.BUBBLE_RANGE
+	for thief, carry in carrying do
+		-- You cannot bubble yourself out of a carry you started; putting it down
+		-- is what walking home is for.
+		if thief == firedBy then
+			continue
+		end
+		local character = thief.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if not root or not root:IsA("BasePart") then
+			continue
+		end
+		local distance = (root.Position - position).Magnitude
+		if distance <= bestDistance then
+			best = carry
+			bestDistance = distance
+		end
+	end
+	if not best then
+		return false, nil
+	end
+	local carry = best :: Carry
+	returnHome(carry, "Bubbled! You dropped it. 🫧")
+	notify(carry.victim, "Someone bubbled the thief — your Nomling is home! 🫧")
+	FeedbackService.fire(carry.victim, "purchase", position, { rarity = carry.nomling.rarity })
+	return true, nil
+end
+
 function StealService.start()
 	-- Offer a snatch prompt on every rendered Nomling. The prompt is created
 	-- for everyone and filtered per player by the server when triggered, so a
