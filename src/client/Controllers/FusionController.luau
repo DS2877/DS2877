@@ -33,6 +33,7 @@ local Style = require(Shared:WaitForChild("Style"))
 local AudioController = require(script.Parent:WaitForChild("AudioController"))
 local BaseHudController = require(script.Parent:WaitForChild("BaseHudController"))
 local JuiceController = require(script.Parent:WaitForChild("JuiceController"))
+local ShopController = require(script.Parent:WaitForChild("ShopController"))
 
 local FusionController = {}
 FusionController.Name = "FusionController"
@@ -367,6 +368,28 @@ local function build()
 	confirmButton.Visible = false
 	confirmButton.Parent = picker
 	corner(confirmButton, 16)
+
+	-- FUSION IS A PAID RANDOM ITEM. Roblox's own example of a "combination
+	-- item" is synthesising two rare eggs for a better chance at a higher-quality
+	-- result, which is exactly this -- so its outcome odds must be disclosed the
+	-- same way an egg's are, behind a button carrying a descriptive word rather
+	-- than a bare icon. docs/COMPLIANCE.md 2.
+	local odds = Instance.new("TextButton")
+	odds.Name = "Odds"
+	odds.AnchorPoint = Vector2.new(1, 0)
+	odds.Position = UDim2.new(1, -64, 0, 16)
+	odds.Size = UDim2.fromOffset(74, 36)
+	odds.BackgroundColor3 = Style.PALETTE.nomBlue
+	odds.BorderSizePixel = 0
+	odds.Font = Enum.Font.GothamBold
+	odds.TextScaled = true
+	odds.TextColor3 = Style.PALETTE.nomCream
+	odds.Text = "Odds"
+	odds.Parent = picker
+	corner(odds, 10)
+	odds.Activated:Connect(function()
+		ShopController.showFusionOdds()
+	end)
 
 	local close = Instance.new("TextButton")
 	close.AnchorPoint = Vector2.new(1, 0)

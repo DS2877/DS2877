@@ -20,6 +20,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
 local Style = require(Shared:WaitForChild("Style"))
 
+local BaseHudController = require(script.Parent:WaitForChild("BaseHudController"))
+
 local TutorialController = {}
 TutorialController.Name = "TutorialController"
 
@@ -124,20 +126,17 @@ local function build()
 	bannerText.Parent = banner
 
 	-- A help button that is always there, because the banner eventually goes
-	-- away and a player who forgets has nowhere else to look.
-	local help = Instance.new("TextButton")
-	help.Name = "Help"
-	help.AnchorPoint = Vector2.new(1, 0)
-	help.Position = UDim2.new(1, -12, 0, 12)
-	help.Size = UDim2.new(0, 56, 0, 56)
-	help.BackgroundColor3 = Style.PALETTE.nomPink
-	help.BorderSizePixel = 0
-	help.Font = Enum.Font.FredokaOne
-	help.TextScaled = true
-	help.TextColor3 = Style.PALETTE.nomCream
-	help.Text = "?"
-	help.Parent = gui
-	corner(help, 28)
+	-- away and a player who forgets has nowhere else to look. It lives on the
+	-- HUD's rail so the right-edge stack cannot collide at any screen size.
+	local help = BaseHudController.railButton("Help", 10, Style.PALETTE.nomPink)
+	local helpLabel = Instance.new("TextLabel")
+	helpLabel.Size = UDim2.fromScale(1, 1)
+	helpLabel.BackgroundTransparency = 1
+	helpLabel.Font = Enum.Font.FredokaOne
+	helpLabel.TextScaled = true
+	helpLabel.TextColor3 = Style.PALETTE.nomCream
+	helpLabel.Text = "?"
+	helpLabel.Parent = help
 
 	helpPanel = Instance.new("Frame")
 	helpPanel.Name = "HelpPanel"

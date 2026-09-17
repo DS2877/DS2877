@@ -26,6 +26,7 @@ local Net = require(Shared:WaitForChild("Net"))
 local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 local Style = require(Shared:WaitForChild("Style"))
 
+local BaseHudController = require(script.Parent:WaitForChild("BaseHudController"))
 local JuiceController = require(script.Parent:WaitForChild("JuiceController"))
 
 local BookController = {}
@@ -124,19 +125,15 @@ local function build()
 	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
 	gui.Parent = player:WaitForChild("PlayerGui")
 
-	local open = Instance.new("TextButton")
-	open.Name = "OpenBook"
-	open.AnchorPoint = Vector2.new(1, 0)
-	open.Position = UDim2.new(1, -12, 0, 140)
-	open.Size = UDim2.fromOffset(56, 56)
-	open.BackgroundColor3 = Style.PALETTE.nomMint
-	open.BorderSizePixel = 0
-	open.Font = Enum.Font.FredokaOne
-	open.TextScaled = true
-	open.TextColor3 = Style.PALETTE.ink
-	open.Text = "📖"
-	open.Parent = gui
-	corner(open, 28)
+	local open = BaseHudController.railButton("OpenBook", 30, Style.PALETTE.nomMint)
+	local openLabel = Instance.new("TextLabel")
+	openLabel.Size = UDim2.fromScale(1, 1)
+	openLabel.BackgroundTransparency = 1
+	openLabel.Font = Enum.Font.FredokaOne
+	openLabel.TextScaled = true
+	openLabel.TextColor3 = Style.PALETTE.ink
+	openLabel.Text = "📖"
+	openLabel.Parent = open
 
 	panel = Instance.new("Frame")
 	panel.Name = "Book"

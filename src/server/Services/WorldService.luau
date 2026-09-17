@@ -469,14 +469,27 @@ local function buildLandmark(parent: Instance, name: string, z: number, facing: 
 		}, model)
 	end
 
-	-- The counter you walk up to.
-	part({
+	-- The counter you walk up to. It carries a prompt, because a landmark you
+	-- can walk into and that does nothing reads as unfinished -- and a child
+	-- WILL walk up to the big building with the sign on it.
+	local counter = part({
 		Name = "Counter",
 		Size = Vector3.new(width * 0.7, 4.5, 4),
 		CFrame = CFrame.new(0, 2.25, z - facing * (depth / 2 - 5)),
 		Color = Style.PALETTE.nomCocoa,
 		Material = Enum.Material.Wood,
 	}, model)
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "Use"
+	prompt.ActionText = if name == "FusionLab" then "Open the Kitchen" else "Open the Egg Market"
+	prompt.ObjectText = if name == "FusionLab" then "Fusion Kitchen" else "Egg Market"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 16
+	prompt.RequiresLineOfSight = false
+	-- Handled entirely on the client: it opens a panel and changes no state, so
+	-- there is nothing for the server to validate.
+	prompt.Parent = counter
 
 	local signPost = part({
 		Name = "SignAnchor",

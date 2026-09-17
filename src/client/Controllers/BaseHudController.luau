@@ -53,6 +53,7 @@ local bubbleButton: TextButton
 local bubbleLabel: TextLabel
 local renomButton: TextButton
 local renomLabel: TextLabel
+local rail: Frame
 local confirm: Frame
 local confirmText: TextLabel
 local toast: Frame
@@ -347,23 +348,35 @@ local function build()
 		end
 	end)
 
+	-- --- the right-hand rail ---
+	-- Four controllers want a round button down the right edge, and positioning
+	-- them independently is the same mistake the bottom bar already made: on a
+	-- short screen (landscape on a small phone) the stack would run into the
+	-- bottom bar. A list layout cannot collide, so one module owns the rail and
+	-- hands out slots.
+	rail = Instance.new("Frame")
+	rail.Name = "Rail"
+	rail.AnchorPoint = Vector2.new(1, 0)
+	rail.Position = UDim2.new(1, -12, 0, 12)
+	rail.Size = UDim2.new(0, 58, 1, -120)
+	rail.BackgroundTransparency = 1
+	rail.ZIndex = 5
+	rail.Parent = gui
+
+	local railLayout = Instance.new("UIListLayout")
+	railLayout.FillDirection = Enum.FillDirection.Vertical
+	railLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+	railLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+	railLayout.Padding = UDim.new(0, 8)
+	railLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	railLayout.Parent = rail
+
 	-- --- Re-Nom ---
 	-- Hidden until affordable. A permanently greyed button for a milestone
 	-- hours away is clutter; one that appears the moment you can afford it is
 	-- an event.
-	renomButton = Instance.new("TextButton")
-	renomButton.Name = "ReNom"
-	renomButton.AnchorPoint = Vector2.new(1, 0)
-	renomButton.Position = UDim2.new(1, -14, 0, 78)
-	renomButton.Size = UDim2.new(0, 150, 0, 58)
-	renomButton.BackgroundColor3 = Color3.fromRGB(196, 132, 240)
-	renomButton.BorderSizePixel = 0
-	renomButton.Text = ""
-	renomButton.AutoButtonColor = false
+	renomButton = BaseHudController.railButton("ReNom", 20, Color3.fromRGB(196, 132, 240))
 	renomButton.Visible = false
-	renomButton.ZIndex = 5
-	renomButton.Parent = gui
-	corner(renomButton, 16)
 	stroke(renomButton, Color3.fromRGB(128, 72, 172), 2, 0.2)
 
 	renomLabel = Instance.new("TextLabel")
@@ -372,7 +385,7 @@ local function build()
 	renomLabel.Font = Enum.Font.FredokaOne
 	renomLabel.TextScaled = true
 	renomLabel.TextColor3 = Style.PALETTE.nomCream
-	renomLabel.Text = "🔁 RE-NOM"
+	renomLabel.Text = "🔁"
 	renomLabel.Parent = renomButton
 
 	-- Irreversible, so it asks. The dialog names exactly what is lost and what
@@ -514,7 +527,9 @@ local function refresh(delta: number)
 			renomButton.Visible = true
 			JuiceController.pop(renomButton, 0.3)
 		end
-		renomLabel.Text = `🔁 RE-NOM\n×{string.format("%.1f", snap.nextMultiplier or 1)}`
+		-- Just the icon: the button is 56px round. The multiplier is spelled out
+		-- in the confirmation, which is where the decision gets made.
+		renomLabel.Text = "🔁"
 	else
 		renomButton.Visible = false
 	end
@@ -545,6 +560,24 @@ local function refresh(delta: number)
 			slot.fill.BackgroundColor3 = Color3.fromRGB(150, 232, 206)
 		end
 	end
+end
+
+--- Adds a round button to the right-hand rail. `order` decides where it sits,
+--- so a controller does not need to know what else is on the rail.
+---
+--- Slots in use: 10 help, 20 Re-Nom, 30 book, 40 shop.
+function BaseHudController.railButton(name: string, order: number, fill: Color3): TextButton
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.LayoutOrder = order
+	button.Size = UDim2.fromOffset(56, 56)
+	button.BackgroundColor3 = fill
+	button.BorderSizePixel = 0
+	button.Text = ""
+	button.AutoButtonColor = false
+	button.Parent = rail
+	corner(button, 28)
+	return button
 end
 
 --- The fusion controller owns the picker and the reveal, but the bar lives

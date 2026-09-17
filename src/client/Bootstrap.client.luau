@@ -19,6 +19,9 @@ local CONTROLLER_ORDER = {
 	"BaseHudController",
 	"TutorialController",
 	"NomlingRenderController",
+	-- Shop before Fusion: the fusion picker's Odds button calls into it, and
+	-- fusion is a paid random item whose odds must be disclosable.
+	"ShopController",
 	"FusionController",
 	"WeatherController",
 	"BookController",
