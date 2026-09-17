@@ -176,6 +176,22 @@ and re-run CI.
 
 ---
 
+## ⚠️ FULLY LEAVE AND REJOIN BEFORE TESTING
+
+Roblox does not update a server that is already running. If you keep the app
+open, or rejoin fast enough to land back in your old server, you get the OLD
+build no matter what has been published. **Close the experience, give it a
+minute, then join again.**
+
+This is not a formality — on 2026-09-17 I published every fix as a `Saved`
+version, which does not go live at all, and Philip playtested a build four
+commits old. `tools/publish.py` now says `NOT LIVE` in capitals for a Saved
+version instead of the word "Published", and **`Deploy TEST` is the only
+workflow that makes a build playable.** CI's publish step is validation, not a
+deploy.
+
+---
+
 ## 📱 Playtest — just the fixes (90 seconds)
 
 Everything you flagged in the last screenshots. Do this first; the full script
@@ -191,6 +207,7 @@ below still works if you have longer.
 | 6 | Look at the banner while you wait | *"Saving up for the belt: 12 / 90 coins"* — it counts |
 | 7 | Look at a belt Nomling from a distance | Big line on top (name, or **✨ MUTATION ✨**), small line under it with rarity, coins/sec and the **price**. Not four identical lines of grey |
 | 8 | Earn 90 coins and tap Buy again | It buys, with the burst and the sound |
+| 9 | Look around for a tall mint-green beam | **YOUR BASE**, readable through the buildings from either end of the road, counting down the studs as you walk back |
 
 **If any button still does nothing, tell me exactly which one and what the purse
 said at the time** — a refusal now always speaks, so silence means a real bug.

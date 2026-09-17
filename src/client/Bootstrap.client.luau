@@ -19,6 +19,8 @@ local CONTROLLER_ORDER = {
 	"BaseHudController",
 	"TutorialController",
 	"NomlingRenderController",
+	-- Needs nothing from the others; it only reads the pads' OwnerUserId.
+	"HomeController",
 	-- Shop before Fusion: the fusion picker's Odds button calls into it, and
 	-- fusion is a paid random item whose odds must be disclosable.
 	"ShopController",
