@@ -1,7 +1,7 @@
 # PHILIP-TODO
 
 Things only Philip can do. Claude keeps this current (brief §12, §11.11).
-Last updated: 2026-09-16 (street layout, belt, stealing and tutorial deployed after the first playtest).
+Last updated: 2026-09-17 (creatures, fusion, reveal, World First, art direction, audio — audio blocked on one API key scope).
 
 **Status key:** ⬜ not started · 🟡 in progress · ✅ done · ⏸️ not needed yet
 
@@ -143,36 +143,59 @@ so the next one takes a minute rather than an afternoon.
 
 ---
 
-## 📱 Playtest — the street (3 minutes)
+## 🔴 ONE 30-SECOND JOB, AND IT UNLOCKS ALL THE AUDIO
 
-Everything from your last round is addressed. Open **Fuse a Nomling TEST** on your iPhone.
+**The music and all seven sound effects are built, committed, and one click from
+being in the game.** The upload is blocked on a permission only you can grant.
+
+Roblox's audio upload needs a **different** API key permission from publishing.
+I tried it; it returned `401 "User not authenticated"`.
+
+**Do this:**
+1. Creator Hub → **Credentials** → **API Keys** → edit `NOMLING_PUBLISHING_KEY`.
+2. Add the **`asset`** API system with the **Write** operation.
+   *(Publishing uses `universe-places` → Write. You need both.)*
+3. Save. **The key value does not change, so GitHub needs no update.**
+4. Tell me, and I run the upload and paste the asset IDs in.
+
+That is the whole job. Until then the game is silent — the audio system is
+wired, it just has nothing to point at, and it degrades quietly rather than
+erroring.
+
+---
+
+## 📱 Playtest — everything (5 minutes)
+
+Open **Fuse a Nomling TEST** on your iPhone.
 
 | # | Do this | Should happen |
 |---|---|---|
-| 1 | Look around | You are in **your own base**, facing a road. Your name is on the sign behind you |
-| 2 | Read the blue banner at the top | It tells you what to do next. It changes as you go |
-| 3 | Wait ~5 s, tap the green button | Your free first Nomling appears on a pedestal and starts earning |
-| 4 | Walk out to the **road** | A belt runs down the middle with Nomlings riding past |
-| 5 | Walk up to one | A **Buy** prompt appears with its price, rarity and any ✨ mutation ✨ |
-| 6 | Buy one you can afford | It lands on a pedestal in your base |
-| 7 | **Walk into another base** | You can. That was the thing that was broken |
-| 8 | Hold **Snatch** on one of their Nomlings | You pick it up, you slow down, the owner is told |
-| 9 | Run it back to your own base | It becomes yours. Let go too long and it flies home |
-| 10 | Tap the **?** button, top right | The full how-to-play, any time |
+| 1 | Just look | Golden-hour light, hazy depth down the street, clouds, lamps, striped awnings, buildings in the distance |
+| 2 | Look at your pedestals | **Real creatures** — taco shells over their backs, nori bands, sprinkles, popcorn puffs. Not balls |
+| 3 | Read the blue banner | It tells you your next objective and changes as you go |
+| 4 | Tap the green slot when ready | Particles, camera kick, a creature lands |
+| 5 | Watch the purse | Coins **fly** from your Nomlings into it, and the number climbs smoothly |
+| 6 | Walk to the belt | Creatures ride past with prices and ✨mutations✨ — mutated ones **glow and sparkle** |
+| 7 | Buy one | Burst, shake, it lands in your base |
+| 8 | **Tap 🧪 FUSE** | Pick two, order matters, tap FUSE THEM |
+| 9 | Wait, then tap ✨CLAIM | **The reveal** — dim, silhouette, colours resolve, rarity banner, then the name **types itself out** |
+| 10 | If nobody has made it before | 🏆 **WORLD FIRST** gold banner |
+| 11 | Walk into another base | Hold **Snatch**, run it home |
+| 12 | Tap **?** top-right | Full how-to-play |
 
-### What to tell me
+### What I most want to know
 
-- **Does the street read?** Can you tell whose base is whose from the road?
-- **Is the belt too fast or too slow?** It is one number (`BELT_SPEED`).
-- **Do mutated Nomlings stand out enough?** They glow and say the mutation name.
-- Anything that still doesn't explain itself.
+- **Does the reveal land?** It is the product. If it is not a moment, nothing else matters.
+- **Is the street readable at a glance** — can you tell whose base is whose?
+- **Frame rate.** A lot was added tonight. If it stutters, tell me where and I'll cut.
+- Do the creatures read as *snack-animals*, or just as animals?
 
-### Known, and deliberate
+### Known and deliberate
 
-- **The Nomlings are still coloured balls.** The real creature builder is M2a — that is the big visual milestone.
-- **There is nobody else in your server**, so you cannot actually steal from a person yet. Walk into an empty base to confirm you *can* get there; NPC snatchers are how this gets tested properly (GDD 5.8).
-- **The Laser Gate and the Vault are not built** — snatching currently has no counter-play. That is M2b.
-- **No fusion yet.** That is the whole differentiator and it is M2a, next.
+- **Silent** until the API key job above is done.
+- **Nobody else in your server**, so you can't steal from a real person yet.
+- **No Laser Gate or Vault** — snatching has no counter-play. M2b.
+- **No weather**, so mutations only arrive on the belt, not on creatures you own.
 
 ### 📅 When you next have computer + Studio time
 

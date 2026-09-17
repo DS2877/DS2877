@@ -10,10 +10,13 @@
 
 local CONTROLLER_ORDER = {
 	"PingController",
-	"BaseHudController",
-	"TutorialController",
+	-- Audio first: Juice calls into it, and the HUD and Fusion both call Juice.
+	-- A cue fired before the pools exist is a silent no-op rather than an
+	-- error, which would have been a genuinely hard bug to notice.
 	"AudioController",
 	"JuiceController",
+	"BaseHudController",
+	"TutorialController",
 	"NomlingRenderController",
 	"FusionController",
 }

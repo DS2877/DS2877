@@ -170,14 +170,16 @@ jobs:
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
           ROBLOX_USER_ID: "7185134469"
-        run: python3 tools/upload-audio.py --file assets/audio/nomling-glade.ogg --name "Nomling Glade"
+        run: python3 tools/upload-audio.py --all assets/audio
       - name: Report
         run: |
           {
             echo "### Theme upload"
-            if [ -n "${{ steps.upload.outputs.asset_id }}" ]; then
-              echo "Asset ID: \`${{ steps.upload.outputs.asset_id }}\`"
+            if [ -n "${{ steps.upload.outputs.uploaded }}" ]; then
+              echo '```'
+              echo "${{ steps.upload.outputs.uploaded }}"
+              echo '```'
             else
-              echo "No asset id - see the log (most likely the key lacks \`asset:write\`)."
+              echo "Nothing uploaded - see the log (most likely the key lacks the \`asset\` scope)."
             fi
           } >> "$GITHUB_STEP_SUMMARY"

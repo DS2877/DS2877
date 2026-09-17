@@ -30,6 +30,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
 local Style = require(Shared:WaitForChild("Style"))
 
+local AudioController = require(script.Parent:WaitForChild("AudioController"))
+
 local JuiceController = {}
 JuiceController.Name = "JuiceController"
 
@@ -209,14 +211,19 @@ local function handle(kind: string, position: Vector3?, extra: { [string]: any }
 	local colour = cueColour(rarity)
 	local mutated = type(info.mutation) == "string" and #info.mutation > 0
 
+	-- Sound and picture fire together. A cue with one and not the other is the
+	-- single most obvious way feedback reads as unfinished.
 	if kind == "coin" and position then
 		JuiceController.flyCoin(position)
+		AudioController.play("coin")
 	elseif kind == "purchase" and position then
 		JuiceController.burst(position, colour, 10 + math.floor(weight * 18))
 		JuiceController.shake(0.06 + weight * 0.14, 0.3)
+		AudioController.play("purchase")
 	elseif kind == "hatch" and position then
 		JuiceController.burst(position, colour, 14 + math.floor(weight * 24))
 		JuiceController.shake(0.1 + weight * 0.25, 0.4)
+		AudioController.play("hatch")
 		-- The screen flash is reserved: only a genuinely rare creature, or any
 		-- mutation, earns it. If everything flashes, nothing does.
 		if weight >= 0.68 or mutated then
@@ -227,11 +234,14 @@ local function handle(kind: string, position: Vector3?, extra: { [string]: any }
 		-- player most needs to notice immediately.
 		JuiceController.shake(0.9, 0.7)
 		JuiceController.flash(Style.PALETTE.nomPink, 0.3)
+		AudioController.play("snatchAlarm")
 	elseif kind == "grab" and position then
 		JuiceController.burst(position, Style.PALETTE.nomPink, 14)
 		JuiceController.shake(0.35, 0.4)
+		AudioController.play("snatchGrab")
 	elseif kind == "deny" then
 		JuiceController.shake(0.12, 0.2)
+		AudioController.play("deny")
 	end
 end
 

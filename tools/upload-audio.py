@@ -129,16 +129,81 @@ def wait_for_asset(operation: dict, timeout_seconds: int = 240) -> dict:
     return {}
 
 
+MANIFEST = {
+    "nomling-glade": ("Nomling Glade", "MUSIC", "theme"),
+    "sfx-coin": ("Nomling Coin", "SFX", "coin"),
+    "sfx-purchase": ("Nomling Purchase", "SFX", "purchase"),
+    "sfx-hatch": ("Nomling Hatch", "SFX", "hatch"),
+    "sfx-reveal": ("Nomling Reveal", "SFX", "reveal"),
+    "sfx-snatchAlarm": ("Nomling Snatch Alarm", "SFX", "snatchAlarm"),
+    "sfx-snatchGrab": ("Nomling Snatch Grab", "SFX", "snatchGrab"),
+    "sfx-deny": ("Nomling Deny", "SFX", "deny"),
+}
+
+
+def upload_all(directory: str, user_id: str, group_id: str | None) -> int:
+    """Uploads every known audio file in a directory and prints the Luau block.
+
+    Assembling the config by hand is the real bottleneck once the scope exists:
+    eight asset ids typed into two tables is exactly the sort of thing that goes
+    wrong quietly, so this prints the finished block instead.
+    """
+    results: dict[str, dict[str, int]] = {"MUSIC": {}, "SFX": {}}
+    failures: list[str] = []
+
+    for stem, (display, section, key) in MANIFEST.items():
+        path = os.path.join(directory, f"{stem}.ogg")
+        if not os.path.isfile(path):
+            print(f"  skip {stem}: not found")
+            continue
+        try:
+            operation = upload(path, display, f"Fuse a Nomling -- {display}.", user_id, group_id)
+            asset = wait_for_asset(operation)
+            asset_id = asset.get("assetId") or asset.get("id")
+        except SystemExit:
+            # opencloud.die() already explained the problem; keep going so one
+            # bad file does not hide the rest.
+            failures.append(stem)
+            continue
+        if asset_id:
+            results[section][key] = int(asset_id)
+            print(f"  ok   {stem} -> {asset_id}")
+        else:
+            failures.append(stem)
+
+    print("\n--- paste into src/shared/Config/Audio.luau ---")
+    for section in ("MUSIC", "SFX"):
+        for key, value in results[section].items():
+            print(f"  {section} {key}: assetId = {value},")
+
+    github_output = os.environ.get("GITHUB_OUTPUT")
+    if github_output:
+        with open(github_output, "a", encoding="utf-8") as fh:
+            fh.write("uploaded<<EOF\n")
+            for section in ("MUSIC", "SFX"):
+                for key, value in results[section].items():
+                    fh.write(f"{section}.{key}={value}\n")
+            fh.write("EOF\n")
+
+    if failures:
+        print(f"\nFAILED: {', '.join(failures)}")
+        return 1
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--file", required=True)
-    parser.add_argument("--name", required=True)
+    parser.add_argument("--file", help="a single file to upload")
+    parser.add_argument("--all", metavar="DIR", help="upload every known audio file in DIR")
+    parser.add_argument("--name", default="Nomling Audio")
     parser.add_argument("--description", default="Main theme for Fuse a Nomling.")
     parser.add_argument("--user-id", default=os.environ.get("ROBLOX_USER_ID", ""))
     parser.add_argument("--group-id", default=os.environ.get("ROBLOX_GROUP_ID", ""))
     args = parser.parse_args()
 
-    if not os.path.isfile(args.file):
+    if not args.file and not args.all:
+        opencloud.die("Pass --file <path> or --all <directory>.")
+    if args.file and not os.path.isfile(args.file):
         opencloud.die(f"no such file: {args.file}\n  Run tools/music/render.py first.")
     if not args.user_id and not args.group_id:
         opencloud.die(
@@ -146,6 +211,9 @@ def main() -> int:
             "  This is the asset's owner. Your user ID is in your Roblox profile URL.\n"
             "  In CI it comes from the ROBLOX_USER_ID variable."
         )
+
+    if args.all:
+        return upload_all(args.all, args.user_id, args.group_id or None)
 
     operation = upload(args.file, args.name, args.description, args.user_id, args.group_id or None)
     print(f"Accepted: {json.dumps(operation)[:300]}")

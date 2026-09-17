@@ -5,13 +5,9 @@ name: Upload audio to Roblox
 on:
   workflow_dispatch:
     inputs:
-      file:
-        description: "Audio file in the repo to upload"
-        default: "assets/audio/nomling-glade.ogg"
-        required: true
-      name:
-        description: "Asset display name"
-        default: "Nomling Glade"
+      directory:
+        description: "Directory of .ogg files to upload"
+        default: "assets/audio"
         required: true
 
 jobs:
@@ -32,9 +28,7 @@ jobs:
             echo "ROBLOX_USER_ID variable is not set; falling back to the known creator id"
             export ROBLOX_USER_ID=7185134469
           fi
-          python3 tools/upload-audio.py \
-            --file "${{ inputs.file }}" \
-            --name "${{ inputs.name }}"
+          python3 tools/upload-audio.py --all "${{ inputs.directory }}"
 
       - name: Summary
         if: always()
@@ -42,11 +36,9 @@ jobs:
           {
             echo "### Audio upload"
             echo ""
-            if [ -n "${{ steps.upload.outputs.asset_id }}" ]; then
-              echo "Asset ID: \`${{ steps.upload.outputs.asset_id }}\`"
-              echo ""
-              echo "Put it in \`src/shared/Config/Audio.luau\`."
-            else
-              echo "No asset ID returned - check the log above."
-            fi
+            echo '```'
+            echo "${{ steps.upload.outputs.uploaded }}"
+            echo '```'
+            echo ""
+            echo "Put these in \`src/shared/Config/Audio.luau\`."
           } >> "$GITHUB_STEP_SUMMARY"
