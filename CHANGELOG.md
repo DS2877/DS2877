@@ -4,6 +4,55 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### Sound, a working key, and a test that had never run · 2026-09-17
+
+**The game has sound.** The theme and all seven effects are uploaded, live, and
+wired — 113 seconds of *Nomling Glade* plus coin, purchase, hatch, reveal, snatch
+alarm, snatch grab and deny. Every entry had been `assetId = 0`, which
+`Audio.isReady()` treats as inert, so the game had been deliberately silent rather
+than broken while the upload was blocked on a key scope.
+
+Uploaded in two passes on purpose: **one small effect first as a canary**, then the
+set. Roblox allows 10 audio uploads per month on an account that is not
+ID-verified, we have 8 files, and audio is *"not available for updating"* — so a
+bad upload is a spent slot, not something to fix in place. A canary costs one slot
+and proves the key, the creator id and the multipart format before the budget goes.
+
+**TEST was never actually live, and a log line is why.** CI publishes with
+`--type Saved`, which creates a version *without* making it live — correct for
+validation. But `publish.py` printed `Published as version N` either way. That line
+went into a CI log, into my summary, and Philip spent a playtest on a build four
+commits old whose belt button was still the broken one. It now prints
+`SAVED as version N — NOT LIVE` and names the workflow that does deploy.
+
+**The cloud smoke test had never once executed.** The API key had lacked the
+luau-execution scope since the day it was made, so nobody had seen it pass — and
+when it finally ran it failed on two assertions that were impossible from the day
+they were written. It checked for `ReplicatedStorage.Net` and `Workspace.Plaza`,
+both built at runtime by scripts a Luau task never starts (*"Server and local
+scripts within the place also do not automatically run"*), and the Plaza had not
+existed since the map became a street. Same shape as the format gate that sat green
+and inert, except this one was red and unread.
+
+Rewritten around what a task genuinely can do, which is also this project's real
+blind spot: **every shared module is now required inside the real Roblox engine.**
+Lune resolves `require` by file path and has no engine, and there is no Studio and
+no `luau-lsp` in cloud sessions, so nothing else covers "does this actually load".
+25/25 checks pass, including all 22 modules.
+
+- **A hung cloud task used to print nothing at all.** The runner died on the
+  timeout without fetching logs, so five minutes bought zero information. It now
+  prints whatever the task logged, and the test names each module before requiring
+  it — so the last line is always the culprit. Which is how the next hang got
+  diagnosed as transient rather than blamed on the wrong code.
+- **A beam of light over your own base.** "I can't find my base" — eight bases on
+  one 520-stud road, same parts, same colours. A signpost, never a teleport:
+  carrying a snatched Nomling home on foot is the whole risk half of stealing.
+- **The egg button priced the tier it actually buys.** It read `prices.basic` while
+  buying `bestEgg`, so after a Re-Nom it advertised 25 coins and charged 1200.
+- **A manual CI run can no longer burn the audio quota** — the upload job is behind
+  an input that defaults to false.
+
 ### Playtest fixes: the HUD, and the belt button that did nothing · 2026-09-17
 
 From Philip's phone playtest: *"Screen composition looks a bit weird, make the buttons
