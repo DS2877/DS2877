@@ -188,6 +188,118 @@ if shared then
 	)
 end
 
+-- THE SERVER ACTUALLY BOOTING ---------------------------------------------
+-- The gap this project kept falling into. A task does not run the place's
+-- scripts, so Bootstrap.server never executes here -- which meant a service
+-- whose start() threw was invisible to every check we had. And the bootstrap
+-- PCALLS each phase, so on a real server a broken service fails silently too:
+-- its remote handler is never registered, its prompts are never connected, and
+-- from a phone that reads as "I press the button and nothing happens."
+--
+-- Philip reported exactly that, twice, across three weeks. So run the real
+-- bootstrap here, in order, and name the service that breaks.
+--
+-- init() then start(), in two passes, because that ordering is load-bearing:
+-- every init() must finish before any start(), and services register their
+-- DataService.onLoaded callbacks in start().
+local SERVICE_ORDER = {
+	"NetService",
+	"AnalyticsService",
+	"WorldService",
+	"AtmosphereService",
+	"FeedbackService",
+	"PlotService",
+	"GateService",
+	"EggService",
+	"ConveyorService",
+	"BookService",
+	"RebirthService",
+	"WeatherService",
+	"IncomeService",
+	"StealService",
+	"FusionService",
+	"SnatchNpcService",
+	"BubbleService",
+	"LeaderboardService",
+	"DataService",
+}
+
+local serverRoot = ServerScriptService:FindFirstChild("Server")
+local services = serverRoot and serverRoot:FindFirstChild("Services")
+check("server Services folder replicated", services ~= nil)
+
+if services then
+	local loaded: { [string]: any } = {}
+	local missing: { string } = {}
+
+	for _, name in SERVICE_ORDER do
+		local module = services:FindFirstChild(name)
+		if not module or not module:IsA("ModuleScript") then
+			table.insert(missing, `{name} (no module)`)
+			continue
+		end
+		print(`  .... requiring {name}`)
+		local ok, result = pcall(require, module :: ModuleScript)
+		if ok then
+			loaded[name] = result
+		else
+			table.insert(missing, `{name} -> {result}`)
+		end
+	end
+	check(`all {#SERVICE_ORDER} services load`, #missing == 0, table.concat(missing, " | "))
+
+	-- Both phases, and a failure in either is reported per service rather than
+	-- swallowed. This is the check that would have caught a service dying.
+	for _, phase in { "init", "start" } do
+		local broken: { string } = {}
+		for _, name in SERVICE_ORDER do
+			local service = loaded[name]
+			local fn = service and (service :: any)[phase]
+			if type(fn) ~= "function" then
+				continue
+			end
+			print(`  .... {name}:{phase}()`)
+			local ok, err = pcall(fn)
+			if not ok then
+				table.insert(broken, `{name}:{phase}() -> {err}`)
+			end
+		end
+		check(`every service survives {phase}()`, #broken == 0, table.concat(broken, " | "))
+	end
+
+	-- The remotes the HUD buttons call. A RemoteFunction with no OnServerInvoke
+	-- does not error when invoked -- it YIELDS FOREVER, which on a phone is a
+	-- button that does nothing, with nothing in the log and nothing on screen.
+	-- That is the single most expensive failure mode this game has, so name
+	-- every handler that is missing rather than just counting them.
+	local netFolder = ReplicatedStorage:FindFirstChild("Net")
+	check("Net folder exists after NetService started", netFolder ~= nil)
+	if netFolder then
+		local unhandled: { string } = {}
+		local handled = 0
+		for _, remote in netFolder:GetChildren() do
+			if not remote:IsA("RemoteFunction") then
+				continue
+			end
+			-- Reading OnServerInvoke is only legal on the server, which a task
+			-- is. nil means every InvokeServer on it hangs.
+			local ok, handler = pcall(function()
+				return (remote :: any).OnServerInvoke
+			end)
+			if ok and handler ~= nil then
+				handled += 1
+			else
+				table.insert(unhandled, remote.Name)
+			end
+		end
+		check(
+			`all {handled + #unhandled} RemoteFunctions have a server handler`,
+			#unhandled == 0,
+			`no OnServerInvoke: {table.concat(unhandled, ", ")}`
+		)
+	end
+end
+
 -- Report -------------------------------------------------------------------
 print(`\n{checks - #failures}/{checks} checks passed`)
 
