@@ -75,7 +75,7 @@ end
 local function claimWorldFirst(key: string, userId: number): boolean
 	local won = false
 	local ok, err = pcall(function()
-		firstsStore:UpdateAsync(`firsts/{key}`, function(existing)
+		firstsStore:UpdateAsync(`firsts/{key}`, function(existing: any): any?
 			if existing ~= nil then
 				return nil -- somebody already has it; abort without writing
 			end

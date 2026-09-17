@@ -35,6 +35,30 @@ Snatch.TARGET_COOLDOWN_SECONDS = 60
 Snatch.COMEBACK_EGG = "basic"
 Snatch.COMEBACK_HATCH_SECONDS = 120
 
+-- --- the Laser Gate --------------------------------------------------------
+-- A base is open to the road on purpose (GDD 5.3): no walls, no doors, because
+-- walking into someone's base has to be effortless or nobody ever tries it.
+-- The Gate is the entire defence, and it is deliberately a MOMENT rather than a
+-- wall -- you cannot keep it closed, so choosing when is the whole skill.
+
+--- How long the gate stays up once raised.
+Snatch.GATE_SECONDS = 60
+
+--- Measured FROM THE RAISE, not from when it drops. So the real gap between one
+--- gate falling and the next going up is COOLDOWN - GATE = 30s, and a base can
+--- be locked for at most 60 seconds in every 90.
+---
+--- Keep this comfortably above GATE_SECONDS. If a cooldown ever approaches the
+--- gate's own duration, a base can be held shut almost permanently and
+--- snatching -- the thing the base exists to defend against -- stops happening
+--- at all. There is a unit test on the ratio.
+Snatch.GATE_COOLDOWN_SECONDS = 90
+
+--- How close to your own gate button you must stand to press it. Defending has
+--- to mean being home, or it is a button you press from across the street while
+--- robbing somebody else.
+Snatch.GATE_RANGE = 16
+
 -- --- the Bubble Wand -------------------------------------------------------
 -- Everyone has one, always (GDD 5.8). It is the entire counter-play to being
 -- robbed, and without it snatching is something that happens TO you.

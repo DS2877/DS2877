@@ -402,9 +402,19 @@ function Profile.grantStarterEgg(
 	return true
 end
 
-function Profile.placedNomlings(data: Data): { Nomling }
+--- Every Nomling standing on a pedestal.
+---
+--- `skipIndex` is the Vault slot, when the caller has one. A vaulted Nomling is
+--- on a pedestal and is rendered like any other, but it does NOT earn: the
+--- Vault's whole trade is safety in exchange for being out of play (D-024).
+--- Passed in rather than known here, because this module requires nothing and
+--- so cannot ask Economy which index the Vault is.
+function Profile.placedNomlings(data: Data, skipIndex: number?): { Nomling }
 	local result: { Nomling } = {}
-	for _, id in data.pedestals do
+	for key, id in data.pedestals do
+		if skipIndex ~= nil and tonumber(key) == skipIndex then
+			continue
+		end
 		local nomling = Profile.findNomling(data, id)
 		if nomling then
 			table.insert(result, nomling)

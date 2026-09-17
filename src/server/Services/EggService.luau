@@ -87,10 +87,17 @@ function EggService.buy(player: Player, eggKey: unknown): (boolean, string?)
 	AnalyticsService.coinFlow(player, "sink", "egg", price)
 	AnalyticsService.advanceFunnel(player, data)
 
+	-- FOUND BY THE TYPECHECKER, and it was a live bug: this insert was missing
+	-- `total`, which every other incubator carries. The client draws the hatch
+	-- progress ring from elapsed/total, so a bought egg -- the ordinary case,
+	-- every egg after the free one -- had a ring with no denominator. Nothing
+	-- errored; the ring was simply wrong, which is exactly the kind of thing
+	-- nobody reports and nobody notices from a cloud session.
+	local seconds = if data.stats.hatched == 0 then Economy.FIRST_EGG_HATCH_SECONDS else egg.hatch
 	table.insert(data.incubators, {
 		eggKey = eggKey,
-		readyAt = os.time()
-			+ (if data.stats.hatched == 0 then Economy.FIRST_EGG_HATCH_SECONDS else egg.hatch),
+		readyAt = os.time() + seconds,
+		total = seconds,
 	})
 
 	EggService.sync(player)

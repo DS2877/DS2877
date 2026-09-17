@@ -150,7 +150,7 @@ function WeatherService.start()
 		nextEventAt = os.clock() + 120
 		task.wait(120)
 		while true do
-			local ok, err = pcall(runEvent)
+			local ok, err = pcall(runEvent :: () -> any)
 			if not ok then
 				warn(`[WeatherService] event failed: {err}`)
 				activeKind = nil

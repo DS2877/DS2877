@@ -80,7 +80,14 @@ Weather.WARNING_SECONDS = 15
 
 --- Picks a kind from the weighted table in Economy. `roll` is 0-1.
 --- Pure, so the weighting is testable.
-function Weather.pick(weights: { [string]: { weight: number } }, roll: number): string
+--- The parameter names BOTH fields, not just the `weight` this function reads.
+--- Luau table types are invariant, so `{ mult, weight }` is not a
+--- `{ weight }` -- and Economy.WEATHER, the only thing ever passed here, has
+--- both. Shaping the parameter to its one real caller is honest; the
+--- alternative is a cast at the call site, which would hide a genuine mismatch
+--- the day these two disagree. Duplicated rather than imported because both
+--- Config modules are deliberately dependency-free.
+function Weather.pick(weights: { [string]: { weight: number, mult: number } }, roll: number): string
 	local total = 0
 	for _, entry in weights do
 		total += entry.weight

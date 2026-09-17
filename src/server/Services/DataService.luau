@@ -95,7 +95,7 @@ local function acquire(userId: number): Profile.Data?
 	local rejected = false
 
 	local ok = retry(`acquire {userId}`, function()
-		store:UpdateAsync(key(userId), function(old: any)
+		store:UpdateAsync(key(userId), function(old: any): any?
 			local lock = if type(old) == "table" then old.lock else nil
 			if type(lock) == "table" and lock.server ~= serverId then
 				local age = now - (tonumber(lock.at) or 0)
@@ -128,7 +128,7 @@ end
 local function write(userId: number, data: Profile.Data, release: boolean): boolean
 	data.lastSeen = os.time()
 	local ok = retry(`save {userId}`, function()
-		store:UpdateAsync(key(userId), function(old: any)
+		store:UpdateAsync(key(userId), function(old: any): any?
 			-- Refuse to overwrite a save another live server owns. Without this
 			-- a stale session could stamp on fresh progress.
 			local lock = if type(old) == "table" then old.lock else nil
@@ -168,7 +168,12 @@ local loaded: Subscribers.Registry<Player, Profile.Data> = Subscribers.new()
 --- services behind it -- that is how one bad callback used to cost a player
 --- their base.
 local function deliver(fn: (Player, Profile.Data) -> (), player: Player, data: Profile.Data)
-	local ok, err = pcall(fn, player, data)
+	-- The `-> any` cast is for the ANALYZER, not the runtime. Luau types pcall's
+	-- results from the callee's return list, so `pcall(f)` where f returns
+	-- nothing is typed `(boolean)` -- and reading the error value out of it is
+	-- an arity error, even though pcall really does return (false, err) on
+	-- failure. Widening the callee's return is the narrowest way to say so.
+	local ok, err = pcall(fn :: (Player, Profile.Data) -> any, player, data)
 	if not ok then
 		warn(`[DataService] onLoaded callback failed for {player.Name}: {err}`)
 	end

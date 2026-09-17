@@ -144,6 +144,50 @@ local REMOTES: { [string]: RemoteSpec } = {
 		description = "Moves one of your placed Nomlings back into the book.",
 	},
 
+	--- Client -> server. Moves one of YOUR OWN Nomlings into the Vault, or back
+	--- out of it onto an ordinary pedestal.
+	---
+	--- The client names a Nomling and nothing else. It never says which slot,
+	--- because "which slot is the Vault" is exactly the kind of thing a client
+	--- would like to be wrong about -- claiming a snatch-proof pedestal for a
+	--- creature that is supposed to be stealable.
+	VaultNomling = {
+		name = "VaultNomling",
+		kind = "function",
+		direction = "clientToServer",
+		rateCapacity = 6,
+		rateRefill = 1,
+		description = "Moves one of your Nomlings into or out of the Vault. Returns ok, reason.",
+	},
+
+	--- Client -> server. Raises the Laser Gate over YOUR OWN base.
+	---
+	--- Takes no arguments at all. Whose base, whether the cooldown has expired
+	--- and whether you are standing near your own button are all server
+	--- questions -- a payload here would only be something to forge.
+	RaiseGate = {
+		name = "RaiseGate",
+		kind = "function",
+		direction = "clientToServer",
+		rateCapacity = 3,
+		rateRefill = 0.25,
+		description = "Raises your base's Laser Gate. Returns ok, reason.",
+	},
+
+	--- Server -> client. The state of every base's Laser Gate, so a thief can
+	--- see a base is locked before they walk into it.
+	---
+	--- Broadcast rather than sent per-base: eight bases is a tiny payload, and
+	--- a thief needs to see gates they do not own, which is the whole point.
+	GateSync = {
+		name = "GateSync",
+		kind = "event",
+		direction = "serverToClient",
+		rateCapacity = 0,
+		rateRefill = 0,
+		description = "Pushes every base's Laser Gate state to all clients.",
+	},
+
 	--- Client -> server. Fires the Bubble Wand.
 	--- The client says "I pressed it"; the server decides who is in range and
 	--- what happens. A client that could name its target could bubble anybody

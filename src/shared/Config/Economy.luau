@@ -16,6 +16,34 @@
 
 local Economy = {}
 
+-- --- shapes ----------------------------------------------------------------
+-- These exist so the tables below can be declared with an INDEXER
+-- (`{ [string]: T }`) rather than as bare literals.
+--
+-- Without one, Luau seals a table literal to exactly its named fields and has
+-- no type for `for key, value in Economy.EGGS` -- both come out `unknown`, and
+-- every service that walks one of these tables then fails to typecheck. That
+-- is not a style point: it is why six services and this file were unreadable to
+-- the analyzer the first time it ran.
+--
+-- CLAUDE.md: Luau does not allow annotating a table field assignment
+-- (`Economy.FOO: Type = {}`), so each one is a typed local assigned afterwards.
+
+export type EggSpec = {
+	--- Rebirths needed before this tier appears in the market at all.
+	unlockRebirth: number,
+	price: number,
+	--- Seconds to hatch.
+	hatch: number,
+	--- Rarity -> integer ppm. MUST sum to exactly 1,000,000 (a legal disclosure
+	--- requirement, not balance -- CI enforces it in three places).
+	odds: { [string]: number },
+}
+
+--- One weather event: how much it multiplies income, and how often it is the
+--- one that turns up.
+export type WeatherEvent = { mult: number, weight: number }
+
 Economy.RARITY_ORDER = {
 	"common",
 	"uncommon",
@@ -38,7 +66,7 @@ Economy.BASE_INCOME = {
 }
 
 --- Egg tiers. `odds` values are integer ppm and MUST sum to 1,000,000.
-Economy.EGGS = {
+local EGGS: { [string]: EggSpec } = {
 	basic = {
 		unlockRebirth = 0,
 		price = 25,
@@ -124,6 +152,7 @@ Economy.EGGS = {
 		},
 	},
 }
+Economy.EGGS = EGGS
 
 --- The first egg of a player's life hatches fast so the FTUE lands a reveal
 --- inside 15 seconds (docs/GDD.md section 4).
@@ -145,6 +174,29 @@ Economy.PEDESTALS_BASE = 8
 Economy.PEDESTALS_MAX = 16
 Economy.INCUBATORS_BASE = 2
 Economy.INCUBATORS_MAX = 4
+
+--- The Vault (GDD 5.3): one extra pedestal per base, index PEDESTALS_BASE + 1,
+--- that snatching cannot touch.
+---
+--- IT IS A SLOT, NOT A FLAG, so every existing path keeps working -- placing,
+--- rendering, storing and sanitizing a vaulted Nomling are the same code as any
+--- other pedestal. Only two things treat it specially: auto-placement never
+--- picks it (firstFreePedestal stops at PEDESTALS_BASE), and snatching refuses
+--- it.
+---
+--- A VAULTED NOMLING DOES NOT EARN, and that is deliberate (D-024). The GDD
+--- trade is "safe but does not mutate", which on its own makes the Vault a
+--- strictly better ninth pedestal and everyone's answer is simply "vault the
+--- best one". Costing its income makes it a real decision -- and it keeps the
+--- economy simulator honest, which models exactly PEDESTALS_BASE earners.
+Economy.VAULT_PEDESTAL = 9
+
+--- Pedestals plus the Vault: the largest index Profile will accept. Bounds
+--- checks and `sanitize` use this; income and auto-placement use
+--- PEDESTALS_BASE. Getting the two the wrong way round drops every vaulted
+--- Nomling on the next load, so they are named for what they mean rather than
+--- for their arithmetic.
+Economy.PEDESTALS_TOTAL = 9
 
 --- The Fusion Lab takes one pair at a time. This is the main throttle on
 --- income growth; without it fusion becomes an auto-upgrade treadmill.
@@ -171,26 +223,28 @@ Economy.FUSION_SECONDS = {
 	secret = 1200,
 }
 
-Economy.WEATHER = {
+local WEATHER: { [string]: WeatherEvent } = {
 	golden_glaze = { mult = 3, weight = 0.35 },
 	frost_sugar = { mult = 2, weight = 0.30 },
 	lava_salsa = { mult = 4, weight = 0.20 },
 	rainbow_sprinkles = { mult = 5, weight = 0.12 },
 	galaxy_jelly = { mult = 10, weight = 0.03 },
 }
+Economy.WEATHER = WEATHER
 
 Economy.WEATHER_DURATION = 90
 Economy.WEATHER_INTERVAL_MIN = 720
 Economy.WEATHER_INTERVAL_MAX = 1200
 Economy.MUTATION_CHANCE_PER_EVENT = 0.06
 
-Economy.MUTATIONS = {
+local MUTATIONS: { [string]: number } = {
 	glazed = 2.0,
 	frosted = 2.5,
 	spicy = 3.0,
 	rainbow = 5.0,
 	galaxy = 8.0,
 }
+Economy.MUTATIONS = MUTATIONS
 
 --- Tuned by tools/simulate-economy/tune.py on 2026-09-16.
 Economy.REBIRTH_COST_BASE = 1900000
@@ -226,7 +280,7 @@ function Economy.rebirthMultiplier(rebirths: number): number
 end
 
 function Economy.eggPrice(eggKey: string, rebirths: number): number
-	local egg = Economy.EGGS[eggKey]
+	local egg = EGGS[eggKey]
 	assert(egg ~= nil, `unknown egg '{eggKey}'`)
 	return math.floor(egg.price * Economy.EGG_PRICE_REBIRTH_SCALE ^ rebirths)
 end
@@ -235,7 +289,7 @@ end
 --- pure upside and is baked into pacing.
 function Economy.averageWeatherFactor(): number
 	local evMult = 0
-	for _, entry in Economy.WEATHER do
+	for _, entry in WEATHER do
 		evMult += entry.mult * entry.weight
 	end
 	local avgInterval = (Economy.WEATHER_INTERVAL_MIN + Economy.WEATHER_INTERVAL_MAX) / 2

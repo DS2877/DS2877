@@ -144,6 +144,14 @@ PEDESTALS_MAX = 16
 INCUBATORS_BASE = 2
 INCUBATORS_MAX = 4
 
+# The Vault is pedestal 9 and is NOT modelled as an earner, because it is not
+# one (D-024). It exists here only so the parity test can hold the two files to
+# the same answer -- if a future change ever makes a vaulted Nomling earn, this
+# simulator has to grow a ninth slot in the same commit, and the parity failure
+# is what will say so.
+VAULT_PEDESTAL = 9
+PEDESTALS_TOTAL = 9
+
 # Coin cost of the Nth extra pedestal / incubator (index 0 = first extra).
 # Reset by rebirth (brief 4.5 I).
 PEDESTAL_UPGRADE_COST = lambda n: int(500 * (3.2 ** n))

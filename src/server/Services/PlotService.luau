@@ -233,7 +233,14 @@ function PlotService.render(player: Player)
 		anchor.Parent = plot.pad
 		plot.models[nomlingId] = anchor :: any
 		if decorate then
-			local ok, err = pcall(decorate, anchor :: any, player, nomlingId)
+			-- `-> any` widens the callee's return purely so the error value can be
+			-- read out; see the same note in DataService.deliver.
+			local ok, err = pcall(
+				decorate :: (Instance, Player, string) -> any,
+				anchor :: any,
+				player,
+				nomlingId
+			)
 			if not ok then
 				warn(`[PlotService] decorate failed for {nomlingId}: {err}`)
 			end
@@ -381,7 +388,7 @@ local function discoverPlots(): boolean
 			-- is a bad afternoon; a street with no bases at all is an unplayable
 			-- server, and that is what the ordering here used to produce.
 			table.insert(plots, plot)
-			local ok, err = pcall(buildPedestals, plot)
+			local ok, err = pcall(buildPedestals :: (Plot) -> any, plot)
 			if not ok then
 				warn(`[PlotService] Base{i} has no pedestals: {err}`)
 			end

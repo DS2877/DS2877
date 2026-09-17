@@ -402,7 +402,7 @@ function SnatchNpcService.start()
 		while true do
 			task.wait(rng:NextNumber(Snatch.NPC_INTERVAL_MIN, Snatch.NPC_INTERVAL_MAX))
 			if #active == 0 then
-				local ok, err = pcall(beginSnatch)
+				local ok, err = pcall(beginSnatch :: () -> any)
 				if not ok then
 					warn(`[SnatchNpcService] snatch attempt failed: {err}`)
 				end

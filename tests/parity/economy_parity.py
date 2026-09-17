@@ -28,9 +28,23 @@ def strip_comments(src: str) -> str:
 
 
 def extract_block(src: str, name: str) -> str:
-    """Return the balanced `{...}` literal assigned to Economy.<name>."""
-    start = src.index(f"Economy.{name}")
-    brace = src.index("{", start)
+    """Return the balanced `{...}` literal that defines <name>.
+
+    Matches both shapes the config file uses: `Economy.EGGS = {` and the typed
+    form `local EGGS: { [string]: EggSpec } = {`. The typed one exists because
+    Luau cannot annotate a table field assignment, and without an annotation the
+    analyzer types every iteration of these tables as `unknown` (D-023).
+
+    Anchored on the `=` that opens the literal, NOT on the first `{` after the
+    name -- a type annotation contains braces of its own, and taking the first
+    one would return the annotation instead of the table. The trailing \\b also
+    stops `WEATHER` from matching `WEATHER_DURATION`.
+    """
+    pattern = rf"(?:Economy\.|local\s+){re.escape(name)}\b[^=\n]*=\s*\{{"
+    match = re.search(pattern, src)
+    if match is None:
+        raise ValueError(f"no table literal found for {name}")
+    brace = match.end() - 1
     depth, i = 0, brace
     while i < len(src):
         if src[i] == "{":
@@ -86,6 +100,8 @@ def main() -> int:
         ("EGG_PRICE_REBIRTH_SCALE", C.EGG_PRICE_REBIRTH_SCALE),
         ("PEDESTALS_BASE", C.PEDESTALS_BASE),
         ("PEDESTALS_MAX", C.PEDESTALS_MAX),
+        ("VAULT_PEDESTAL", C.VAULT_PEDESTAL),
+        ("PEDESTALS_TOTAL", C.PEDESTALS_TOTAL),
         ("INCUBATORS_BASE", C.INCUBATORS_BASE),
         ("INCUBATORS_MAX", C.INCUBATORS_MAX),
         ("FUSION_SLOTS_BASE", C.FUSION_SLOTS_BASE),
