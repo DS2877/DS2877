@@ -845,7 +845,7 @@ function BaseHudController.start()
 			local now = os.clock()
 			local delta = now - last
 			last = now
-			local ok, err = pcall(refresh, delta)
+			local ok, err = pcall(refresh :: (number) -> any, delta)
 			if not ok then
 				warn(`[BaseHudController] refresh failed: {err}`)
 			end

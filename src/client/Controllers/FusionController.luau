@@ -532,7 +532,11 @@ local function labState(): (string, boolean)
 	local fusion = snap and snap.fusion
 	-- Plain words. TextScaled sizes type to the button, and an emoji measured
 	-- at that size pushed "FUSE" off its own right edge on a phone.
-	if not fusion then
+	--
+	-- `not fusion` covers a nil snapshot too, but only to a reader: the
+	-- analyzer cannot see that `snap and snap.fusion` being truthy makes `snap`
+	-- non-nil, so `snap` is checked in its own right below.
+	if not snap or not fusion then
 		return "FUSE", false
 	end
 	local now = (snap.now or os.time()) + (os.clock() - (snap.at or os.clock()))
@@ -598,7 +602,7 @@ function FusionController.start()
 	local revealRemote = Net.get("FusionReveal") :: RemoteEvent
 	revealRemote.OnClientEvent:Connect(function(info)
 		if type(info) == "table" then
-			local ok, err = pcall(showReveal, info)
+			local ok, err = pcall(showReveal :: (any) -> any, info)
 			if not ok then
 				warn(`[FusionController] reveal failed: {err}`)
 			end
@@ -608,7 +612,7 @@ function FusionController.start()
 	local worldFirst = Net.get("WorldFirst") :: RemoteEvent
 	worldFirst.OnClientEvent:Connect(function(info)
 		if type(info) == "table" then
-			local ok, err = pcall(showWorldFirst, info)
+			local ok, err = pcall(showWorldFirst :: (any) -> any, info)
 			if not ok then
 				warn(`[FusionController] world-first banner failed: {err}`)
 			end

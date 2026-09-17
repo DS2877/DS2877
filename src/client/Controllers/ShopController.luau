@@ -169,36 +169,46 @@ function ShopController.showFusionOdds()
 	local diff = Economy.FUSION_UPGRADE_CHANCE_DIFF_TIER
 	local mutate = Economy.FUSION_MUTATION_INHERIT_CHANCE
 
-	local entries = {
+	-- NAMED FIELDS, not a positional tuple. `{ string, string, Color3 }` makes
+	-- Luau unify all three slots into one element type, so entry[3] reads as a
+	-- string and entry[1] as a Color3 -- and a disclosure panel is the last
+	-- place to find out at runtime that a label and a colour got swapped.
+	type OddsRow = { label: string, value: string, colour: Color3 }
+
+	local entries: { OddsRow } = {
 		{
-			"Same rarity: one rarity HIGHER",
-			`{string.format("%.1f", same * 100)}%`,
-			Style.RARITY.epic.color,
+			label = "Same rarity: one rarity HIGHER",
+			value = `{string.format("%.1f", same * 100)}%`,
+			colour = Style.RARITY.epic.color,
 		},
 		{
-			"Same rarity: stays the same",
-			`{string.format("%.1f", (1 - same) * 100)}%`,
-			Style.RARITY.common.color,
+			label = "Same rarity: stays the same",
+			value = `{string.format("%.1f", (1 - same) * 100)}%`,
+			colour = Style.RARITY.common.color,
 		},
 		{
-			"Mixed rarity: one rarity HIGHER",
-			`{string.format("%.1f", diff * 100)}%`,
-			Style.RARITY.rare.color,
+			label = "Mixed rarity: one rarity HIGHER",
+			value = `{string.format("%.1f", diff * 100)}%`,
+			colour = Style.RARITY.rare.color,
 		},
 		{
-			"Mixed rarity: keeps the higher one",
-			`{string.format("%.1f", (1 - diff) * 100)}%`,
-			Style.RARITY.common.color,
+			label = "Mixed rarity: keeps the higher one",
+			value = `{string.format("%.1f", (1 - diff) * 100)}%`,
+			colour = Style.RARITY.common.color,
 		},
 		{
-			"Keeps a parent's mutation",
-			`{string.format("%.1f", mutate * 100)}%`,
-			Style.RARITY.legendary.color,
+			label = "Keeps a parent's mutation",
+			value = `{string.format("%.1f", mutate * 100)}%`,
+			colour = Style.RARITY.legendary.color,
 		},
-		{ "Fusing never creates a new mutation", "0%", Style.PALETTE.shadow },
+		{
+			label = "Fusing never creates a new mutation",
+			value = "0%",
+			colour = Style.PALETTE.shadow,
+		},
 	}
 	for index, entry in entries do
-		row(oddsList, entry[1], entry[2], entry[3], index)
+		row(oddsList, entry.label, entry.value, entry.colour, index)
 	end
 
 	oddsList.CanvasSize = UDim2.fromOffset(0, #entries * 39 + 8)
