@@ -19,11 +19,13 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Economy = require(Shared:WaitForChild("Config"):WaitForChild("Economy"))
 local Net = require(Shared:WaitForChild("Net"))
 local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
+local Income = require(Shared:WaitForChild("Logic"):WaitForChild("Income"))
 local Odds = require(Shared:WaitForChild("Logic"):WaitForChild("Odds"))
 local NameGen = require(Shared:WaitForChild("Logic"):WaitForChild("NameGen"))
 local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 
 local DataService = require(script.Parent:WaitForChild("DataService"))
+local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
 local NetService = require(script.Parent:WaitForChild("NetService"))
 local PlotService = require(script.Parent:WaitForChild("PlotService"))
 
@@ -148,6 +150,18 @@ function EggService.claim(player: Player, slot: unknown): (boolean, string?)
 
 	PlotService.render(player)
 	EggService.sync(player)
+
+	-- The reveal. Position is the character, because a hatch has no world
+	-- object of its own until the creature lands.
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	FeedbackService.fire(
+		player,
+		"hatch",
+		if root and root:IsA("BasePart") then root.Position + Vector3.new(0, 3, 0) else nil,
+		{ rarity = rarity, mutation = hatched.mutation }
+	)
+
 	return true, nil
 end
 
@@ -162,6 +176,16 @@ function EggService.snapshot(data: Profile.Data): { [string]: any }
 	end
 	return {
 		coins = data.coins,
+		-- Computed here from the pure Income module rather than asked of
+		-- IncomeService, which requires this module -- the other direction
+		-- would be a cycle.
+		perSecond = Income.perSecond(
+			Profile.placedNomlings(data) :: any,
+			Economy.BASE_INCOME,
+			Economy.MUTATIONS,
+			Economy.rebirthMultiplier(data.rebirths),
+			1
+		),
 		rebirths = data.rebirths,
 		nomlings = #data.nomlings,
 		-- The tutorial reads these to work out which step the player is on,

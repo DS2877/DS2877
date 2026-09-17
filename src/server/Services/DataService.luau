@@ -192,7 +192,8 @@ local function load(player: Player)
 		local granted = Profile.grantStarterEgg(
 			data,
 			Economy.STARTER_EGG,
-			os.time() + Economy.FIRST_EGG_HATCH_SECONDS
+			os.time() + Economy.FIRST_EGG_HATCH_SECONDS,
+			Economy.FIRST_EGG_HATCH_SECONDS
 		)
 		if granted then
 			print(`[DataService] {player.Name} starts with a free {Economy.STARTER_EGG} egg`)

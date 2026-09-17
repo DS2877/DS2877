@@ -39,6 +39,10 @@ export type Incubator = {
 	eggKey: string,
 	--- os.time() at which it may be claimed.
 	readyAt: number,
+	--- How long this egg takes in total, so a client can draw progress instead
+	--- of only a countdown. Stored rather than re-derived because the first egg
+	--- of a player's life is deliberately faster than its tier.
+	total: number,
 }
 
 export type Data = {
@@ -183,6 +187,9 @@ function Profile.sanitize(raw: any, now: number, inventoryCap: number, pedestalC
 				table.insert(clean.incubators, {
 					eggKey = eggKey,
 					readyAt = math.floor(num(entry.readyAt, now, 0)),
+					-- A save from before `total` existed clamps to 1, which
+					-- shows a full bar rather than dividing by zero.
+					total = math.max(1, math.floor(num(entry.total, 1, 1))),
 				})
 			end
 		end
@@ -311,11 +318,20 @@ function Profile.isStranded(data: Data): boolean
 end
 
 --- Gives a starting egg, already incubating. Returns whether it was given.
-function Profile.grantStarterEgg(data: Data, eggKey: string, readyAt: number): boolean
+function Profile.grantStarterEgg(
+	data: Data,
+	eggKey: string,
+	readyAt: number,
+	seconds: number
+): boolean
 	if not Profile.isStranded(data) then
 		return false
 	end
-	table.insert(data.incubators, { eggKey = eggKey, readyAt = readyAt })
+	table.insert(data.incubators, {
+		eggKey = eggKey,
+		readyAt = readyAt,
+		total = math.max(1, seconds),
+	})
 	return true
 end
 

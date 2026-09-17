@@ -81,6 +81,18 @@ local REMOTES: { [string]: RemoteSpec } = {
 		description = "A one-line toast for the player.",
 	},
 
+	--- Server -> client. "Something just happened, and here is where."
+	--- Feedback only: the client plays a sound and some particles. It never
+	--- carries state, so a dropped one costs a sparkle and nothing else.
+	Feedback = {
+		name = "Feedback",
+		kind = "event",
+		direction = "serverToClient",
+		rateCapacity = 0,
+		rateRefill = 0,
+		description = "Fires a juice cue (kind, position, extra) on the client.",
+	},
+
 	--- Client -> server. Buys the Nomling with this id off the belt.
 	--- The id is a server-issued handle, not a description of the creature --
 	--- the client cannot ask for a rarity, a mutation or a price.

@@ -13,6 +13,7 @@ local CONTROLLER_ORDER = {
 	"BaseHudController",
 	"TutorialController",
 	"AudioController",
+	"JuiceController",
 	"NomlingRenderController",
 }
 

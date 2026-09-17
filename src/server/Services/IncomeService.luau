@@ -17,6 +17,8 @@ local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 
 local DataService = require(script.Parent:WaitForChild("DataService"))
 local EggService = require(script.Parent:WaitForChild("EggService"))
+local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
+local PlotService = require(script.Parent:WaitForChild("PlotService"))
 
 local IncomeService = {}
 IncomeService.Name = "IncomeService"
@@ -94,6 +96,37 @@ function IncomeService.start()
 			task.wait(1)
 			for _, player in Players:GetPlayers() do
 				EggService.sync(player)
+			end
+		end
+	end)
+
+	-- One coin flies to the purse roughly every second, from ONE of the
+	-- player's Nomlings rather than all of them. Eight coins a second from a
+	-- full base would be noise, and the client would cap it anyway.
+	task.spawn(function()
+		local rng = Random.new()
+		while true do
+			task.wait(1.1)
+			for _, player in Players:GetPlayers() do
+				local plot = PlotService.plotFor(player)
+				local data = DataService.get(player)
+				if not plot or not data then
+					continue
+				end
+				local pedestals: { number } = {}
+				for key in data.pedestals do
+					local index = tonumber(key)
+					if index then
+						table.insert(pedestals, index)
+					end
+				end
+				if #pedestals == 0 then
+					continue
+				end
+				local pedestal = plot.pedestals[pedestals[rng:NextInteger(1, #pedestals)]]
+				if pedestal then
+					FeedbackService.fire(player, "coin", pedestal.Position + Vector3.new(0, 4, 0))
+				end
 			end
 		end
 	end)

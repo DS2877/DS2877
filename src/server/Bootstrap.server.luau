@@ -24,6 +24,7 @@ local SERVICE_ORDER = {
 	"AtmosphereService",
 	-- These only REGISTER a DataService.onLoaded callback in their start(),
 	-- so they must all run before DataService's.
+	"FeedbackService",
 	"PlotService",
 	"EggService",
 	"ConveyorService",

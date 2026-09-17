@@ -193,16 +193,16 @@ h.test("REGRESSION: a new player cannot be stranded on the first screen", functi
 	h.expectTrue(Profile.isStranded(data), "a fresh profile is stranded without a grant")
 	h.expectTrue(Economy.STARTER_EGG ~= nil, "STARTER_EGG must exist or the FTUE dead-ends")
 
-	local granted = Profile.grantStarterEgg(data, Economy.STARTER_EGG, NOW + 5)
+	local granted = Profile.grantStarterEgg(data, Economy.STARTER_EGG, NOW + 5, 5)
 	h.expectTrue(granted, "the grant must apply to a fresh profile")
 	h.expectTrue(not Profile.isStranded(data), "the grant must un-strand the player")
 end)
 
 h.test("the starter egg is granted once, not on every join", function()
 	local data = Profile.new(NOW)
-	h.expectTrue(Profile.grantStarterEgg(data, "basic", NOW + 5), "first grant")
+	h.expectTrue(Profile.grantStarterEgg(data, "basic", NOW + 5, 5), "first grant")
 	h.expectTrue(
-		not Profile.grantStarterEgg(data, "basic", NOW + 5),
+		not Profile.grantStarterEgg(data, "basic", NOW + 5, 5),
 		"second grant must be refused"
 	)
 	h.expectEqual(#data.incubators, 1, "only one starting egg")
@@ -217,6 +217,17 @@ h.test("a player who spent down to zero is not stranded", function()
 	h.expectTrue(not Profile.isStranded(withNomling), "owning a Nomling is not stranded")
 
 	local withEgg = Profile.new(NOW)
-	table.insert(withEgg.incubators, { eggKey = "basic", readyAt = NOW + 10 })
+	table.insert(withEgg.incubators, { eggKey = "basic", readyAt = NOW + 10, total = 10 })
 	h.expectTrue(not Profile.isStranded(withEgg), "an incubating egg is not stranded")
+end)
+
+h.test("an incubator saved before `total` existed still loads", function()
+	-- The field was added after the first playtest. A profile written by the
+	-- previous build has no `total`, and dividing by it would be a division by
+	-- zero on the client's progress bar.
+	local data = Profile.sanitize({
+		incubators = { { eggKey = "basic", readyAt = NOW + 30 } },
+	}, NOW, CAP, PEDS)
+	h.expectEqual(#data.incubators, 1, "the incubator should survive")
+	h.expectTrue(data.incubators[1].total >= 1, "total must never be zero or nil")
 end)

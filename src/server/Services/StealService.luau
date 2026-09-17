@@ -24,6 +24,7 @@ local SnatchRules = require(Shared:WaitForChild("Logic"):WaitForChild("SnatchRul
 local Style = require(Shared:WaitForChild("Style"))
 
 local DataService = require(script.Parent:WaitForChild("DataService"))
+local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
 local PlotService = require(script.Parent:WaitForChild("PlotService"))
 
 local StealService = {}
@@ -219,6 +220,12 @@ function StealService.attempt(thief: Player, victim: Player, nomlingId: string):
 
 	notify(thief, "RUN! Get it back to your base!")
 	notify(victim, `{thief.DisplayName} is taking your {nomling.snack} {nomling.animal}!`)
+
+	local grabAt = model.PrimaryPart and model.PrimaryPart.Position
+	FeedbackService.fire(thief, "grab", grabAt, { rarity = nomling.rarity })
+	-- The victim gets the loudest cue in the game. Being robbed is the one
+	-- event a player must notice instantly, even looking at something else.
+	FeedbackService.fire(victim, "snatched", nil, { rarity = nomling.rarity })
 	return true, nil
 end
 

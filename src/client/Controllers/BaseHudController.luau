@@ -1,20 +1,28 @@
 --!strict
 --[[
-	The M1 HUD: coins, the egg button, and the incubator slots.
+	The HUD: purse, income rate, incubators, the egg button, toasts.
+
+	PHONE FIRST, and that shapes every choice here. Everything tappable is at
+	least 56 px on its shortest side and sits in the lower third, inside thumb
+	reach. Nothing important goes near the top-right, where a right-handed
+	player's thumb covers the screen when they reach for it. The purse is
+	top-left because that is the one thing players glance at without tapping.
 
 	Built from plain Instances rather than React-Lua. React-Lua is approved
-	(docs/DECISIONS.md D-005) and is still the destination for real UI, but
-	four labels and two buttons do not need a reconciler, and adding one to
-	the first playable slice means two new things being tested at once.
-	It lands when the UI actually earns it.
+	(docs/DECISIONS.md D-005) and is still the destination for the Fusion Book
+	and the reveal, but a HUD that never changes shape does not need a
+	reconciler, and high-frequency values -- the coin counter ticking every
+	frame -- are exactly what D-005 says to keep out of the tree anyway.
 
-	PHONE FIRST. Every tappable thing is at least 56 px on its shortest side
-	and sits in the lower half of the screen, inside thumb reach. Nothing
-	important hides behind the Roblox top bar.
+	WHAT MAKES IT LOOK EXPENSIVE, since none of it is art assets:
+	layered surfaces with a real shadow, gradients rather than flat fills, a
+	type hierarchy with three weights, progress that animates instead of
+	jumping, and a number that punches when it changes.
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Economy = require(Shared:WaitForChild("Config"):WaitForChild("Economy"))
@@ -22,18 +30,28 @@ local Income = require(Shared:WaitForChild("Logic"):WaitForChild("Income"))
 local Net = require(Shared:WaitForChild("Net"))
 local Style = require(Shared:WaitForChild("Style"))
 
+local JuiceController = require(script.Parent:WaitForChild("JuiceController"))
+
 local BaseHudController = {}
 BaseHudController.Name = "BaseHudController"
 
-local TOUCH_MIN = 56
+local TOUCH_MIN = 58
 
 local player = Players.LocalPlayer
 local snapshot: { [string]: any }? = nil
+local displayedCoins = 0
+
+local purse: Frame
 local coinLabel: TextLabel
 local rateLabel: TextLabel
 local eggButton: TextButton
-local slotButtons: { TextButton } = {}
-local toast: TextLabel
+local eggLabel: TextLabel
+local eggPrice: TextLabel
+local toast: Frame
+local toastLabel: TextLabel
+local slots: { { button: TextButton, label: TextLabel, fill: Frame } } = {}
+
+-- --- small builders --------------------------------------------------------
 
 local function corner(parent: Instance, radius: number)
 	local ui = Instance.new("UICorner")
@@ -41,181 +59,309 @@ local function corner(parent: Instance, radius: number)
 	ui.Parent = parent
 end
 
-local function showToast(text: string)
-	toast.Text = text
+local function stroke(parent: Instance, colour: Color3, thickness: number, transparency: number)
+	local line = Instance.new("UIStroke")
+	line.Color = colour
+	line.Thickness = thickness
+	line.Transparency = transparency
+	line.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	line.Parent = parent
+end
+
+--- A soft drop shadow, built from one offset dark frame behind the surface.
+--- There is no shadow image to load, and at this size nobody can tell.
+local function shadow(target: GuiObject, spread: number)
+	local behind = Instance.new("Frame")
+	behind.Name = "Shadow"
+	behind.AnchorPoint = target.AnchorPoint
+	behind.Position = target.Position + UDim2.fromOffset(0, spread)
+	behind.Size = target.Size + UDim2.fromOffset(spread, spread)
+	behind.BackgroundColor3 = Style.PALETTE.ink
+	behind.BackgroundTransparency = 0.72
+	behind.BorderSizePixel = 0
+	behind.ZIndex = target.ZIndex - 1
+	behind.Parent = target.Parent
+	corner(behind, 18)
+	return behind
+end
+
+local function gradient(parent: Instance, top: Color3, bottom: Color3, rotation: number?)
+	local grad = Instance.new("UIGradient")
+	grad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, top),
+		ColorSequenceKeypoint.new(1, bottom),
+	})
+	grad.Rotation = rotation or 90
+	grad.Parent = parent
+	return grad
+end
+
+local function label(parent: Instance, font: Enum.Font, size: UDim2, position: UDim2): TextLabel
+	local text = Instance.new("TextLabel")
+	text.BackgroundTransparency = 1
+	text.Size = size
+	text.Position = position
+	text.Font = font
+	text.TextScaled = true
+	text.TextXAlignment = Enum.TextXAlignment.Left
+	text.TextColor3 = Style.PALETTE.ink
+	text.Text = ""
+	text.Parent = parent
+	return text
+end
+
+-- --- toast -----------------------------------------------------------------
+
+local toastToken = 0
+
+local function showToast(message: string)
+	toastToken += 1
+	local token = toastToken
+	toastLabel.Text = message
 	toast.Visible = true
-	task.delay(2.5, function()
-		if toast.Text == text then
-			toast.Visible = false
+	toast.BackgroundTransparency = 1
+	toastLabel.TextTransparency = 1
+	TweenService:Create(toast, TweenInfo.new(0.18), { BackgroundTransparency = 0.08 }):Play()
+	TweenService:Create(toastLabel, TweenInfo.new(0.18), { TextTransparency = 0 }):Play()
+	JuiceController.pop(toast, 0.06)
+
+	task.delay(2.6, function()
+		if toastToken ~= token then
+			return
 		end
+		TweenService:Create(toast, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
+		local fade = TweenService:Create(toastLabel, TweenInfo.new(0.3), { TextTransparency = 1 })
+		fade.Completed:Connect(function()
+			if toastToken == token then
+				toast.Visible = false
+			end
+		end)
+		fade:Play()
 	end)
 end
 
-local function build(): ScreenGui
+-- --- build -----------------------------------------------------------------
+
+local function build()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "BaseHud"
 	gui.ResetOnSpawn = false
-	-- Keeps the HUD clear of the notch and the Roblox top bar without us
-	-- hard-coding an inset per device.
 	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	gui.Parent = player:WaitForChild("PlayerGui")
 
-	-- --- coins ---
-	local purse = Instance.new("Frame")
+	-- --- purse ---
+	purse = Instance.new("Frame")
 	purse.Name = "Purse"
-	purse.AnchorPoint = Vector2.new(0, 0)
-	purse.Position = UDim2.new(0, 12, 0, 12)
-	purse.Size = UDim2.new(0, 190, 0, 62)
+	purse.Position = UDim2.new(0, 14, 0, 14)
+	purse.Size = UDim2.new(0, 208, 0, 70)
 	purse.BackgroundColor3 = Style.PALETTE.nomCream
-	purse.BackgroundTransparency = 0.08
 	purse.BorderSizePixel = 0
+	purse.ZIndex = 4
 	purse.Parent = gui
-	corner(purse, 14)
+	corner(purse, 18)
+	gradient(purse, Color3.fromRGB(255, 252, 244), Color3.fromRGB(246, 232, 208))
+	stroke(purse, Style.PALETTE.nomCocoa, 1.5, 0.72)
+	shadow(purse, 4)
 
-	coinLabel = Instance.new("TextLabel")
-	coinLabel.Name = "Coins"
-	coinLabel.Position = UDim2.new(0, 12, 0, 6)
-	coinLabel.Size = UDim2.new(1, -24, 0, 32)
-	coinLabel.BackgroundTransparency = 1
-	coinLabel.Font = Enum.Font.FredokaOne
-	coinLabel.TextScaled = true
-	coinLabel.TextXAlignment = Enum.TextXAlignment.Left
-	coinLabel.TextColor3 = Style.PALETTE.ink
+	local coinIcon = Instance.new("Frame")
+	coinIcon.Name = "CoinIcon"
+	coinIcon.Position = UDim2.new(0, 12, 0.5, -13)
+	coinIcon.Size = UDim2.fromOffset(26, 26)
+	coinIcon.BackgroundColor3 = Color3.fromRGB(255, 206, 84)
+	coinIcon.BorderSizePixel = 0
+	coinIcon.Parent = purse
+	corner(coinIcon, 13)
+	stroke(coinIcon, Color3.fromRGB(214, 152, 40), 2, 0)
+
+	coinLabel = label(purse, Enum.Font.FredokaOne, UDim2.new(1, -54, 0, 34), UDim2.new(0, 46, 0, 8))
 	coinLabel.Text = "0"
-	coinLabel.Parent = purse
-
-	rateLabel = Instance.new("TextLabel")
-	rateLabel.Name = "Rate"
-	rateLabel.Position = UDim2.new(0, 12, 0, 38)
-	rateLabel.Size = UDim2.new(1, -24, 0, 18)
-	rateLabel.BackgroundTransparency = 1
-	rateLabel.Font = Enum.Font.Gotham
-	rateLabel.TextScaled = true
-	rateLabel.TextXAlignment = Enum.TextXAlignment.Left
+	rateLabel =
+		label(purse, Enum.Font.GothamMedium, UDim2.new(1, -54, 0, 18), UDim2.new(0, 46, 0, 44))
 	rateLabel.TextColor3 = Style.PALETTE.nomCocoa
 	rateLabel.Text = "0 / sec"
-	rateLabel.Parent = purse
+
+	JuiceController.setPurseTarget(purse)
 
 	-- --- incubator slots ---
-	local slots = Instance.new("Frame")
-	slots.Name = "Incubators"
-	slots.AnchorPoint = Vector2.new(0.5, 1)
-	slots.Position = UDim2.new(0.5, 0, 1, -90)
-	slots.Size = UDim2.new(0, 300, 0, TOUCH_MIN)
-	slots.BackgroundTransparency = 1
-	slots.Parent = gui
+	local tray = Instance.new("Frame")
+	tray.Name = "Incubators"
+	tray.AnchorPoint = Vector2.new(0.5, 1)
+	tray.Position = UDim2.new(0.5, 0, 1, -96)
+	tray.Size = UDim2.new(0, 320, 0, TOUCH_MIN)
+	tray.BackgroundTransparency = 1
+	tray.ZIndex = 4
+	tray.Parent = gui
 
 	local layout = Instance.new("UIListLayout")
 	layout.FillDirection = Enum.FillDirection.Horizontal
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	layout.Padding = UDim.new(0, 8)
-	layout.Parent = slots
+	layout.Padding = UDim.new(0, 10)
+	layout.Parent = tray
 
 	for i = 1, Economy.INCUBATORS_BASE do
-		local slot = Instance.new("TextButton")
-		slot.Name = `Slot{i}`
-		slot.Size = UDim2.new(0, 146, 0, TOUCH_MIN)
-		slot.BackgroundColor3 = Style.PALETTE.nomMint
-		slot.BorderSizePixel = 0
-		slot.Font = Enum.Font.FredokaOne
-		slot.TextScaled = true
-		slot.TextColor3 = Style.PALETTE.ink
-		slot.Text = "-"
-		slot.Visible = false
-		slot.Parent = slots
-		corner(slot, 14)
-		slotButtons[i] = slot
+		local button = Instance.new("TextButton")
+		button.Name = `Slot{i}`
+		button.Size = UDim2.new(0, 150, 0, TOUCH_MIN)
+		button.BackgroundColor3 = Style.PALETTE.nomMint
+		button.BorderSizePixel = 0
+		button.Text = ""
+		button.AutoButtonColor = false
+		button.Visible = false
+		button.Parent = tray
+		corner(button, 16)
+		stroke(button, Style.PALETTE.nomCocoa, 1.5, 0.8)
 
-		slot.Activated:Connect(function()
+		-- A progress fill behind the text, so a countdown is something you
+		-- watch rather than something you read.
+		local fill = Instance.new("Frame")
+		fill.Name = "Fill"
+		fill.Size = UDim2.new(0, 0, 1, 0)
+		fill.BackgroundColor3 = Color3.fromRGB(150, 232, 206)
+		fill.BorderSizePixel = 0
+		fill.ZIndex = 0
+		fill.Parent = button
+		corner(fill, 16)
+
+		local text = Instance.new("TextLabel")
+		text.Size = UDim2.fromScale(1, 1)
+		text.BackgroundTransparency = 1
+		text.Font = Enum.Font.FredokaOne
+		text.TextScaled = true
+		text.TextColor3 = Style.PALETTE.ink
+		text.ZIndex = 2
+		text.Text = "-"
+		text.Parent = button
+
+		slots[i] = { button = button, label = text, fill = fill }
+
+		button.Activated:Connect(function()
 			local remote = Net.get("ClaimHatch") :: RemoteFunction
 			local ok, reason = remote:InvokeServer(i)
-			if not ok and reason then
+			if ok then
+				JuiceController.pop(button, 0.22)
+			elseif reason then
 				showToast(reason)
 			end
 		end)
 	end
 
-	-- --- buy ---
+	-- --- buy egg ---
 	eggButton = Instance.new("TextButton")
 	eggButton.Name = "BuyEgg"
 	eggButton.AnchorPoint = Vector2.new(0.5, 1)
-	eggButton.Position = UDim2.new(0.5, 0, 1, -18)
-	eggButton.Size = UDim2.new(0, 300, 0, 64)
+	eggButton.Position = UDim2.new(0.5, 0, 1, -20)
+	eggButton.Size = UDim2.new(0, 320, 0, 70)
 	eggButton.BackgroundColor3 = Style.PALETTE.nomOrange
 	eggButton.BorderSizePixel = 0
-	eggButton.Font = Enum.Font.FredokaOne
-	eggButton.TextScaled = true
-	eggButton.TextColor3 = Style.PALETTE.nomCream
-	eggButton.Text = "Buy Egg"
+	eggButton.Text = ""
+	eggButton.AutoButtonColor = false
+	eggButton.ZIndex = 4
 	eggButton.Parent = gui
-	corner(eggButton, 18)
+	corner(eggButton, 20)
+	gradient(eggButton, Color3.fromRGB(255, 176, 98), Color3.fromRGB(240, 128, 44))
+	stroke(eggButton, Color3.fromRGB(186, 88, 24), 2, 0.3)
+	shadow(eggButton, 5)
+
+	eggLabel =
+		label(eggButton, Enum.Font.FredokaOne, UDim2.new(1, -24, 0, 30), UDim2.new(0, 18, 0, 10))
+	eggLabel.TextColor3 = Style.PALETTE.nomCream
+	eggLabel.Text = "Buy Egg"
+	eggPrice =
+		label(eggButton, Enum.Font.GothamBold, UDim2.new(1, -24, 0, 20), UDim2.new(0, 18, 0, 40))
+	eggPrice.TextColor3 = Color3.fromRGB(255, 240, 220)
+	eggPrice.Text = ""
 
 	eggButton.Activated:Connect(function()
 		local remote = Net.get("BuyEgg") :: RemoteFunction
 		local ok, reason = remote:InvokeServer("basic")
-		if not ok and reason then
+		if ok then
+			JuiceController.pop(eggButton, 0.14)
+		elseif reason then
 			showToast(reason)
 		end
 	end)
 
 	-- --- toast ---
-	toast = Instance.new("TextLabel")
+	toast = Instance.new("Frame")
 	toast.Name = "Toast"
 	toast.AnchorPoint = Vector2.new(0.5, 1)
-	toast.Position = UDim2.new(0.5, 0, 1, -160)
-	toast.Size = UDim2.new(0, 300, 0, 40)
+	toast.Position = UDim2.new(0.5, 0, 1, -176)
+	toast.Size = UDim2.new(0, 320, 0, 46)
 	toast.BackgroundColor3 = Style.PALETTE.ink
-	toast.BackgroundTransparency = 0.15
+	toast.BackgroundTransparency = 0.08
 	toast.BorderSizePixel = 0
-	toast.Font = Enum.Font.Gotham
-	toast.TextScaled = true
-	toast.TextColor3 = Style.PALETTE.nomCream
-	toast.Text = ""
 	toast.Visible = false
+	toast.ZIndex = 6
 	toast.Parent = gui
-	corner(toast, 12)
+	corner(toast, 14)
 
-	gui.Parent = player:WaitForChild("PlayerGui")
-	return gui
+	toastLabel = Instance.new("TextLabel")
+	toastLabel.Size = UDim2.new(1, -20, 1, -10)
+	toastLabel.Position = UDim2.new(0, 10, 0, 5)
+	toastLabel.BackgroundTransparency = 1
+	toastLabel.Font = Enum.Font.GothamMedium
+	toastLabel.TextScaled = true
+	toastLabel.TextWrapped = true
+	toastLabel.TextColor3 = Style.PALETTE.nomCream
+	toastLabel.Text = ""
+	toastLabel.Parent = toast
 end
 
---- Redraws from the last snapshot. Called every frame-ish, so it must stay
---- allocation-free and must never assume a field is present.
-local function refresh()
+-- --- refresh ---------------------------------------------------------------
+
+local function refresh(delta: number)
 	local snap = snapshot
 	if not snap then
 		return
 	end
 
-	coinLabel.Text = Income.format(snap.coins or 0)
+	-- The counter eases toward the real value rather than snapping. A number
+	-- that visibly climbs is worth a surprising amount of perceived quality,
+	-- and it also hides the one-second sync interval.
+	local target = snap.coins or 0
+	if math.abs(target - displayedCoins) < 1 then
+		displayedCoins = target
+	else
+		displayedCoins += (target - displayedCoins) * math.min(1, delta * 6)
+	end
+	coinLabel.Text = Income.format(displayedCoins)
+
+	local rate = snap.perSecond or 0
+	rateLabel.Text = `{Income.format(rate)} / sec`
 
 	local price = snap.prices and snap.prices.basic
-	eggButton.Text = if price then `Buy Egg  {Income.format(price)}` else "Egg locked"
-	local affordable = price ~= nil and (snap.coins or 0) >= price
+	local affordable = price ~= nil and target >= price
+	eggLabel.Text = if price then "Buy Egg" else "Egg locked"
+	eggPrice.Text = if price then Income.format(price) else ""
 	eggButton.BackgroundColor3 = if affordable
 		then Style.PALETTE.nomOrange
-		else Style.PALETTE.shadow
+		else Color3.fromRGB(176, 158, 146)
 
 	local incubators = snap.incubators or {}
-	for i, slot in slotButtons do
+	for i, slot in slots do
 		local entry = incubators[i]
 		if not entry then
-			slot.Visible = false
+			slot.button.Visible = false
 			continue
 		end
-		slot.Visible = true
-		-- Count down from the client's own clock between syncs, so the timer
-		-- ticks smoothly instead of jumping once a second.
-		local remaining = math.max(
-			0,
-			entry.readyAt - (snap.now or os.time()) - (os.clock() - (snap.at or os.clock()))
-		)
+		slot.button.Visible = true
+
+		local now = (snap.now or os.time()) + (os.clock() - (snap.at or os.clock()))
+		local remaining = math.max(0, entry.readyAt - now)
+		local total = math.max(1, entry.total or remaining + 1)
+
 		if remaining <= 0 then
-			slot.Text = "TAP TO HATCH!"
-			slot.BackgroundColor3 = Style.PALETTE.nomPink
+			slot.label.Text = "TAP TO HATCH!"
+			slot.button.BackgroundColor3 = Style.PALETTE.nomPink
+			slot.fill.Size = UDim2.new(1, 0, 1, 0)
+			slot.fill.BackgroundColor3 = Color3.fromRGB(255, 176, 204)
 		else
-			slot.Text = `{math.ceil(remaining)}s`
-			slot.BackgroundColor3 = Style.PALETTE.nomMint
+			slot.label.Text = `{math.ceil(remaining)}s`
+			slot.button.BackgroundColor3 = Style.PALETTE.nomMint
+			local progress = math.clamp(1 - remaining / total, 0, 1)
+			slot.fill.Size = UDim2.new(progress, 0, 1, 0)
+			slot.fill.BackgroundColor3 = Color3.fromRGB(150, 232, 206)
 		end
 	end
 end
@@ -229,8 +375,13 @@ function BaseHudController.start()
 			return
 		end
 		snap.at = os.clock()
+		local previous = snapshot
 		snapshot = snap
-		refresh()
+		-- Punch the purse when coins jump by a visible amount, which means a
+		-- purchase, a hatch or an offline payout rather than the steady tick.
+		if previous and (snap.coins or 0) > (previous.coins or 0) * 1.05 then
+			JuiceController.pop(purse, 0.1)
+		end
 	end)
 
 	local notify = Net.get("Notify") :: RemoteEvent
@@ -241,9 +392,16 @@ function BaseHudController.start()
 	end)
 
 	task.spawn(function()
+		local last = os.clock()
 		while true do
-			task.wait(0.2)
-			refresh()
+			task.wait(1 / 20)
+			local now = os.clock()
+			local delta = now - last
+			last = now
+			local ok, err = pcall(refresh, delta)
+			if not ok then
+				warn(`[BaseHudController] refresh failed: {err}`)
+			end
 		end
 	end)
 end
