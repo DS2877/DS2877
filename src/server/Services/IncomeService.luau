@@ -19,6 +19,7 @@ local DataService = require(script.Parent:WaitForChild("DataService"))
 local EggService = require(script.Parent:WaitForChild("EggService"))
 local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
 local PlotService = require(script.Parent:WaitForChild("PlotService"))
+local WeatherService = require(script.Parent:WaitForChild("WeatherService"))
 
 local IncomeService = {}
 IncomeService.Name = "IncomeService"
@@ -35,13 +36,12 @@ for name, spec in Economy.MUTATIONS do
 end
 
 function IncomeService.perSecond(data: Profile.Data): number
-	-- M1 has no weather, so the factor is 1. It becomes a live value at M2b.
 	return Income.perSecond(
 		Profile.placedNomlings(data) :: any,
 		Economy.BASE_INCOME,
 		MUTATION_MULTIPLIER,
 		Economy.rebirthMultiplier(data.rebirths),
-		1
+		WeatherService.factor()
 	)
 end
 

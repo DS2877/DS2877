@@ -20,6 +20,7 @@ local CONTROLLER_ORDER = {
 	"TutorialController",
 	"NomlingRenderController",
 	"FusionController",
+	"WeatherController",
 }
 
 type Controller = {

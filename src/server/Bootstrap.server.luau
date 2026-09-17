@@ -28,6 +28,7 @@ local SERVICE_ORDER = {
 	"PlotService",
 	"EggService",
 	"ConveyorService",
+	"WeatherService",
 	"IncomeService",
 	"StealService",
 	"FusionService",

@@ -81,6 +81,8 @@ local HELP_LINES = {
 	"😈  Walk into another player's base and hold SNATCH to take one of theirs.",
 	"🏃  Carrying makes you slower. Get it back to YOUR base to keep it.",
 	"🛡️  Brand-new players cannot be snatched from, and neither can you at first.",
+	"⛅  Weather sweeps in every so often: big coin boost, and it can MUTATE the Nomlings you have out.",
+	"🫧  Tap the bubble button to save a Nomling a thief is running off with.",
 	"💰  You keep earning while you're away — come back to a pile of coins.",
 }
 

@@ -29,6 +29,7 @@ local FeedbackService = require(script.Parent:WaitForChild("FeedbackService"))
 -- Safe at the top: FusionService requires DataService, FeedbackService,
 -- NetService and PlotService, none of which require this module back.
 local FusionService = require(script.Parent:WaitForChild("FusionService"))
+local WeatherService = require(script.Parent:WaitForChild("WeatherService"))
 local NetService = require(script.Parent:WaitForChild("NetService"))
 local PlotService = require(script.Parent:WaitForChild("PlotService"))
 
@@ -187,7 +188,9 @@ function EggService.snapshot(data: Profile.Data): { [string]: any }
 			Economy.BASE_INCOME,
 			Economy.MUTATIONS,
 			Economy.rebirthMultiplier(data.rebirths),
-			1
+			-- The live weather factor, so the HUD's rate matches what the
+			-- player is actually being paid during an event.
+			WeatherService.factor()
 		),
 		rebirths = data.rebirths,
 		nomlings = #data.nomlings,

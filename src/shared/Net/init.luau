@@ -151,6 +151,16 @@ local REMOTES: { [string]: RemoteSpec } = {
 		description = "Announces a finished fusion to the player who made it.",
 	},
 
+	--- Server -> everyone. Weather: incoming, started, or finished.
+	Weather = {
+		name = "Weather",
+		kind = "event",
+		direction = "serverToClient",
+		rateCapacity = 0,
+		rateRefill = 0,
+		description = "Announces a weather event's phase to every client.",
+	},
+
 	--- Server -> everyone. A World First, announced across the server.
 	WorldFirst = {
 		name = "WorldFirst",
