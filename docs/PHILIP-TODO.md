@@ -1,7 +1,7 @@
 # PHILIP-TODO
 
 Things only Philip can do. Claude keeps this current (brief §12, §11.11).
-Last updated: 2026-09-17 (creatures, fusion, reveal, World First, weather, NPC thieves, bubble, Re-Nom, art direction, audio — audio blocked on one API key scope).
+Last updated: 2026-09-17 (kid-friendly retune, faces, Fusion Book, Egg Market with odds disclosure, leaderboard, guide marker — audio still blocked on one API key scope).
 
 **Status key:** ⬜ not started · 🟡 in progress · ✅ done · ⏸️ not needed yet
 
@@ -170,36 +170,37 @@ Open **Fuse a Nomling TEST** on your iPhone.
 
 | # | Do this | Should happen |
 |---|---|---|
-| 1 | Just stand still and look | Golden-hour light, haze down the street, clouds, lamp posts, striped awnings, distant buildings. A **Fusion Kitchen** at one end, an **Egg Market** at the other |
-| 2 | Look at your pedestals | **Real creatures** — taco shells over backs, nori bands, pizza-crust collars, sprinkles, popcorn puffs, waffle grids. Each one breathes slightly |
-| 3 | Read the blue banner up top | Your next objective. It changes as you progress and survives a rejoin |
-| 4 | Wait ~5 s, tap the green slot | Burst, camera kick, a creature lands and starts earning |
-| 5 | Watch the purse | Coins **fly** from your Nomlings into it; the number climbs smoothly rather than jumping |
-| 6 | Walk out to the belt | Creatures ride past with price, rarity and ✨mutation✨. Mutated ones **glow and sparkle** |
-| 7 | Buy one | Burst, shake, sound, it lands in your base |
-| 8 | **Tap 🧪 FUSE** | Pick two — **order matters**, the first gives the snack — then FUSE THEM |
-| 9 | Wait, then tap **✨CLAIM** | **The reveal.** Screen dims, silhouette first, colours resolve, rarity banner, then the name **types itself out** |
-| 10 | If nobody has made it before | 🏆 **WORLD FIRST** in gold, and it sweeps across for everyone in the server |
-| 11 | Wait a few minutes | ⛅ **Weather warning**, 15 s to get your best creatures out on pedestals, then a coin boost and possible **permanent mutations** |
-| 12 | Wait a bit longer | 😈 **Sneaky Sam** walks into your base and runs off with one |
-| 13 | Chase him, tap 🫧 | **Bubbled** — your Nomling comes home |
-| 14 | Base full? Tap one of yours | **Put away** frees the pedestal |
-| 15 | Tap **?** top-right | Full how-to-play, any time |
+| 1 | Just stand still and look | **Bright midday**, blue sky, fat clouds, candy-coloured buildings, striped awnings. Not moody — the GTA-ish look is gone |
+| 2 | Look at a Nomling's face | **Smile, rosy cheeks, a shine in each eye.** They breathe |
+| 3 | Walk right up to one | It **turns to look at you and bounces higher** |
+| 4 | Follow the glowing marker | It points at wherever your current objective is, and moves with you |
+| 5 | Tap the green slot when ready | A creature **rises up out of the pedestal** with a bounce |
+| 6 | Watch the purse | Coins fly in, the number climbs smoothly |
+| 7 | Walk to the belt | Creatures ride past. Mutated ones **glow and sparkle** |
+| 8 | Tap **🥚** (right rail) or the market counter | The **Egg Market** — all six tiers, locked ones showing what Re-Nom unlocks them, and an **Odds** button on each |
+| 9 | Tap **🧪 FUSE** | Pick two — order matters. There's an **Odds** button here too |
+| 10 | Claim it | **The reveal.** Silhouette, colours resolve, rarity banner, the name types itself out |
+| 11 | Tap **📖** | **The Fusion Book** — a 12×12 grid. Rows are the snack, columns the animal. Tap any square |
+| 12 | Read the board on the street | 🏆 **TOP NOMLERS**, ranked by coins/sec |
+| 13 | Look at a base sign | Name, coins/sec, Nomling count — how you pick a target |
+| 14 | Wait a few minutes | ⛅ **Weather**: 15 s warning, then a coin boost and possible permanent mutations |
+| 15 | Wait a bit longer | 🦝 **Sneaky Sam** — a masked raccoon bandit — takes one and runs |
+| 16 | Chase him, tap 🫧 | **Bubbled.** Your Nomling comes home |
+| 17 | Tap **?** | Full how-to-play, any time |
 
 ### What I most want to know
 
-1. **Does the reveal land?** It is the product. If it is not a *moment*, nothing else matters.
-2. **Frame rate.** A great deal was added tonight. If it stutters, say where — quality auto-drops, but I'd rather cut something.
-3. **Do the creatures read as snack-animals**, or just as animals?
-4. **Is the street readable** — can you tell whose base is whose from the road?
+1. **Does it feel like a kids' game now?** That was the whole retune.
+2. **Does the reveal land?** It is the product.
+3. **Frame rate.** A great deal went in. Quality auto-drops if it struggles, but tell me where.
+4. **Do the creatures read as snack-animals** rather than just animals?
 
 ### Known and deliberate
 
-- **🔴 Silent**, until the API key job at the top of this file is done.
-- **Nobody else in your server**, so player-vs-player stealing is untested. That is what Sneaky Sam is for.
-- **No Laser Gate or Vault** yet — you can bubble a thief but not lock them out.
-- **No Fusion Book screen** — World Firsts are recorded, but there is no gallery to browse yet.
-- **No analytics funnel.** The last open M1 item.
+- **🔴 Silent** until the API key job at the top of this file is done.
+- **You're alone in the server**, so player-vs-player stealing is untested. Sneaky Sam covers the mechanic.
+- **No Laser Gate or Vault** — you can bubble a thief but not lock one out.
+- **No daily rewards** and **no analytics funnel** yet.
 
 ### 📅 When you next have computer + Studio time
 
