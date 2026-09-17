@@ -148,17 +148,23 @@ so the next one takes a minute rather than an afternoon.
 Both of these are the same API key, the same page, and neither changes the key
 value, so **GitHub needs no update afterwards**.
 
-Creator Hub → **Credentials** → **API Keys** → edit `NOMLING_PUBLISHING_KEY`.
+Creator Hub → **Credentials** → **API Keys**.
 
 | Add this API system | With these operations | What it unlocks |
 |---|---|---|
-| **`asset`** | **Write** | The music and all seven sound effects |
-| **`universe.place.luau-execution-session`** | **Read** and **Write** | The cloud test that runs after every deploy |
+| **`universe-places`** | **Write** | Publishing the place. Already working |
+| **`assets`** | **Read** *and* **Write** | The music and all seven sound effects |
+| **`universe.place.luau-execution-session`** | **Read** *and* **Write** | The cloud test that runs after every deploy |
+
+⚠️ **`assets` needs READ as well as WRITE**, and an earlier version of this file
+said Write only. The upload is asynchronous: the POST returns an *operation*,
+and the script polls `GET /assets/v1/operations/...` for the result. Write alone
+uploads and then fails on the very next call.
 
 *(Publishing already works — that is `universe-places` → Write, which you added
 on 2026-09-16. These are additions, not replacements.)*
 
-**1. `asset` → the game is silent without it.** The theme and every sound effect
+**1. `assets` → the game is silent without it.** The theme and every sound effect
 are built, committed and one click from being in the game. The audio system is
 wired; it just has nothing to point at, and it degrades quietly rather than
 erroring. Tried it again on 2026-09-17: all eight files still fail.
@@ -171,8 +177,38 @@ been red since 2026-09-16 and is the **only** failing check on the open pull
 request. Nothing in the game is broken by it — but a permanently red CI is a CI
 nobody reads, so it is worth the extra checkbox.
 
-Tell me when both are saved and I run the audio upload, paste the asset IDs in,
-and re-run CI.
+### ⚠️ Before the audio upload: the monthly quota is smaller than it sounds
+
+Roblox limits audio uploads **per creator per month**:
+
+- **100/month if you are ID-verified**
+- **10/month if you are not** ← this is you today (task 2 above is still open)
+
+**We have 8 audio files.** On an un-verified account that is one clean run and
+almost no margin, and audio is *"not available for updating"* — a bad upload is
+a burnt slot, not something to fix in place.
+
+So the upload goes: **one small sound effect first**, confirm it lands, then the
+remaining seven. Same 8 total, but the key is proven before the budget is spent.
+
+Doing **task 2 (age check / ID verification)** first raises this to 100/month and
+is needed for the M6 all-ages launch anyway — so if it is quick, do it first.
+Checked 2026-09-17: `create.roblox.com/docs/cloud/guides/usage-assets`.
+
+### Two more things that silently break a key
+
+- **Leave "Restrict IP addresses" OFF.** GitHub Actions runners have no fixed IP.
+- **Set no expiration date** — and note Roblox expires a key after **60 days of
+  inactivity** regardless, so a quiet stretch on the project can kill it.
+
+### 🔑 A new key means a NEW SECRET VALUE
+
+If you create a fresh key rather than editing the existing one, the old value
+stops working. **GitHub → Settings → Secrets and variables → Actions → update
+`ROBLOX_API_KEY`.** Nothing deploys until that is done.
+
+Tell me when it is saved and I run the audio upload, paste the asset IDs in, and
+re-run CI.
 
 ---
 

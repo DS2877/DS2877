@@ -97,8 +97,11 @@ def upload(file_path: str, name: str, description: str, user_id: str, group_id: 
             message += (
                 "\n\n  Audio upload needs a DIFFERENT permission from publishing.\n"
                 "  Creator Hub -> Credentials -> API Keys -> edit your key:\n"
-                "    add the `asset` API system with the **Write** operation.\n"
-                "  Publishing uses `universe-places` -> Write; this needs both."
+                "    add the `assets` API system with BOTH Read and Write.\n"
+                "  Read is not optional: the upload is asynchronous and this\n"
+                "  script polls GET /assets/v1/operations/... for the result.\n"
+                "  Publishing uses `universe-places` -> Write; you need both.\n"
+                "  Docs: create.roblox.com/docs/cloud/guides/usage-assets"
             )
         opencloud.die(message)
 
@@ -189,6 +192,16 @@ def upload_all(directory: str, user_id: str, group_id: str | None) -> int:
         print(f"\nFAILED: {', '.join(failures)}")
         return 1
     return 0
+
+
+#: Roblox caps audio uploads per creator per month: 100 if the account is
+#: ID-verified, 10 if it is not. This project has 8 files, so an un-verified
+#: account can afford ONE clean run and almost nothing else -- and audio is
+#: "not available for updating", so a bad upload is a wasted slot rather than
+#: something to fix in place. Upload one small file first and confirm it lands
+#: before spending the rest. Checked 2026-09-17:
+#: create.roblox.com/docs/cloud/guides/usage-assets
+UNVERIFIED_MONTHLY_AUDIO_LIMIT = 10
 
 
 def main() -> int:
