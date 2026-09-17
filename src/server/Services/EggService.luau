@@ -276,6 +276,17 @@ function EggService.sync(player: Player)
 	local snapshot = EggService.snapshot(data)
 	snapshot.fusion = FusionService.statusFor(player)
 
+	-- WHERE HOME IS, sent rather than looked up on the client. Under
+	-- StreamingEnabled with a 512-stud radius on a 520-stud street, a base at
+	-- the far end is simply not replicated -- so the client's own search for
+	-- its pad fails exactly when the player is furthest from home and most
+	-- needs pointing at it. "I don't seem to get a base, or it's not obvious
+	-- how to find it" is what that looks like from the outside.
+	local baseX, baseZ, baseIndex = PlotService.baseCenter(player)
+	snapshot.baseX = baseX
+	snapshot.baseZ = baseZ
+	snapshot.baseIndex = baseIndex
+
 	local remote = Net.get("ProfileSync") :: RemoteEvent
 	remote:FireClient(player, snapshot)
 end

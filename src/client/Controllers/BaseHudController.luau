@@ -91,7 +91,9 @@ local confirm: Frame
 local confirmText: TextLabel
 local toast: Frame
 local toastLabel: TextLabel
-local slots: { { button: TextButton, label: TextLabel, fill: Frame } } = {}
+--- `ready` is remembered so the pulse fires once on the transition rather than
+--- twenty times a second for as long as the egg sits unclaimed.
+local slots: { { button: TextButton, label: TextLabel, fill: Frame, ready: boolean } } = {}
 
 -- --- small builders --------------------------------------------------------
 
@@ -363,7 +365,7 @@ local function build()
 		text.ZIndex = 5
 		text.Text = "-"
 
-		slots[i] = { button = button, label = text, fill = progress }
+		slots[i] = { button = button, label = text, fill = progress, ready = false }
 
 		button.Activated:Connect(function()
 			local remote = Net.get("ClaimHatch") :: RemoteFunction
@@ -676,23 +678,39 @@ local function refresh(delta: number)
 	-- while buying `bestEgg` meant that after a Re-Nom the button advertised
 	-- 25 coins and charged 1200 -- the same hardcoded-"basic" bug that made
 	-- five of the six tiers unreachable, left behind in the display half.
+	-- THE BUTTON MUST NOT LIE ABOUT ITSELF. From a playtest: "Even if I have
+	-- money, and try to buy something it doesn't work." It was working exactly
+	-- as designed -- both incubator slots were full, so the server refused --
+	-- but the button sat there bright orange reading "Basic Egg · 25", which is
+	-- a button claiming it can be pressed. The refusal arrived as a toast that
+	-- is easy to miss and gone in two seconds.
+	--
+	-- Every reason the server would refuse is knowable from the snapshot the
+	-- client already has, so the button now shows the blocker instead of the
+	-- price and greys out for ALL of them, not just for money.
 	local tier = (snap.bestEgg :: string?) or "basic"
 	local price = snap.prices and snap.prices[tier]
+	local slotsUsed = #(snap.incubators or {})
+	local slotsFull = slotsUsed >= Economy.INCUBATORS_BASE
 	local affordable = price ~= nil and target >= price
-	eggLabel.Text = if price then (Style.EGG_LABEL[tier] or "Buy Egg") else "Egg locked"
-	-- SAY THE GAP, not just the price. From a playtest: "I'm not sure if the
-	-- button works or not since I start with 0 coins." A greyed button and a
-	-- price you cannot afford look exactly like a broken button -- the player
-	-- has to do the subtraction themselves to find out which it is. Showing
-	-- what is missing turns a dead end into a countdown.
+	local buyable = price ~= nil and affordable and not slotsFull
+
 	if not price then
+		eggLabel.Text = "Egg locked"
 		eggPrice.Text = ""
-	elseif affordable then
-		eggPrice.Text = Income.format(price)
+	elseif slotsFull then
+		-- Named the way out, not just the obstacle. A refusal that does not say
+		-- what to do next is a dead end (the same rule the belt follows).
+		eggLabel.Text = "Nest full"
+		eggPrice.Text = "hatch one first"
 	else
-		eggPrice.Text = `need {Income.format(price - target)} more`
+		eggLabel.Text = Style.EGG_LABEL[tier] or "Buy Egg"
+		eggPrice.Text = if affordable
+			then Income.format(price)
+			else `need {Income.format(price - target)} more`
 	end
-	eggButton.BackgroundColor3 = if affordable
+
+	eggButton.BackgroundColor3 = if buyable
 		then Style.PALETTE.nomOrange
 		else Color3.fromRGB(176, 158, 146)
 
@@ -727,7 +745,19 @@ local function refresh(delta: number)
 			slot.button.BackgroundColor3 = Style.PALETTE.nomPink
 			slot.fill.Size = UDim2.new(1, 0, 1, 0)
 			slot.fill.BackgroundColor3 = Color3.fromRGB(255, 176, 204)
+			-- PULSE, once, the moment it becomes ready. An egg that finishes
+			-- while the player is looking somewhere else just quietly changes
+			-- colour, and a playtester sat on an unclaimed hatch long enough
+			-- that both nest slots filled and every purchase was refused --
+			-- reported as "even if I have money, buying doesn't work". The
+			-- blocked button now says so too, but the better fix is that the
+			-- thing to press asks for attention when it is ready.
+			if not slot.ready then
+				slot.ready = true
+				JuiceController.pop(slot.button, 0.3)
+			end
 		else
+			slot.ready = false
 			slot.label.Text = `{math.ceil(remaining)}s`
 			slot.button.BackgroundColor3 = Style.PALETTE.nomMint
 			local progress = math.clamp(1 - remaining / total, 0, 1)

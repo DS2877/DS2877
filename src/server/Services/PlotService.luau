@@ -175,6 +175,22 @@ function PlotService.plotAt(x: number, z: number): Plot?
 	return nil
 end
 
+--- Where this player's base is, in world space, or nil before one is assigned.
+---
+--- Sent to the client in the profile sync rather than looked up there, because
+--- the client frequently does NOT have the pad instance. StreamingEnabled with
+--- a 512-stud radius on a 520-stud street means a base at the far end is
+--- simply not replicated -- so a client-side lookup fails exactly when the
+--- player is far from home and most needs pointing at it.
+function PlotService.baseCenter(player: Player): (number?, number?, number?)
+	local plot = PlotService.plotFor(player)
+	if not plot then
+		return nil, nil, nil
+	end
+	local x, z = World.baseCenter(plot.index)
+	return x, z, plot.index
+end
+
 function PlotService.plotFor(player: Player): Plot?
 	for _, plot in plots do
 		if plot.owner == player then
