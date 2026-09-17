@@ -36,6 +36,7 @@ local SERVICE_ORDER = {
 	"FusionService",
 	"SnatchNpcService",
 	"BubbleService",
+	"LeaderboardService",
 	-- DataService LAST. Its start() loads any player already in the server and
 	-- fires onLoaded immediately -- with it third in this list, that fired
 	-- before the three services above had subscribed, so the first player on a

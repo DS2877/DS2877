@@ -100,6 +100,25 @@ function IncomeService.start()
 		end
 	end)
 
+	-- The owner sign, showing name and coins per second (GDD 5.1). It is how you
+	-- decide whose base is worth walking into -- a sign with only a name tells a
+	-- thief nothing, and a street of identical signs is a street with no targets.
+	task.spawn(function()
+		while true do
+			task.wait(3)
+			for _, player in Players:GetPlayers() do
+				local data = DataService.get(player)
+				if data then
+					local rate = IncomeService.perSecond(data)
+					PlotService.setSignFor(
+						player,
+						`{player.DisplayName}\n{Income.format(rate)}/s · {#data.nomlings} Nomlings`
+					)
+				end
+			end
+		end
+	end)
+
 	-- One coin flies to the purse roughly every second, from ONE of the
 	-- player's Nomlings rather than all of them. Eight coins a second from a
 	-- full base would be noise, and the client would cap it anyway.

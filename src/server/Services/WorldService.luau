@@ -573,6 +573,62 @@ function WorldService.start()
 	buildLandmark(street, "FusionLab", landmarkZ, 1)
 	buildLandmark(street, "EggMarket", -landmarkZ, -1)
 
+	-- A leaderboard on the road, where everybody walks past it. Seeing your own
+	-- name on a board is worth a surprising amount to a nine-year-old, and it is
+	-- the cheapest social pressure in the game (GDD 5.12).
+	local boardPost = part({
+		Name = "LeaderboardPost",
+		Size = Vector3.new(1.4, 16, 1.4),
+		CFrame = CFrame.new(-World.KERB_X - 4, 8, 0),
+		Color = Style.PALETTE.nomCocoa,
+		Material = Enum.Material.Wood,
+	}, street)
+
+	local board = part({
+		Name = "Leaderboard",
+		Size = Vector3.new(0.6, 13, 20),
+		CFrame = CFrame.new(-World.KERB_X - 4, 17, 0),
+		Color = Style.PALETTE.nomCream,
+		Material = Enum.Material.SmoothPlastic,
+		CanCollide = false,
+	}, street)
+	local _ = boardPost
+
+	local boardGui = Instance.new("SurfaceGui")
+	boardGui.Name = "Board"
+	boardGui.Face = Enum.NormalId.Right
+	boardGui.CanvasSize = Vector2.new(400, 260)
+	boardGui.LightInfluence = 0
+	boardGui.Parent = board
+
+	local backing = Instance.new("Frame")
+	backing.Size = UDim2.fromScale(1, 1)
+	backing.BackgroundColor3 = Style.PALETTE.nomCream
+	backing.BorderSizePixel = 0
+	backing.Parent = boardGui
+
+	local heading = Instance.new("TextLabel")
+	heading.Name = "Heading"
+	heading.Size = UDim2.new(1, -16, 0, 44)
+	heading.Position = UDim2.new(0, 8, 0, 6)
+	heading.BackgroundTransparency = 1
+	heading.Font = Enum.Font.FredokaOne
+	heading.TextScaled = true
+	heading.TextColor3 = Style.PALETTE.ink
+	heading.Text = "🏆 TOP NOMLERS"
+	heading.Parent = backing
+
+	local rows = Instance.new("Frame")
+	rows.Name = "Rows"
+	rows.Size = UDim2.new(1, -16, 1, -56)
+	rows.Position = UDim2.new(0, 8, 0, 52)
+	rows.BackgroundTransparency = 1
+	rows.Parent = backing
+
+	local rowLayout = Instance.new("UIListLayout")
+	rowLayout.Padding = UDim.new(0, 4)
+	rowLayout.Parent = rows
+
 	local bases = Instance.new("Folder")
 	bases.Name = "Bases"
 	for index = 1, World.BASE_COUNT do

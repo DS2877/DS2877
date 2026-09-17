@@ -246,6 +246,17 @@ local function setSign(plot: Plot, text: string)
 	end
 end
 
+--- Updates an owned base's sign. Called by IncomeService, which is the only
+--- thing that knows the live rate -- PlotService cannot ask it, because
+--- IncomeService already requires this module and the other direction would be
+--- a cycle.
+function PlotService.setSignFor(player: Player, text: string)
+	local plot = PlotService.plotFor(player)
+	if plot then
+		setSign(plot, text)
+	end
+end
+
 local function moveToBase(player: Player, plot: Plot)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
