@@ -219,6 +219,33 @@ Style.FACE = {
 	mouth = Color3.fromRGB(86, 48, 56),
 }
 
+--- The colour for a FACE role, or nil when the role is not part of the face.
+---
+--- ONE SOURCE OF TRUTH, because there are two renderers. The world builds a
+--- Nomling from its genome (NomlingRenderController) and the fusion reveal
+--- builds the same creature again in a viewport (FusionController) -- and the
+--- reveal had never learned about shine, cheek or mouth, so it painted all
+--- three as primary. The creature in the reveal was not the creature that
+--- landed on the pedestal, in the one moment the whole game is selling.
+---
+--- The face takes NO mutation tint anywhere. A creature reads as alive because
+--- of its face, and tinting eyes or a smile to match a mutation makes it read
+--- as unwell instead.
+function Style.faceColour(role: string): Color3?
+	if role == "eye" then
+		return Style.EYE.white
+	elseif role == "pupil" then
+		return Style.EYE.pupil
+	elseif role == "shine" then
+		return Style.EYE.shine
+	elseif role == "cheek" then
+		return Style.FACE.cheek
+	elseif role == "mouth" then
+		return Style.FACE.mouth
+	end
+	return nil
+end
+
 Style.MATERIAL = {
 	plaza = Enum.Material.SmoothPlastic,
 	plot = Enum.Material.Grass,

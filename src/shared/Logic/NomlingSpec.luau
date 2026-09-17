@@ -35,7 +35,22 @@ export type PartSpec = {
 	tilt: Vec,
 	--- A palette role, resolved to a colour by Style. Never a literal colour:
 	--- the palette is per-species and the builder must not know about it.
-	role: "primary" | "secondary" | "accent" | "snack" | "eye" | "pupil" | "dark",
+	---
+	--- The five FACE roles are fixed across every species and take no
+	--- mutation tint (Style.faceColour). They were missing from this union
+	--- for as long as they have existed, which is how the fusion reveal came
+	--- to colour a shine, a cheek and a mouth as plain primary while the
+	--- world coloured them properly -- the same creature, two faces.
+	role: "primary"
+		| "secondary"
+		| "accent"
+		| "snack"
+		| "dark"
+		| "eye"
+		| "pupil"
+		| "shine"
+		| "cheek"
+		| "mouth",
 	material: "plastic" | "smooth" | "neon" | "fabric",
 }
 
@@ -556,7 +571,9 @@ function NomlingSpec.build(genome: Genome): { PartSpec }
 	if b.legs > 0 then
 		local spreadX = torso.x * 0.34
 		local spreadZ = torso.z * 0.3
-		local positions = if b.legs == 2
+		-- Annotated, because an if-expression over two table literals produces a
+		-- UNION of two array types, and a union cannot be iterated.
+		local positions: { Vec } = if b.legs == 2
 			then { v(-spreadX, 0, 0), v(spreadX, 0, 0) }
 			else {
 				v(-spreadX, 0, spreadZ),

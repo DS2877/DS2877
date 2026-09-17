@@ -111,11 +111,15 @@ local function showCreature(info: { [string]: any })
 		part:SetAttribute(
 			"FinalColor",
 			(function()
-				if spec.role == "eye" then
-					return Style.EYE.white
-				elseif spec.role == "pupil" then
-					return Style.EYE.pupil
-				elseif spec.role == "secondary" then
+				-- The face first, from the same place the world asks. This branch
+				-- knew about eyes and pupils but not the shine, the cheeks or the
+				-- mouth, so the creature in the reveal had three parts painted
+				-- primary that the creature on the pedestal did not.
+				local face = Style.faceColour(spec.role)
+				if face then
+					return face
+				end
+				if spec.role == "secondary" then
 					return palette.secondary
 				elseif spec.role == "snack" or spec.role == "accent" then
 					return palette.snack
