@@ -4,6 +4,57 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### Playtest fixes: the HUD, and the belt button that did nothing · 2026-09-17
+
+From Philip's phone playtest: *"Screen composition looks a bit weird, make the buttons
+smaller and the ui more ux friendly. Also you can't buy any of the animals from the band,
+and the buttons don't seem to be working."* Two of those were the same bug wearing
+different hats.
+
+**The belt button was not broken — it was mute.** A `ProximityPrompt` fires on the
+**server**, and nothing carries a return value back to the player the way a
+`RemoteFunction` does. `ConveyorService.buy` returned `(false, "You need 90 coins.")` and
+that string went nowhere. Tapping Buy on a Nomling you could not afford did *literally
+nothing*, which is indistinguishable from a dead button. Every refusal now reaches the
+player, with the deny cue, and says how much more they need rather than just the price.
+`StoreNomling` had the same hole and is fixed the same way. `StealService` already got
+this right, which is why nobody noticed.
+
+**A button that renders blank is not a rendering bug you find in a log.** The Bubble
+button was labelled U+1FAE7 🫧 — Emoji 14.0, from 2021. Roblox draws text with the host
+platform's emoji font, so on a phone it was an empty blue rectangle. It threw nothing and
+logged nothing. `tools/validate-kid-safe.py` now fails the build on any emoji outside an
+explicit allowlist with its Emoji version recorded, floor 12.0 (2019); it caught four more
+live instances the moment it was switched on. The bubble is now a **drawn** circle and the
+word SAVE.
+
+**The HUD is a third smaller and lays itself out.** Bottom bar 72 → 50, rail 56 → 44,
+purse 208×70 → 152×44, incubators 150×58 → 108×44. Every number now lives in
+`src/shared/Logic/HudLayout.luau`, which requires nothing — so Lune tests the whole screen
+composition: **bands cannot overlap, nothing drops under the 44 pt touch floor, and the
+furniture cannot take more than 32% of a resting screen** (it was 45%). That test caught a
+42 pt incubator before a phone did.
+
+- **Nothing positions itself against a screen edge any more.** The purse and the objective
+  banner are one row that stops short of the rail; the weather banner is a strip under it;
+  the incubator tray is docked to the top of the bottom bar instead of floating
+  mid-screen; the toast sits above the tray. Four collisions in one screenshot, all
+  arithmetic, all now derived.
+- **`CoreUISafeInsets`, not `DeviceSafeInsets`.** The latter dodges the notch but does not
+  reserve the Roblox top bar, so the banner rendered underneath the menu and chat buttons.
+  Recorded in `docs/VERIFY.md` with its caveat — the docs publish no description for these
+  enum values.
+- **FUSE stopped falling off its own button.** `TextScaled` in a 72 px button asks for
+  72 px type; with an emoji in front of it the E ran past the right edge. Labels are inset
+  on all four sides and capped with a `UITextSizeConstraint`.
+- **Nameplates have a hierarchy.** One `TextScaled` label makes every line the same size,
+  so a whole street of them was stacks of unreadable grey. A shared `Nameplate` module
+  gives the mutation (or the name) the headline and rarity/income/price the small line, so
+  what you need from across the street stays readable after the rest stops being.
+- **The tutorial counts.** "Buy a Nomling off the belt" with 12 coins in your purse reads
+  as a broken game. It now reads *"Saving up for the belt: 12 / 90 coins — your Nomlings
+  are earning it now"*, and the belt sign shows the price from across the street.
+
 ### The AAA sprint · 2026-09-17
 
 **The game now looks and plays like a product.** Seven areas, one night.

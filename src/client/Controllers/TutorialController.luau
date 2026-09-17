@@ -19,8 +19,11 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Economy = require(Shared:WaitForChild("Config"):WaitForChild("Economy"))
+local Income = require(Shared:WaitForChild("Logic"):WaitForChild("Income"))
 local Net = require(Shared:WaitForChild("Net"))
 local Style = require(Shared:WaitForChild("Style"))
+local World = require(Shared:WaitForChild("Config"):WaitForChild("World"))
 
 local BaseHudController = require(script.Parent:WaitForChild("BaseHudController"))
 
@@ -37,11 +40,19 @@ local snapshot: { [string]: any }? = nil
 --- says WHAT to do; the marker says WHERE, which is the half a nine-year-old
 --- actually needs. "I don't know what to press" and "I don't know where to go"
 --- are different complaints and the first playtest raised both.
+--- `live` may replace the line with one that counts. A step whose instruction
+--- you cannot yet follow -- "buy one off the belt" with 12 coins in your purse
+--- -- reads as a broken game unless it tells you how far off you are.
 type Step = {
 	text: string,
 	done: (snap: { [string]: any }) -> boolean,
 	target: ("belt" | "kitchen" | "market" | "neighbour")?,
+	live: ((snap: { [string]: any }) -> string?)?,
 }
+
+--- The cheapest thing the belt can ever offer: a common, at the standard
+--- payback. Derived rather than typed in, so it follows the economy.
+local BELT_FLOOR = math.max(1, math.floor(Economy.BASE_INCOME.common * World.BELT_PAYBACK_SECONDS))
 
 --- In order. The first step that is not done is the one shown.
 local STEPS: { Step } = {
@@ -64,10 +75,19 @@ local STEPS: { Step } = {
 			return (snap.nomlings or 0) >= 3
 		end,
 		target = "belt",
+		live = function(snap)
+			local coins = snap.coins or 0
+			if coins >= BELT_FLOOR then
+				return nil
+			end
+			-- Saving up IS the step. Say so, instead of pointing at a belt the
+			-- player cannot buy from and letting them decide the game is broken.
+			return `Saving up for the belt: {Income.format(coins)} / {Income.format(BELT_FLOOR)} coins — your Nomlings are earning it now`
+		end,
 	},
 	{
 		target = "kitchen",
-		text = "Tap 🧪 FUSE and combine two Nomlings — you'll get one nobody has ever seen",
+		text = "Tap the green FUSE button and combine two Nomlings — you'll get one nobody has ever seen",
 		done = function(snap)
 			-- Cleared once they own something gen 2 or better, which only
 			-- fusing can produce.
@@ -90,15 +110,15 @@ local STEPS: { Step } = {
 
 local HELP_LINES = {
 	"🥚  Your base is behind you. Nomlings on pedestals earn coins every second.",
-	"🛻  The BELT runs down the middle of the street. Walk up to a Nomling and buy it.",
+	"🚚  The BELT runs down the middle of the street. Walk up to a Nomling and buy it.",
 	"✨  A mutated Nomling glows and earns several times more. Grab those.",
-	"🧪  The FUSION KITCHEN combines two Nomlings into one that has never existed.",
+	"🍳  The FUSION KITCHEN combines two Nomlings into one that has never existed.",
 	"🏆  Be the first player anywhere to make one and your name goes on it forever.",
 	"🦝  Walk into another player's base and hold SNATCH to borrow one of theirs!",
 	"🏃  Carrying makes you slower. Get it back to YOUR base to keep it.",
 	"🛡️  Brand-new players cannot be snatched from, and neither can you at first.",
 	"⛅  Weather sweeps in every so often: big coin boost, and it can MUTATE the Nomlings you have out.",
-	"🫧  Tap the bubble button to rescue a Nomling a snatcher is running off with.",
+	"💙  Tap the blue SAVE button to rescue a Nomling a snatcher is running off with.",
 	"💰  You keep earning while you're away — come back to a pile of coins.",
 }
 
@@ -112,32 +132,41 @@ local function build()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "Tutorial"
 	gui.ResetOnSpawn = false
-	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.Parent = player:WaitForChild("PlayerGui")
 
-	-- The objective banner sits top-centre: out of the thumbs' way, and not
-	-- over the purse in the top-left.
+	-- The banner does NOT pick its own position any more. It fills the slot the
+	-- HUD hands it, which is whatever is left of the top row after the purse and
+	-- before the rail. Positioned by hand it ran under the Roblox menu buttons
+	-- and over the coin count, and the rail's "?" landed on top of it.
 	banner = Instance.new("Frame")
 	banner.Name = "Objective"
-	banner.AnchorPoint = Vector2.new(0.5, 0)
-	banner.Position = UDim2.new(0.5, 0, 0, 10)
-	banner.Size = UDim2.new(0.86, 0, 0, 52)
+	banner.Size = UDim2.fromScale(1, 1)
 	banner.BackgroundColor3 = Style.PALETTE.nomBlue
 	banner.BorderSizePixel = 0
-	banner.Parent = gui
+	banner.ZIndex = 4
+	banner.Visible = false
+	banner.Parent = BaseHudController.objectiveSlot()
 	corner(banner, 14)
 
 	bannerText = Instance.new("TextLabel")
-	bannerText.Size = UDim2.new(1, -20, 1, -10)
-	bannerText.Position = UDim2.new(0, 10, 0, 5)
+	bannerText.Size = UDim2.new(1, -18, 1, -8)
+	bannerText.Position = UDim2.new(0, 9, 0, 4)
 	bannerText.BackgroundTransparency = 1
 	bannerText.Font = Enum.Font.FredokaOne
 	bannerText.TextScaled = true
 	bannerText.TextWrapped = true
 	bannerText.TextColor3 = Style.PALETTE.nomCream
 	bannerText.TextStrokeTransparency = 0.5
+	bannerText.ZIndex = 5
 	bannerText.Text = ""
 	bannerText.Parent = banner
+
+	-- Two short lines at this height, not one line of 40 px type.
+	local bannerCap = Instance.new("UITextSizeConstraint")
+	bannerCap.MaxTextSize = 16
+	bannerCap.MinTextSize = 8
+	bannerCap.Parent = bannerText
 
 	-- A help button that is always there, because the banner eventually goes
 	-- away and a player who forgets has nowhere else to look. It lives on the
@@ -294,7 +323,7 @@ local function refresh()
 	end
 	for _, step in STEPS do
 		if not step.done(snap) then
-			bannerText.Text = step.text
+			bannerText.Text = (step.live and step.live(snap)) or step.text
 			banner.Visible = true
 			markerTarget = if step.target then resolveTarget(step.target) else nil
 			if marker then

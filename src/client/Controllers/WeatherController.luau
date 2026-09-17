@@ -25,12 +25,18 @@ local Style = require(Shared:WaitForChild("Style"))
 local Weather = require(Shared:WaitForChild("Config"):WaitForChild("Weather"))
 
 local AudioController = require(script.Parent:WaitForChild("AudioController"))
+local BaseHudController = require(script.Parent:WaitForChild("BaseHudController"))
 local JuiceController = require(script.Parent:WaitForChild("JuiceController"))
 
 local WeatherController = {}
 WeatherController.Name = "WeatherController"
 
 local player = Players.LocalPlayer
+--- Off the top of its slot, and filling it. Named so the two tweens and the
+--- initial state cannot drift apart.
+local HIDDEN = UDim2.new(0.5, 0, 0, -80)
+local SHOWN = UDim2.new(0.5, 0, 0, 0)
+
 local banner: Frame
 local bannerText: TextLabel
 local emitterPart: Part? = nil
@@ -50,12 +56,12 @@ end
 local function showBanner(text: string, colour: Color3)
 	bannerText.Text = text
 	banner.BackgroundColor3 = colour
-	banner.Position = UDim2.new(0.5, 0, 0, -70)
+	banner.Position = HIDDEN
 	banner.Visible = true
 	TweenService:Create(
 		banner,
 		TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-		{ Position = UDim2.new(0.5, 0, 0, 92) }
+		{ Position = SHOWN }
 	):Play()
 end
 
@@ -63,7 +69,7 @@ local function hideBanner()
 	local tween = TweenService:Create(
 		banner,
 		TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-		{ Position = UDim2.new(0.5, 0, 0, -70) }
+		{ Position = HIDDEN }
 	)
 	tween.Completed:Connect(function()
 		banner.Visible = false
@@ -180,23 +186,25 @@ function WeatherController.start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "WeatherHud"
 	gui.ResetOnSpawn = false
-	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.Parent = player:WaitForChild("PlayerGui")
 
+	-- Lives in the HUD's banner slot rather than at a hand-picked y, so it
+	-- cannot land on the right-hand rail on a short screen.
 	banner = Instance.new("Frame")
 	banner.Name = "Banner"
 	banner.AnchorPoint = Vector2.new(0.5, 0)
-	banner.Position = UDim2.new(0.5, 0, 0, -70)
-	banner.Size = UDim2.new(0.9, 0, 0, 50)
+	banner.Position = HIDDEN
+	banner.Size = UDim2.fromScale(1, 1)
 	banner.BackgroundColor3 = Style.PALETTE.nomBlue
 	banner.BorderSizePixel = 0
 	banner.Visible = false
 	banner.ZIndex = 30
-	banner.Parent = gui
+	banner.Parent = BaseHudController.bannerSlot()
 	corner(banner, 14)
 
 	bannerText = Instance.new("TextLabel")
-	bannerText.Size = UDim2.new(1, -18, 1, -8)
+	bannerText.Size = UDim2.new(1, -18, 1, -6)
 	bannerText.Position = UDim2.new(0, 9, 0, 4)
 	bannerText.BackgroundTransparency = 1
 	bannerText.Font = Enum.Font.FredokaOne

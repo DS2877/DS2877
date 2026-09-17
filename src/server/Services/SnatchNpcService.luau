@@ -244,7 +244,7 @@ local function dropAndLeave(thief: Thief, bubbled: boolean)
 		PlotService.render(thief.victim)
 		notify(
 			thief.victim,
-			`Bubbled! You saved your {thief.nomling.snack} {thief.nomling.animal}. 🫧`
+			`Bubbled! You saved your {thief.nomling.snack} {thief.nomling.animal}. 💙`
 		)
 		FeedbackService.fire(thief.victim, "purchase", thief.root.Position, {
 			rarity = thief.nomling.rarity,
@@ -352,7 +352,7 @@ local function beginSnatch()
 		thief.state = "flee"
 		thief.goal = escape
 		thief.deadline = os.clock() + Snatch.NPC_ESCAPE_SECONDS
-		notify(victim, `Bubble {name} before they reach the end of the street! 🫧`)
+		notify(victim, `Tap SAVE to bubble {name} before they reach the end of the street! 💙`)
 	end)
 end
 

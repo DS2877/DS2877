@@ -3,10 +3,19 @@
 	The HUD: purse, income rate, incubators, the egg button, toasts.
 
 	PHONE FIRST, and that shapes every choice here. Everything tappable is at
-	least 56 px on its shortest side and sits in the lower third, inside thumb
-	reach. Nothing important goes near the top-right, where a right-handed
-	player's thumb covers the screen when they reach for it. The purse is
-	top-left because that is the one thing players glance at without tapping.
+	least 44 px on its shortest side -- Apple's and Google's floor, and the
+	number to argue with if these get smaller again -- and sits in the lower
+	third, inside thumb reach. Nothing important goes near the top-right, where
+	a right-handed player's thumb covers the screen when they reach for it. The
+	purse is top-left because that is the one thing players glance at without
+	tapping.
+
+	SIZED DOWN after a phone playtest: "make the buttons smaller and the ui more
+	ux friendly". The first pass used 58-72 px controls, which on a 390-point
+	screen ate the bottom fifth and left the game visible through a letterbox.
+	Chrome is not the game. Every control here is now as small as the 44 px
+	floor allows, and every number below is in ONE place so the whole thing
+	scales together rather than drifting apart again.
 
 	Built from plain Instances rather than React-Lua. React-Lua is approved
 	(docs/DECISIONS.md D-005) and is still the destination for the Fusion Book
@@ -26,6 +35,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Economy = require(Shared:WaitForChild("Config"):WaitForChild("Economy"))
+local HudLayout = require(Shared:WaitForChild("Logic"):WaitForChild("HudLayout"))
 local Income = require(Shared:WaitForChild("Logic"):WaitForChild("Income"))
 local Net = require(Shared:WaitForChild("Net"))
 local Style = require(Shared:WaitForChild("Style"))
@@ -35,7 +45,28 @@ local JuiceController = require(script.Parent:WaitForChild("JuiceController"))
 local BaseHudController = {}
 BaseHudController.Name = "BaseHudController"
 
-local TOUCH_MIN = 58
+-- Every number this file lays out with comes from HudLayout, which is pure and
+-- therefore testable: tests/unit/hud.spec.luau checks that the bands do not
+-- overlap, that nothing drops under the 44 pt touch floor and that the
+-- furniture leaves the game most of the screen. Nothing here invents a
+-- position, which is what let the last version put a banner under the Roblox
+-- menu and a toast behind the bottom bar.
+local TOUCH_MIN = HudLayout.TOUCH_MIN
+local EDGE = HudLayout.EDGE
+local GAP = HudLayout.GAP
+local TOP_H = HudLayout.TOP_H
+local TOP_Y = HudLayout.TOP_Y
+local PURSE_W = HudLayout.PURSE_W
+local RAIL_W = HudLayout.RAIL_W
+local BAR_H = HudLayout.BAR_H
+local BAR_MAX_W = HudLayout.BAR_MAX_W
+local SLOT_H = HudLayout.SLOT_H
+local SLOT_W = HudLayout.SLOT_W
+local RAIL_TOP = HudLayout.RAIL_TOP
+local BAR_TOP = HudLayout.BAR_TOP
+local TOAST_H = HudLayout.TOAST_H
+local TOAST_TOP = HudLayout.TOAST_TOP
+local SPLIT = HudLayout.BAR_SPLIT
 
 local player = Players.LocalPlayer
 local snapshot: { [string]: any }? = nil
@@ -54,6 +85,8 @@ local bubbleLabel: TextLabel
 local renomButton: TextButton
 local renomLabel: TextLabel
 local rail: Frame
+local objective: Frame
+local bannerSlot: Frame
 local confirm: Frame
 local confirmText: TextLabel
 local toast: Frame
@@ -77,21 +110,22 @@ local function stroke(parent: Instance, colour: Color3, thickness: number, trans
 	line.Parent = parent
 end
 
---- A soft drop shadow, built from one offset dark frame behind the surface.
---- There is no shadow image to load, and at this size nobody can tell.
-local function shadow(target: GuiObject, spread: number)
-	local behind = Instance.new("Frame")
-	behind.Name = "Shadow"
-	behind.AnchorPoint = target.AnchorPoint
-	behind.Position = target.Position + UDim2.fromOffset(0, spread)
-	behind.Size = target.Size + UDim2.fromOffset(spread, spread)
-	behind.BackgroundColor3 = Style.PALETTE.ink
-	behind.BackgroundTransparency = 0.72
-	behind.BorderSizePixel = 0
-	behind.ZIndex = target.ZIndex - 1
-	behind.Parent = target.Parent
-	corner(behind, 18)
-	return behind
+--- Depth, without geometry: a vertical gradient that MULTIPLIES the surface's
+--- own colour, so it darkens toward the bottom edge the way a moulded plastic
+--- button does while keeping its hue. The earlier version was an offset dark
+--- frame behind the surface, which no longer works now that everything with
+--- depth sits in a UIListLayout -- a sibling there becomes a layout cell.
+local function depth(target: GuiObject)
+	local grad = Instance.new("UIGradient")
+	grad.Name = "Depth"
+	grad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+		ColorSequenceKeypoint.new(0.68, Color3.new(0.97, 0.96, 0.97)),
+		ColorSequenceKeypoint.new(1, Color3.new(0.79, 0.75, 0.78)),
+	})
+	grad.Rotation = 90
+	grad.Parent = target
+	return grad
 end
 
 local function gradient(parent: Instance, top: Color3, bottom: Color3, rotation: number?)
@@ -103,6 +137,38 @@ local function gradient(parent: Instance, top: Color3, bottom: Color3, rotation:
 	grad.Rotation = rotation or 90
 	grad.Parent = parent
 	return grad
+end
+
+--- Caps how large TextScaled is allowed to go. Without this a 50 px button
+--- asks for 50 px type, and "FUSE" at 50 px is wider than a third of a phone
+--- screen -- which is exactly how the E ended up hanging off the end.
+local function cap(text: TextLabel, maxSize: number)
+	local limit = Instance.new("UITextSizeConstraint")
+	limit.MaxTextSize = maxSize
+	limit.MinTextSize = 8
+	limit.Parent = text
+end
+
+--- Fills a button, inset on every side so no glyph ever touches the stroke.
+local function buttonText(
+	parent: GuiObject,
+	font: Enum.Font,
+	colour: Color3,
+	maxSize: number
+): TextLabel
+	local text = Instance.new("TextLabel")
+	text.Name = "Label"
+	text.Size = UDim2.new(1, -16, 1, -10)
+	text.Position = UDim2.new(0, 8, 0, 5)
+	text.BackgroundTransparency = 1
+	text.Font = font
+	text.TextScaled = true
+	text.TextColor3 = colour
+	text.Text = ""
+	text.ZIndex = parent.ZIndex + 1
+	text.Parent = parent
+	cap(text, maxSize)
+	return text
 end
 
 local function label(parent: Instance, font: Enum.Font, size: UDim2, position: UDim2): TextLabel
@@ -155,49 +221,109 @@ local function build()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "BaseHud"
 	gui.ResetOnSpawn = false
-	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+	-- CoreUISafeInsets, not DeviceSafeInsets. DeviceSafeInsets only dodges the
+	-- notch; it does NOT reserve the Roblox top bar, so on a phone the objective
+	-- banner rendered underneath the menu, chat and mic buttons and the purse
+	-- lost its top edge. CoreUISafeInsets reserves both.
+	-- docs/VERIFY.md: Enum.ScreenInsets, checked 2026-09-17.
+	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Parent = player:WaitForChild("PlayerGui")
+
+	-- --- the top row ---
+	-- Same lesson the bottom bar already learnt, applied to the top edge: the
+	-- purse and the objective banner were positioned independently and on a
+	-- phone the banner covered the coin count. A row cannot overlap itself, and
+	-- the row stops short of the rail so the round buttons have their own
+	-- column. TutorialController parents its banner into `objective`.
+	local topRow = Instance.new("Frame")
+	topRow.Name = "TopRow"
+	topRow.Position = UDim2.new(0, EDGE, 0, TOP_Y)
+	topRow.Size = UDim2.new(1, -(EDGE * 2 + RAIL_W + GAP), 0, TOP_H)
+	topRow.BackgroundTransparency = 1
+	topRow.ZIndex = 4
+	topRow.Parent = gui
+
+	local topLayout = Instance.new("UIListLayout")
+	topLayout.FillDirection = Enum.FillDirection.Horizontal
+	topLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+	topLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	topLayout.Padding = UDim.new(0, GAP)
+	topLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	topLayout.Parent = topRow
 
 	-- --- purse ---
 	purse = Instance.new("Frame")
 	purse.Name = "Purse"
-	purse.Position = UDim2.new(0, 14, 0, 14)
-	purse.Size = UDim2.new(0, 208, 0, 70)
+	purse.LayoutOrder = 1
+	purse.Size = UDim2.fromOffset(PURSE_W, TOP_H)
 	purse.BackgroundColor3 = Style.PALETTE.nomCream
 	purse.BorderSizePixel = 0
-	purse.ZIndex = 4
-	purse.Parent = gui
-	corner(purse, 18)
+	purse.ZIndex = 5
+	purse.Parent = topRow
+	corner(purse, 14)
 	gradient(purse, Color3.fromRGB(255, 252, 244), Color3.fromRGB(246, 232, 208))
 	stroke(purse, Style.PALETTE.nomCocoa, 1.5, 0.72)
-	shadow(purse, 4)
 
 	local coinIcon = Instance.new("Frame")
 	coinIcon.Name = "CoinIcon"
-	coinIcon.Position = UDim2.new(0, 12, 0.5, -13)
-	coinIcon.Size = UDim2.fromOffset(26, 26)
+	coinIcon.Position = UDim2.new(0, 9, 0.5, -10)
+	coinIcon.Size = UDim2.fromOffset(20, 20)
 	coinIcon.BackgroundColor3 = Color3.fromRGB(255, 206, 84)
 	coinIcon.BorderSizePixel = 0
+	coinIcon.ZIndex = 6
 	coinIcon.Parent = purse
-	corner(coinIcon, 13)
+	corner(coinIcon, 10)
 	stroke(coinIcon, Color3.fromRGB(214, 152, 40), 2, 0)
 
-	coinLabel = label(purse, Enum.Font.FredokaOne, UDim2.new(1, -54, 0, 34), UDim2.new(0, 46, 0, 8))
+	coinLabel = label(purse, Enum.Font.FredokaOne, UDim2.new(1, -42, 0, 24), UDim2.new(0, 34, 0, 4))
+	coinLabel.ZIndex = 6
 	coinLabel.Text = "0"
+	cap(coinLabel, 22)
 	rateLabel =
-		label(purse, Enum.Font.GothamMedium, UDim2.new(1, -54, 0, 18), UDim2.new(0, 46, 0, 44))
+		label(purse, Enum.Font.GothamMedium, UDim2.new(1, -42, 0, 14), UDim2.new(0, 34, 0, 28))
+	rateLabel.ZIndex = 6
 	rateLabel.TextColor3 = Style.PALETTE.nomCocoa
 	rateLabel.Text = "0 / sec"
+	cap(rateLabel, 13)
+
+	-- The rest of the row. Empty until the tutorial fills it, and it collapses
+	-- to nothing visible rather than leaving a hole.
+	objective = Instance.new("Frame")
+	objective.Name = "Objective"
+	objective.LayoutOrder = 2
+	objective.Size = UDim2.new(1, -(PURSE_W + GAP), 1, 0)
+	objective.BackgroundTransparency = 1
+	objective.ZIndex = 4
+	objective.Parent = topRow
+
+	-- A strip under the top row, same width, for anything that announces itself
+	-- and then goes away. Nothing in here can reach the rail.
+	bannerSlot = Instance.new("Frame")
+	bannerSlot.Name = "BannerSlot"
+	bannerSlot.Position = UDim2.new(0, EDGE, 0, RAIL_TOP)
+	bannerSlot.Size = UDim2.new(1, -(EDGE * 2 + RAIL_W + GAP), 0, HudLayout.BANNER_H)
+	bannerSlot.BackgroundTransparency = 1
+	bannerSlot.ZIndex = 8
+	bannerSlot.Parent = gui
 
 	JuiceController.setPurseTarget(purse)
 
 	-- --- incubator slots ---
+	-- Docked directly on top of the bottom bar, not floating at a hand-picked
+	-- offset. In the playtest screenshot "TAP TO HATCH!" sat alone in the middle
+	-- of the screen with nothing under it, so it read as a stray label rather
+	-- than as the thing you are meant to press.
 	local tray = Instance.new("Frame")
 	tray.Name = "Incubators"
 	tray.AnchorPoint = Vector2.new(0.5, 1)
-	tray.Position = UDim2.new(0.5, 0, 1, -100)
-	tray.Size = UDim2.new(0, 320, 0, TOUCH_MIN)
+	tray.Position = UDim2.new(0.5, 0, 1, -(BAR_TOP + GAP))
+	tray.Size = UDim2.new(
+		0,
+		SLOT_W * Economy.INCUBATORS_BASE + GAP * (Economy.INCUBATORS_BASE - 1),
+		0,
+		SLOT_H
+	)
 	tray.BackgroundTransparency = 1
 	tray.ZIndex = 4
 	tray.Parent = gui
@@ -205,44 +331,39 @@ local function build()
 	local layout = Instance.new("UIListLayout")
 	layout.FillDirection = Enum.FillDirection.Horizontal
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	layout.Padding = UDim.new(0, 10)
+	layout.Padding = UDim.new(0, GAP)
 	layout.Parent = tray
 
 	for i = 1, Economy.INCUBATORS_BASE do
 		local button = Instance.new("TextButton")
 		button.Name = `Slot{i}`
-		button.Size = UDim2.new(0, 150, 0, TOUCH_MIN)
+		button.Size = UDim2.new(0, SLOT_W, 0, SLOT_H)
 		button.BackgroundColor3 = Style.PALETTE.nomMint
 		button.BorderSizePixel = 0
 		button.Text = ""
 		button.AutoButtonColor = false
 		button.Visible = false
+		button.ZIndex = 4
 		button.Parent = tray
-		corner(button, 16)
+		corner(button, 13)
 		stroke(button, Style.PALETTE.nomCocoa, 1.5, 0.8)
 
 		-- A progress fill behind the text, so a countdown is something you
 		-- watch rather than something you read.
-		local fill = Instance.new("Frame")
-		fill.Name = "Fill"
-		fill.Size = UDim2.new(0, 0, 1, 0)
-		fill.BackgroundColor3 = Color3.fromRGB(150, 232, 206)
-		fill.BorderSizePixel = 0
-		fill.ZIndex = 0
-		fill.Parent = button
-		corner(fill, 16)
+		local progress = Instance.new("Frame")
+		progress.Name = "Fill"
+		progress.Size = UDim2.new(0, 0, 1, 0)
+		progress.BackgroundColor3 = Color3.fromRGB(150, 232, 206)
+		progress.BorderSizePixel = 0
+		progress.ZIndex = 3
+		progress.Parent = button
+		corner(progress, 13)
 
-		local text = Instance.new("TextLabel")
-		text.Size = UDim2.fromScale(1, 1)
-		text.BackgroundTransparency = 1
-		text.Font = Enum.Font.FredokaOne
-		text.TextScaled = true
-		text.TextColor3 = Style.PALETTE.ink
-		text.ZIndex = 2
+		local text = buttonText(button, Enum.Font.FredokaOne, Style.PALETTE.ink, 17)
+		text.ZIndex = 5
 		text.Text = "-"
-		text.Parent = button
 
-		slots[i] = { button = button, label = text, fill = fill }
+		slots[i] = { button = button, label = text, fill = progress }
 
 		button.Activated:Connect(function()
 			local remote = Net.get("ClaimHatch") :: RemoteFunction
@@ -264,64 +385,86 @@ local function build()
 	local bar = Instance.new("Frame")
 	bar.Name = "BottomBar"
 	bar.AnchorPoint = Vector2.new(0.5, 1)
-	bar.Position = UDim2.new(0.5, 0, 1, -18)
-	bar.Size = UDim2.new(1, -28, 0, 72)
+	bar.Position = UDim2.new(0.5, 0, 1, -EDGE)
+	bar.Size = UDim2.new(1, -(EDGE * 2 + 4), 0, BAR_H)
 	bar.BackgroundTransparency = 1
 	bar.ZIndex = 4
 	bar.Parent = gui
+
+	-- A row of three stretched across an iPad is a worse row of three. Cap it
+	-- and let it centre.
+	local barWidth = Instance.new("UISizeConstraint")
+	barWidth.MaxSize = Vector2.new(BAR_MAX_W, math.huge)
+	barWidth.Parent = bar
 
 	local barLayout = Instance.new("UIListLayout")
 	barLayout.FillDirection = Enum.FillDirection.Horizontal
 	barLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	barLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-	barLayout.Padding = UDim.new(0, 8)
+	barLayout.Padding = UDim.new(0, GAP)
 	barLayout.Parent = bar
 
-	local function barButton(name: string, widthScale: number, fill: Color3): TextButton
+	local function barButton(name: string, widthScale: number, colour: Color3): TextButton
 		local button = Instance.new("TextButton")
 		button.Name = name
 		-- Scale widths minus the gaps, so the row always fits exactly.
 		button.Size = UDim2.new(widthScale, -6, 1, 0)
-		button.BackgroundColor3 = fill
+		button.BackgroundColor3 = colour
 		button.BorderSizePixel = 0
 		button.Text = ""
 		button.AutoButtonColor = false
+		button.ZIndex = 4
 		button.Parent = bar
-		corner(button, 20)
+		corner(button, 14)
 		stroke(button, Style.PALETTE.nomCocoa, 1.5, 0.6)
+		depth(button)
 		return button
 	end
 
-	fuseButton = barButton("Fuse", 0.26, Style.PALETTE.nomMint)
-	fuseLabel = Instance.new("TextLabel")
-	fuseLabel.Size = UDim2.fromScale(1, 1)
-	fuseLabel.BackgroundTransparency = 1
-	fuseLabel.Font = Enum.Font.FredokaOne
-	fuseLabel.TextScaled = true
-	fuseLabel.TextColor3 = Style.PALETTE.ink
-	fuseLabel.Text = "🧪 FUSE"
-	fuseLabel.Parent = fuseButton
+	-- NO EMOJI on these three. "🧪 FUSE" at TextScaled in a 72 px button asked
+	-- for type wider than the button and the E hung off the end, and the bubble
+	-- button was blank on a real phone because U+1FAE7 is Emoji 14.0 and
+	-- Roblox's font fallback does not carry it. tools/validate-kid-safe.py now
+	-- fails the build on any emoji that is not on the known-good list.
+	fuseButton = barButton("Fuse", SPLIT.fuse, Style.PALETTE.nomMint)
+	fuseLabel = buttonText(fuseButton, Enum.Font.FredokaOne, Style.PALETTE.ink, 20)
+	fuseLabel.Text = "FUSE"
 
-	eggButton = barButton("BuyEgg", 0.46, Style.PALETTE.nomOrange)
-	gradient(eggButton, Color3.fromRGB(255, 176, 98), Color3.fromRGB(240, 128, 44))
+	eggButton = barButton("BuyEgg", SPLIT.egg, Style.PALETTE.nomOrange)
 	eggLabel =
-		label(eggButton, Enum.Font.FredokaOne, UDim2.new(1, -16, 0, 28), UDim2.new(0, 12, 0, 10))
+		label(eggButton, Enum.Font.FredokaOne, UDim2.new(1, -16, 0, 21), UDim2.new(0, 8, 0, 5))
+	eggLabel.TextXAlignment = Enum.TextXAlignment.Center
 	eggLabel.TextColor3 = Style.PALETTE.nomCream
+	eggLabel.ZIndex = 5
 	eggLabel.Text = "Buy Egg"
+	cap(eggLabel, 19)
 	eggPrice =
-		label(eggButton, Enum.Font.GothamBold, UDim2.new(1, -16, 0, 20), UDim2.new(0, 12, 0, 40))
+		label(eggButton, Enum.Font.GothamBold, UDim2.new(1, -16, 0, 18), UDim2.new(0, 8, 0, 27))
+	eggPrice.TextXAlignment = Enum.TextXAlignment.Center
 	eggPrice.TextColor3 = Color3.fromRGB(255, 240, 220)
+	eggPrice.ZIndex = 5
 	eggPrice.Text = ""
+	cap(eggPrice, 16)
 
-	bubbleButton = barButton("Bubble", 0.26, Style.PALETTE.nomBlue)
-	bubbleLabel = Instance.new("TextLabel")
-	bubbleLabel.Size = UDim2.fromScale(1, 1)
-	bubbleLabel.BackgroundTransparency = 1
-	bubbleLabel.Font = Enum.Font.FredokaOne
-	bubbleLabel.TextScaled = true
-	bubbleLabel.TextColor3 = Style.PALETTE.nomCream
-	bubbleLabel.Text = "🫧"
-	bubbleLabel.Parent = bubbleButton
+	bubbleButton = barButton("Bubble", SPLIT.bubble, Style.PALETTE.nomBlue)
+	-- The bubble is DRAWN, not typed. A circle always renders; a 2021 emoji
+	-- does not.
+	local bubbleGlyph = Instance.new("Frame")
+	bubbleGlyph.Name = "Bubble"
+	bubbleGlyph.AnchorPoint = Vector2.new(0.5, 0.5)
+	bubbleGlyph.Position = UDim2.fromScale(0.5, 0.5)
+	bubbleGlyph.Size = UDim2.fromOffset(BAR_H - 16, BAR_H - 16)
+	bubbleGlyph.BackgroundColor3 = Color3.fromRGB(226, 244, 255)
+	bubbleGlyph.BackgroundTransparency = 0.45
+	bubbleGlyph.BorderSizePixel = 0
+	bubbleGlyph.ZIndex = 4
+	bubbleGlyph.Parent = bubbleButton
+	corner(bubbleGlyph, (BAR_H - 16) // 2)
+	stroke(bubbleGlyph, Color3.fromRGB(255, 255, 255), 2, 0.3)
+
+	bubbleLabel = buttonText(bubbleButton, Enum.Font.FredokaOne, Style.PALETTE.nomCream, 18)
+	bubbleLabel.ZIndex = 5
+	bubbleLabel.Text = "SAVE"
 
 	eggButton.Activated:Connect(function()
 		-- Buys the best tier this player has unlocked. Wiring this to "basic"
@@ -354,11 +497,13 @@ local function build()
 	-- short screen (landscape on a small phone) the stack would run into the
 	-- bottom bar. A list layout cannot collide, so one module owns the rail and
 	-- hands out slots.
+	-- Starts below the top row and stops above the tray, so the "?" can never
+	-- land on the objective banner the way it did in the playtest screenshot.
 	rail = Instance.new("Frame")
 	rail.Name = "Rail"
 	rail.AnchorPoint = Vector2.new(1, 0)
-	rail.Position = UDim2.new(1, -12, 0, 12)
-	rail.Size = UDim2.new(0, 58, 1, -120)
+	rail.Position = UDim2.new(1, -EDGE, 0, RAIL_TOP)
+	rail.Size = UDim2.new(0, RAIL_W, 1, -(RAIL_TOP + HudLayout.RAIL_BOTTOM))
 	rail.BackgroundTransparency = 1
 	rail.ZIndex = 5
 	rail.Parent = gui
@@ -367,7 +512,7 @@ local function build()
 	railLayout.FillDirection = Enum.FillDirection.Vertical
 	railLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
 	railLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-	railLayout.Padding = UDim.new(0, 8)
+	railLayout.Padding = UDim.new(0, HudLayout.RAIL_GAP)
 	railLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	railLayout.Parent = rail
 
@@ -377,7 +522,6 @@ local function build()
 	-- an event.
 	renomButton = BaseHudController.railButton("ReNom", 20, Color3.fromRGB(196, 132, 240))
 	renomButton.Visible = false
-	stroke(renomButton, Color3.fromRGB(128, 72, 172), 2, 0.2)
 
 	renomLabel = Instance.new("TextLabel")
 	renomLabel.Size = UDim2.fromScale(1, 1)
@@ -403,7 +547,7 @@ local function build()
 	corner(confirm, 20)
 
 	confirmText = Instance.new("TextLabel")
-	confirmText.Size = UDim2.new(1, -28, 1, -90)
+	confirmText.Size = UDim2.new(1, -28, 1, -84)
 	confirmText.Position = UDim2.new(0, 14, 0, 14)
 	confirmText.BackgroundTransparency = 1
 	confirmText.Font = Enum.Font.GothamMedium
@@ -414,8 +558,8 @@ local function build()
 	confirmText.Parent = confirm
 
 	local yes = Instance.new("TextButton")
-	yes.Position = UDim2.new(0, 14, 1, -66)
-	yes.Size = UDim2.new(0.5, -21, 0, 52)
+	yes.Position = UDim2.new(0, 14, 1, -60)
+	yes.Size = UDim2.new(0.5, -21, 0, TOUCH_MIN + 2)
 	yes.BackgroundColor3 = Color3.fromRGB(196, 132, 240)
 	yes.BorderSizePixel = 0
 	yes.Font = Enum.Font.FredokaOne
@@ -427,8 +571,8 @@ local function build()
 
 	local no = Instance.new("TextButton")
 	no.AnchorPoint = Vector2.new(1, 0)
-	no.Position = UDim2.new(1, -14, 1, -66)
-	no.Size = UDim2.new(0.5, -21, 0, 52)
+	no.Position = UDim2.new(1, -14, 1, -60)
+	no.Size = UDim2.new(0.5, -21, 0, TOUCH_MIN + 2)
 	no.BackgroundColor3 = Style.PALETTE.shadow
 	no.BorderSizePixel = 0
 	no.Font = Enum.Font.FredokaOne
@@ -466,29 +610,39 @@ local function build()
 	end)
 
 	-- --- toast ---
+	-- Sits directly above the tray, which is the top of the control stack, so
+	-- it can never end up behind a button. It is also the ONLY thing that
+	-- explains a refusal, so it outranks everything else on screen.
 	toast = Instance.new("Frame")
 	toast.Name = "Toast"
 	toast.AnchorPoint = Vector2.new(0.5, 1)
-	toast.Position = UDim2.new(0.5, 0, 1, -178)
-	toast.Size = UDim2.new(0, 320, 0, 46)
+	toast.Position = UDim2.new(0.5, 0, 1, -TOAST_TOP)
+	toast.Size = UDim2.new(0.8, 0, 0, TOAST_H)
 	toast.BackgroundColor3 = Style.PALETTE.ink
 	toast.BackgroundTransparency = 0.08
 	toast.BorderSizePixel = 0
 	toast.Visible = false
-	toast.ZIndex = 6
+	toast.ZIndex = 50
 	toast.Parent = gui
-	corner(toast, 14)
+	corner(toast, 12)
+
+	local toastWidth = Instance.new("UISizeConstraint")
+	toastWidth.MinSize = Vector2.new(240, 0)
+	toastWidth.MaxSize = Vector2.new(430, math.huge)
+	toastWidth.Parent = toast
 
 	toastLabel = Instance.new("TextLabel")
-	toastLabel.Size = UDim2.new(1, -20, 1, -10)
-	toastLabel.Position = UDim2.new(0, 10, 0, 5)
+	toastLabel.Size = UDim2.new(1, -20, 1, -8)
+	toastLabel.Position = UDim2.new(0, 10, 0, 4)
 	toastLabel.BackgroundTransparency = 1
-	toastLabel.Font = Enum.Font.GothamMedium
+	toastLabel.Font = Enum.Font.GothamBold
 	toastLabel.TextScaled = true
 	toastLabel.TextWrapped = true
 	toastLabel.TextColor3 = Style.PALETTE.nomCream
+	toastLabel.ZIndex = 51
 	toastLabel.Text = ""
 	toastLabel.Parent = toast
+	cap(toastLabel, 16)
 end
 
 -- --- refresh ---------------------------------------------------------------
@@ -570,14 +724,32 @@ function BaseHudController.railButton(name: string, order: number, fill: Color3)
 	local button = Instance.new("TextButton")
 	button.Name = name
 	button.LayoutOrder = order
-	button.Size = UDim2.fromOffset(56, 56)
+	button.Size = UDim2.fromOffset(RAIL_W, RAIL_W)
 	button.BackgroundColor3 = fill
 	button.BorderSizePixel = 0
 	button.Text = ""
 	button.AutoButtonColor = false
+	button.ZIndex = 5
 	button.Parent = rail
-	corner(button, 28)
+	corner(button, RAIL_W // 2)
+	stroke(button, Style.PALETTE.nomCocoa, 1.5, 0.7)
+	depth(button)
 	return button
+end
+
+--- The objective banner's slot in the top row: everything left over after the
+--- purse, and stopping short of the rail. TutorialController parents its
+--- banner in here and sizes it (1, 0, 1, 0) rather than picking a position,
+--- which is what stops it landing under the Roblox menu buttons or on top of
+--- the coin count.
+function BaseHudController.objectiveSlot(): Frame
+	return objective
+end
+
+--- Where a transient announcement goes: under the top row, clear of the rail.
+--- WeatherController slides its banner in and out inside this.
+function BaseHudController.bannerSlot(): Frame
+	return bannerSlot
 end
 
 --- The fusion controller owns the picker and the reveal, but the bar lives

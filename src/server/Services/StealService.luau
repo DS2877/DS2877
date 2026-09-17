@@ -273,8 +273,8 @@ function StealService.bubbleNear(position: Vector3, firedBy: Player): (boolean, 
 		return false, nil
 	end
 	local carry = best :: Carry
-	returnHome(carry, "Bubbled! You dropped it. 🫧")
-	notify(carry.victim, "Someone bubbled the thief — your Nomling is home! 🫧")
+	returnHome(carry, "Bubbled! You dropped it. 💙")
+	notify(carry.victim, "Someone bubbled the thief — your Nomling is home! 💙")
 	FeedbackService.fire(carry.victim, "purchase", position, { rarity = carry.nomling.rarity })
 	return true, nil
 end

@@ -386,7 +386,7 @@ function ShopController.start()
 	gui = Instance.new("ScreenGui")
 	gui.Name = "ShopGui"
 	gui.ResetOnSpawn = false
-	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Parent = player:WaitForChild("PlayerGui")
 

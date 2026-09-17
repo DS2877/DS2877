@@ -256,6 +256,40 @@ Source: [Luau Execution](https://create.roblox.com/docs/cloud/reference/features
 - ❓ Not yet checked in detail (defer to when we actually wire them): whether the Developer Products / Game Passes APIs are still beta and multipart/form-data; the Creator Hub permission name for Luau Execution; Messaging payload limits.
 - ❓ **Studio MCP server** and **AudioTextToSpeech** rate limits not verified this phase. `AudioTextToSpeech` exists as an engine class with a [tutorial](https://create.roblox.com/docs/en-us/tutorials/use-case-tutorials/audio/add-text-to-speech.md) and a [beta DevForum announcement](https://devforum.roblox.com/t/beta-text-to-speech-api-from-text-to-voice-content-instantly/3792085). Since the brief already specifies a sound-effect fallback when rate-limited, this is not blocking — verify in Phase 4 (M2) when we build the reveal.
 
+### 🆕 Screen safe areas — checked 2026-09-17
+
+Source: [`Enum.ScreenInsets`](https://create.roblox.com/docs/reference/engine/enums/ScreenInsets),
+[`ScreenGui`](https://create.roblox.com/docs/reference/engine/classes/ScreenGui)
+
+- ✅ `Enum.ScreenInsets` has exactly four values: `None` (0), `DeviceSafeInsets` (1),
+  `CoreUISafeInsets` (2), `TopbarSafeInsets` (3). Confirmed on the enum reference page.
+- ⚠️ **The reference page publishes no per-value description.** What each one reserves is
+  not stated in the docs we can reach. What we observed on a real phone (Philip's
+  playtest, 2026-09-17) is that under `DeviceSafeInsets` a GUI positioned at y = 10
+  renders **underneath the Roblox top bar** — the menu, chat and mic buttons sit on top
+  of it. `ScreenInsets` supersedes the older `IgnoreGuiInset`, so setting it to
+  `DeviceSafeInsets` opts out of the top-bar inset that a default ScreenGui gets.
+- → Every HUD-layer ScreenGui in this project now uses **`CoreUISafeInsets`**, on the
+  reading that it reserves the CoreUI chrome as well as the device notch. Full-screen
+  overlays that deliberately cover everything (`JuiceController`, `FusionController`)
+  keep `IgnoreGuiInset = true`.
+- ❓ **Confirm on a device before M5.** The behaviour of `CoreUISafeInsets` is inferred
+  from its name and from the observed failure of `DeviceSafeInsets`, not from a published
+  description. If the top row still collides on some device, the fallback is
+  `GuiService:GetGuiInset()` and explicit offsets. Nothing else depends on this.
+
+### 🆕 Emoji glyph coverage — checked 2026-09-17
+
+- ⚠️ **Not a documented platform fact — an observed one.** Roblox renders text with the
+  host platform's emoji font, so an emoji newer than that font has no glyph. U+1FAE7
+  🫧 (Emoji 14.0, 2021) rendered as an **empty button** on Philip's phone and was
+  reported as "the buttons don't seem to be working". It threw no error and logged
+  nothing.
+- → `tools/validate-kid-safe.py` now fails the build on any emoji outside an explicit
+  allowlist, with the Emoji version recorded next to each entry. The floor is
+  **Emoji 12.0 (2019)**. Verify anything newer on a phone *and* a Windows client (Segoe
+  UI Emoji ships with the OS and lags on older builds) before adding it.
+
 ### One brief assumption that did not survive: ProfileStore
 
 ❓ **Roblox does not officially recommend any third-party data library.** The official guidance is [Implement player data and purchasing systems](https://create.roblox.com/docs/en-us/cloud-services/data-stores/player-data-purchasing.md), which covers `DataStoreService` directly. ProfileStore/ProfileService are community libraries with no official endorsement to "still" hold. → The brief's "confirm it is still the recommended library" has no official answer. **Make this an explicit Phase 1 technical decision** in `docs/TECH.md`, judged on the library's own merits (session locking, active maintenance, migration support) and recorded in `docs/DECISIONS.md`. It also interacts with brief §11 rule 7 (ask before adding dependencies).

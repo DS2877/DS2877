@@ -530,15 +530,17 @@ end
 local function labState(): (string, boolean)
 	local snap = snapshot
 	local fusion = snap and snap.fusion
+	-- Plain words. TextScaled sizes type to the button, and an emoji measured
+	-- at that size pushed "FUSE" off its own right edge on a phone.
 	if not fusion then
-		return "🧪 FUSE", false
+		return "FUSE", false
 	end
 	local now = (snap.now or os.time()) + (os.clock() - (snap.at or os.clock()))
 	local remaining = math.max(0, (fusion.readyAt or 0) - now)
 	if remaining <= 0 then
-		return "✨ CLAIM!", true
+		return "CLAIM!", true
 	end
-	return `🧪 {math.ceil(remaining)}s`, false
+	return `{math.ceil(remaining)}s`, false
 end
 
 function FusionController.start()

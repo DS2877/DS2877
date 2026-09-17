@@ -25,6 +25,15 @@ WHY EACH RULE EXISTS
 4. RARITY IS NEVER COLOUR ALONE. Colourblind players are roughly 1 in 12 boys,
    which at any real scale is thousands of them. docs/GDD.md 5.16.
 
+5. EVERY EMOJI MUST ACTUALLY HAVE A GLYPH. Roblox draws text with the host
+   platform's emoji font, so an emoji newer than that font is a blank box or
+   nothing at all -- and it fails silently, on a phone, where nobody is
+   looking at an error log. This cost a real playtest: the bubble button was
+   labelled U+1FAE7 (Emoji 14.0, 2021) and Philip's screenshot showed an empty
+   blue rectangle, reported as "the buttons don't seem to be working".
+   The floor is Emoji 12.0 (2019), which every platform Roblox ships on has
+   had for years. Anything newer must be drawn as UI instead.
+
 It scans STRING LITERALS only, so `instance:Destroy()` is not mistaken for the
 word "destroy" shown to a player.
 """
@@ -56,6 +65,48 @@ VIOLENT = [
 
 # Emoji that read as menacing or adult.
 BAD_EMOJI = ["😈", "👹", "💀", "🔫", "🩸", "⚰️", "🖕", "🤬", "🎰", "🃏", "🎲"]
+
+# Emoji this project is allowed to put in front of a player, keyed by codepoint
+# with the Emoji release that introduced it. Nothing newer than 12.0 (2019) goes
+# on this list without checking it on a real phone AND a Windows client first --
+# Windows renders with whatever Segoe UI Emoji the machine happens to have.
+#
+# To add one: confirm the version at unicode.org/emoji/charts/emoji-versions.html
+# and put the version in the comment, so the next person can audit the list
+# without re-deriving it.
+RENDERS: dict[int, str] = {
+    0x2705: "white heavy check mark (Emoji 0.6)",
+    0x2715: "multiplication x (plain symbol, not emoji)",
+    0x2728: "sparkles (Emoji 0.6)",
+    0x2753: "question mark ornament (Emoji 0.6)",
+    0x26C5: "sun behind cloud (Emoji 0.6)",
+    0x1F373: "cooking (Emoji 0.6)",
+    0x1F3C3: "runner (Emoji 0.6)",
+    0x1F3C6: "trophy (Emoji 0.6)",
+    0x1F499: "blue heart (Emoji 0.6)",
+    0x1F4B0: "money bag (Emoji 0.6)",
+    0x1F4D6: "open book (Emoji 0.6)",
+    0x1F501: "repeat (Emoji 1.0)",
+    0x1F512: "lock (Emoji 0.6)",
+    0x1F69A: "delivery truck (Emoji 0.6)",
+    0x1F6E1: "shield (Emoji 0.7)",
+    0x1F95A: "egg (Emoji 3.0)",
+    0x1F99D: "raccoon (Emoji 11.0)",
+    0x1F9EA: "test tube (Emoji 11.0)",
+}
+
+# Where an emoji can appear at all. Deliberately wide: the point is to catch
+# characters nobody checked, so the default for anything pictographic is "fail
+# until somebody adds it to RENDERS".
+EMOJI_RANGES = (
+    (0x1F000, 0x1FAFF),  # pictographs, emoticons, transport, extended-A
+    (0x2600, 0x27BF),  # misc symbols and dingbats
+    (0x2B00, 0x2BFF),  # arrows and geometric shapes
+    (0x1F1E6, 0x1F1FF),  # regional indicators (flags)
+)
+
+# Modifiers and joiners carry no glyph of their own.
+EMOJI_JOINERS = {0xFE0E, 0xFE0F, 0x200D, 0x20E3}
 
 # Internal-looking text that must never reach a player.
 LEAKY = ["nil", "userdata", "InvokeServer", "RemoteEvent", "invalid request", "error:"]
@@ -142,6 +193,34 @@ def check_words(path: pathlib.Path, strings: list[tuple[int, str]]) -> list[str]
     return problems
 
 
+def check_emoji(path: pathlib.Path, strings: list[tuple[int, str]]) -> list[str]:
+    """Fails on any emoji that is not known to have a glyph on every client.
+
+    A missing glyph is the worst kind of UI bug: it does not throw, it does not
+    log, and it only shows up on the device you are not developing on.
+    """
+    problems: list[str] = []
+    banned = {ord(e[0]) for e in BAD_EMOJI}
+    for line_number, value in strings:
+        for char in value:
+            code = ord(char)
+            if code < 0x2000 or code in EMOJI_JOINERS or code in banned:
+                continue
+            if not any(low <= code <= high for low, high in EMOJI_RANGES):
+                continue
+            if code in RENDERS:
+                continue
+            problems.append(
+                f"{path.relative_to(ROOT)}:{line_number}: U+{code:04X} {char} is not on "
+                f"the known-good emoji list, in {value!r} -- Roblox falls back to the "
+                "platform emoji font and anything newer than Emoji 12.0 can render "
+                "blank. Pick one from RENDERS in this file, draw the icon as UI, or "
+                "add it to RENDERS once you have seen it render on a phone AND on "
+                "Windows."
+            )
+    return problems
+
+
 def check_rarity_pairing() -> list[str]:
     """Rarity colour must always be accompanied by its label.
 
@@ -186,6 +265,7 @@ def main() -> int:
         scanned += 1
         strings_checked += len(strings)
         problems.extend(check_words(path, strings))
+        problems.extend(check_emoji(path, strings))
 
     problems.extend(check_rarity_pairing())
 
@@ -199,7 +279,8 @@ def main() -> int:
     print(
         f"Kid-safe OK - {scanned} files, {strings_checked} strings checked."
         "\n  no casino language, nothing violent or frightening, no menacing emoji,"
-        "\n  no internal text leaking to players, every rarity paired with a label."
+        "\n  no internal text leaking to players, every rarity paired with a label,"
+        f"\n  every emoji one of the {len(RENDERS)} known to have a glyph on every client."
     )
     return 0
 

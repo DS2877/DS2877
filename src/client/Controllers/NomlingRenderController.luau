@@ -28,6 +28,8 @@ local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 local Net = require(Shared:WaitForChild("Net"))
 local Style = require(Shared:WaitForChild("Style"))
 
+local BaseHudController = require(script.Parent:WaitForChild("BaseHudController"))
+
 local NomlingRenderController = {}
 NomlingRenderController.Name = "NomlingRenderController"
 
@@ -246,7 +248,12 @@ local function build(anchor: BasePart)
 			local nomlingId = tostring(anchor:GetAttribute("NomlingId") or "")
 			store.Triggered:Connect(function()
 				local remote = Net.get("StoreNomling") :: RemoteFunction
-				remote:InvokeServer(nomlingId)
+				-- Say why when it refuses. A prompt that swallows its reason is
+				-- the same broken-button bug the belt had.
+				local ok, reason = remote:InvokeServer(nomlingId)
+				if not ok and reason then
+					BaseHudController.toast(reason)
+				end
 			end)
 		end
 	end

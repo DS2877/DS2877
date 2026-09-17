@@ -122,7 +122,7 @@ local function build()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "BookGui"
 	gui.ResetOnSpawn = false
-	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	local open = BaseHudController.railButton("OpenBook", 30, Style.PALETTE.nomMint)

@@ -28,6 +28,7 @@ local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 local Odds = require(Shared:WaitForChild("Logic"):WaitForChild("Odds"))
 local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 local Style = require(Shared:WaitForChild("Style"))
+local Nameplate = require(Shared:WaitForChild("Nameplate"))
 local World = require(Shared:WaitForChild("Config"):WaitForChild("World"))
 local Genome = require(Shared:WaitForChild("Logic"):WaitForChild("Genome"))
 
@@ -90,29 +91,28 @@ local function buildAnchor(item: Item): BasePart
 		anchor:SetAttribute(key, value)
 	end
 
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "Tag"
-	gui.Size = UDim2.fromScale(10, 3.8)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, 4.2, 0)
-	gui.MaxDistance = 160
-	gui.Parent = anchor
-
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.FredokaOne
-	label.TextScaled = true
-	label.TextColor3 = Style.PALETTE.nomCream
-	label.TextStrokeTransparency = 0.2
-	-- The mutation is the loudest line on the sign, because it is the reason to
-	-- buy this one rather than wait for the next.
-	local mutationLine = if nomling.mutation
-		then `\n✨ {string.upper(nomling.mutation)} ✨`
-		else ""
-	label.Text = `{nomling.snack} {nomling.animal}{mutationLine}\n{rarity.label} · {Income.format(
-		incomeOf(nomling)
-	)}/s`
-	label.Parent = gui
+	-- The mutation takes the headline when there is one, because it is the
+	-- reason to buy THIS one rather than wait for the next, and it is the only
+	-- thing worth reading from across the street. The price is always on the
+	-- sign: knowing what a Nomling costs before you walk over to it is the
+	-- difference between saving up for one and thinking the belt is broken.
+	local headline = if nomling.mutation
+		then `✨ {string.upper(nomling.mutation)} ✨`
+		else `{nomling.snack} {nomling.animal}`
+	Nameplate.build(anchor, {
+		headline = headline,
+		headlineColor = if nomling.mutation
+			then Color3.fromRGB(255, 240, 170)
+			else Style.PALETTE.nomCream,
+		detail = `{rarity.label} · {Income.format(incomeOf(nomling))}/s · 💰 {Income.format(
+			item.price
+		)}`,
+		detailColor = rarity.color,
+		height = 4.4,
+		-- Far enough to see a mutation coming down the street, close enough
+		-- that ten of them are not ten stacks of grey text on the horizon.
+		maxDistance = 120,
+	})
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "Buy"
@@ -124,7 +124,17 @@ local function buildAnchor(item: Item): BasePart
 	prompt.Parent = anchor
 
 	prompt.Triggered:Connect(function(player)
-		ConveyorService.buy(player, item.id)
+		-- A prompt fires on the SERVER, so nothing carries a return value back
+		-- to the player the way a RemoteFunction does. Every refusal here used
+		-- to vanish: tapping Buy on a Nomling you could not afford did
+		-- literally nothing, which reads as a broken button, not as a price.
+		-- StealService already got this right; the belt did not.
+		local ok, reason = ConveyorService.buy(player, item.id)
+		if not ok and reason then
+			local notify = Net.get("Notify") :: RemoteEvent
+			notify:FireClient(player, reason)
+			FeedbackService.fire(player, "deny", item.model.Position, nil)
+		end
 	end)
 
 	return anchor
@@ -223,7 +233,9 @@ function ConveyorService.buy(player: Player, id: unknown): (boolean, string?)
 		return false, "Your Nomling book is full."
 	end
 	if not Profile.spendCoins(data, item.price) then
-		return false, `You need {Income.format(item.price)} coins.`
+		local short = item.price - data.coins
+		return false,
+			`{Income.format(short)} more coins and it's yours — your Nomlings are earning right now!`
 	end
 
 	item.claimed = true

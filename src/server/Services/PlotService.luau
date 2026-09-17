@@ -22,6 +22,7 @@ local Profile = require(Shared:WaitForChild("Logic"):WaitForChild("Profile"))
 local Style = require(Shared:WaitForChild("Style"))
 local World = require(Shared:WaitForChild("Config"):WaitForChild("World"))
 local Genome = require(Shared:WaitForChild("Logic"):WaitForChild("Genome"))
+local Nameplate = require(Shared:WaitForChild("Nameplate"))
 local Net = require(Shared:WaitForChild("Net"))
 local Nomlings = require(Shared:WaitForChild("Config"):WaitForChild("Nomlings"))
 
@@ -111,27 +112,22 @@ local function buildAnchor(nomling: Profile.Nomling, owner: Player): BasePart
 
 	local rarity = Style.RARITY[nomling.rarity] or Style.RARITY.common
 
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "Nameplate"
-	gui.Size = UDim2.fromScale(7, 2)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, 3.4, 0)
-	gui.AlwaysOnTop = false
-	-- A base holds eight of these and a street holds eight bases. Past this
-	-- distance the labels stop being information and become texture.
-	gui.MaxDistance = 70
-	gui.Parent = anchor
-
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.FredokaOne
-	label.TextScaled = true
-	label.TextColor3 = Style.PALETTE.nomCream
-	label.TextStrokeTransparency = 0.35
-	-- Rarity is never colour alone -- the word is always there (GDD 5.16).
-	local mutationLine = if nomling.mutation then `\n✨ {string.upper(nomling.mutation)}` else ""
-	label.Text = `{nomling.snack} {nomling.animal}{mutationLine}\n{rarity.label}`
-	label.Parent = gui
+	-- Rarity is never colour alone -- the word is always on the detail line
+	-- (GDD 5.16). A base holds eight of these and a street holds eight bases,
+	-- so past MaxDistance the signs stop being information and become texture.
+	local headline = if nomling.mutation
+		then `✨ {string.upper(nomling.mutation)}`
+		else `{nomling.snack} {nomling.animal}`
+	Nameplate.build(anchor, {
+		headline = headline,
+		headlineColor = if nomling.mutation
+			then Color3.fromRGB(255, 240, 170)
+			else Style.PALETTE.nomCream,
+		detail = rarity.label,
+		detailColor = rarity.color,
+		height = 3.4,
+		maxDistance = 70,
+	})
 
 	-- TWO prompts, and the client enables whichever applies (see
 	-- NomlingRenderController). A ProximityPrompt is replicated identically to
