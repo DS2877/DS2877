@@ -57,8 +57,19 @@ arrivals board with live countdowns and the server top five, eight
 colour-coded bases, and **all eight audio assets uploaded and live** — the
 game has sound.
 
-**Still open:** the analytics funnel (0 lines written against ~65 spec'd rows
-in `docs/ANALYTICS.md`) and placing/moving a Nomling by hand.
+**Still open:** placing/moving a Nomling by hand. (The analytics funnel closed
+on 2026-09-17.)
+
+**Reopened and closed again on 2026-09-17**, from a phone playtest: none of the
+buttons worked and there was no sound. The kitchen prompt had no handler on the
+client — a startup `FindFirstChild` that lost a race with replication, made
+certain by `StreamingEnabled` on a street longer than the streaming radius — and
+the theme was playing at 3% of full scale because the SoundGroup volume was
+being set to a track level and multiplies it. Both fixed; `StreamingEnabled` is
+now off (D-027), every client→server call goes through `Net.invoke` and reports
+what broke on screen, and `tests/cloud/smoke.luau` asserts that every world
+prompt was actually created. The egg incubators also moved out of the HUD and
+into a nest bench in your own base (D-028).
 
 **Done when:** a player can join, hatch, place, collect, leave and come back to their coins.
 **Phone demo (3 min):** join → egg hatches in 5 s → place it → collect → rejoin and confirm data persisted.

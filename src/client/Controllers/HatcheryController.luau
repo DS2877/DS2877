@@ -238,7 +238,13 @@ function HatcheryController.start()
 	task.spawn(function()
 		while true do
 			task.wait(0.25)
-			local ok, err = pcall(refresh)
+			-- Wrapped rather than `pcall(refresh)`: Luau derives pcall's result
+			-- arity from the callee's return list, and a function that returns
+			-- nothing gives one value where two are wanted. Same shape as
+			-- HomeController's beacon loop.
+			local ok, err = pcall(function()
+				refresh()
+			end)
 			if not ok then
 				Fault.report(`HatcheryController.refresh -- {err}`)
 				-- Back off hard: a fault that repeats four times a second would

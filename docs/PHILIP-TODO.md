@@ -275,7 +275,7 @@ below still works if you have longer.
 | 1 | Join and look at the top of the screen | Nothing sits under the Roblox menu/chat buttons. Purse on the left, objective banner beside it, **not on top of it** |
 | 2 | Look at the bottom | Three buttons, about **a third shorter** than before. **FUSE** fits inside its button. The blue one reads **SAVE** — it is not blank |
 | 3 | Look at the "?" on the right | Below the banner, not across it |
-| 4 | Wait for the egg to hatch | The green slot sits **directly on top of the bottom bar**, not floating in the middle |
+| 4 | Wait for the egg to hatch | ~~The green slot~~ **The egg is in the nest in your base now** — see the playtest above |
 | 5 | Walk to the belt with **0 coins** and tap Buy | **This is the one that was broken.** You should get a shake, a sound, and a message: *"78 more coins and it's yours — your Nomlings are earning right now!"* Before, it did nothing at all |
 | 6 | Look at the banner while you wait | *"Saving up for the belt: 12 / 90 coins"* — it counts |
 | 7 | Look at a belt Nomling from a distance | Big line on top (name, or **✨ MUTATION ✨**), small line under it with rarity, coins/sec and the **price**. Not four identical lines of grey |
@@ -284,6 +284,40 @@ below still works if you have longer.
 
 **If any button still does nothing, tell me exactly which one and what the purse
 said at the time** — a refusal now always speaks, so silence means a real bug.
+
+---
+
+## 📱 Playtest — the dead buttons and the missing sound (3 minutes)
+
+**This is the one to run first.** It is the round that came out of *"none of the
+buttons in game works"* and *"I don't have a themesong playing in the
+background"*, and every step below is a specific claim that can be wrong.
+
+**If anything at all goes red on screen, stop and send me that text.** There is
+now a red **CLIENT FAULT** panel near the top of the screen that names exactly
+what broke. It is the only instrument I have for what happens on your phone, and
+one line of it is worth more than a whole round of guessing.
+
+| # | Do this | Should happen |
+|---|---|---|
+| 1 | Join, and listen | **Music.** It fades up over about two seconds. It was playing before at about 3% volume, which is why you heard nothing |
+| 2 | Look at the top of the screen | No red panel. If there is one, send me what it says and skip the rest |
+| 3 | Look at your base | An **EGG NEST** bench beside the path, with your egg sitting in a cup. The countdown is on a sign above the egg — not on the screen any more |
+| 4 | Wait for the countdown | The egg turns **pink and starts rocking**, and a **prompt appears on it**. That prompt appearing is the "wait for the button" the tutorial used to promise |
+| 5 | Tap it | It hatches, with a sound |
+| 6 | Walk to the **FUSION KITCHEN** counter and tap the prompt | **The kitchen opens.** This is the one that was dead — the prompt existed and had nothing connected to it |
+| 7 | Walk to the **EGG MARKET** counter and tap the prompt | The market opens |
+| 8 | Stand in your base and tap the **Laser Gate** button | Lasers across the front of your base, and a message. If it refuses, it says why |
+| 9 | Tap **Buy Egg** at the bottom | It buys, or it tells you why not. Silence is a bug — send me the red panel |
+| 10 | Look at the bottom bar | **No SAVE button** unless somebody is actually running off with one of yours. That is deliberate |
+| 11 | Walk into a planter, and into the pots on the kitchen counter | **You bump into them.** They used to be ghosts |
+| 12 | Look at the awning over a base | Six posts along the front, a beam across them, and a scalloped fringe hanging off it. Walk under it — you should not hit your head, even jumping |
+
+### What I most need to know from this one
+
+1. **Did the red panel appear, and what did it say?**
+2. **Music: yes or no?** If no, it is now the asset failing to load on your phone, and the panel will say so after ten seconds.
+3. **Which buttons still do nothing?** Each one is now a different, named bug.
 
 ---
 
@@ -297,7 +331,7 @@ Open **Fuse a Nomling TEST** on your iPhone.
 | 2 | Look at a Nomling's face | **Smile, rosy cheeks, a shine in each eye.** They breathe |
 | 3 | Walk right up to one | It **turns to look at you and bounces higher** |
 | 4 | Follow the glowing marker | It points at wherever your current objective is, and moves with you |
-| 5 | Tap the green slot when ready | A creature **rises up out of the pedestal** with a bounce |
+| 5 | Tap the egg in the nest when ready | A creature **rises up out of the pedestal** with a bounce |
 | 6 | Watch the purse | Coins fly in, the number climbs smoothly |
 | 7 | Walk to the belt | Creatures ride past. Mutated ones **glow and sparkle** |
 | 8 | Tap **🥚** (right rail) or the market counter | The **Egg Market** — all six tiers, locked ones showing what Re-Nom unlocks them, and an **Odds** button on each |
@@ -322,8 +356,10 @@ Open **Fuse a Nomling TEST** on your iPhone.
 
 - ~~Silent~~ **The game has sound.** Theme plus seven effects, live since 2026-09-17.
 - **You're alone in the server**, so player-vs-player stealing is untested. Sneaky Sam covers the mechanic.
-- **No Laser Gate or Vault** — you can bubble a thief but not lock one out.
-- **No daily rewards** and **no analytics funnel** yet.
+- ~~No Laser Gate or Vault~~ **Both shipped 2026-09-17.** The gate is a button
+  on your base (60 s up, 90 s cooldown); the Vault is the mint pedestal marked
+  🛡️ FRIDGE, where a Nomling cannot be taken — and does not earn.
+- **No daily rewards** yet. The analytics funnel is wired as of 2026-09-17.
 
 ### 📅 When you next have computer + Studio time
 
