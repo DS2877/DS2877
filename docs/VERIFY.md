@@ -278,6 +278,37 @@ Source: [`Enum.ScreenInsets`](https://create.roblox.com/docs/reference/engine/en
   description. If the top row still collides on some device, the fallback is
   `GuiService:GetGuiInset()` and explicit offsets. Nothing else depends on this.
 
+### 🆕 Luau Execution does NOT run the place's scripts — checked 2026-09-17
+
+Source: [Luau Execution](https://create.roblox.com/docs/cloud/reference/features/luau-execution.md)
+
+- ✅ Verbatim: **"In a task, physics simulation does not run. Server and local scripts
+  within the place also do not automatically run."**
+- ✅ Also verbatim: the script **"may access and update the data model of the place,
+  including invoking any module scripts."**
+- → **This invalidated two assertions in `tests/cloud/smoke.luau`.** It checked for
+  `ReplicatedStorage.Net` and `Workspace.Plaza`, both built at RUNTIME by scripts a task
+  never starts, so neither could ever have passed. Nobody noticed because the API key
+  lacked the luau-execution scope from the day it was created — the test had never once
+  executed. Same shape as D-018's inert format gate, except red rather than green.
+- → The test now checks what a task genuinely can: static config, that **every shared
+  module loads inside the real engine** (the one thing Lune cannot tell us, since it
+  resolves `require` by file path), that `Net.build()` produces every declared remote,
+  and that Rojo published the server and client trees where the bootstraps look.
+
+### 🆕 Audio upload quota — checked 2026-09-17
+
+Source: [Assets API usage guide](https://create.roblox.com/docs/cloud/guides/usage-assets)
+
+- ✅ Verbatim: **"Up to 100 uploads per month if you're ID-verified. Up to 10 total
+  uploads per month if you aren't ID-verified."** Audio is also **"not available for
+  updating"** — a bad upload is a spent slot, not something to fix in place.
+- ✅ The API key needs the **`assets`** system with **Read *and* Write**: "Add **assets**
+  to **Access Permissions**. Add **Read** and **Write** operation permissions." Write
+  alone uploads and then fails on the operation poll.
+- → This project has 8 audio files. On an un-verified account that is one clean run, so
+  the upload goes one small file first as a canary.
+
 ### 🆕 Emoji glyph coverage — checked 2026-09-17
 
 - ⚠️ **Not a documented platform fact — an observed one.** Roblox renders text with the

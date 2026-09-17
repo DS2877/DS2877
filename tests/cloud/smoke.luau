@@ -9,15 +9,33 @@
 	key owner, so every check lives in this single script rather than one task
 	per test (docs/TECH.md section 7).
 
-	This is what turns "the deploy reported success" into "the game actually
-	boots" -- which matters more than usual, because Philip reviews on a phone
-	and cannot open Studio to look.
+	WHAT A TASK CAN AND CANNOT SEE, and this test was wrong about it until
+	2026-09-17. Roblox: "In a task, physics simulation does not run. Server and
+	local scripts within the place also do not automatically run." The earlier
+	version asserted `ReplicatedStorage.Net` and `Workspace.Plaza` existed --
+	both built at RUNTIME by scripts that a task never starts. Those two checks
+	could never have passed. They never failed visibly either, because the API
+	key lacked the luau-execution scope from the day it was made, so the test
+	had never once run. A test nobody has seen pass is a hypothesis.
+	docs/VERIFY.md, Luau Execution, checked 2026-09-17.
+
+	So this tests what a task genuinely can, which is also the gap this project
+	actually has. Lune covers pure logic, but it resolves `require` by file path
+	and has no Roblox engine. Only here do we learn that Rojo put everything
+	where the code expects and that every module LOADS inside the real engine --
+	the failure mode we are otherwise blind to, with no Studio and no luau-lsp
+	in cloud sessions.
+
+	Roblox also says a task "may access and update the data model of the place,
+	including invoking any module scripts", which is how the remote table is
+	tested for real: build it and look at what came out.
 
 	Returns true on success; the runner treats anything else as a failure.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
+local ServerScriptService = game:GetService("ServerScriptService")
+local StarterPlayer = game:GetService("StarterPlayer")
 
 local checks = 0
 local failures: { string } = {}
@@ -40,8 +58,8 @@ local shared = ReplicatedStorage:FindFirstChild("Shared")
 check("Shared folder replicated", shared ~= nil)
 
 if shared then
-	local economyModule = shared:FindFirstChild("Config")
-	economyModule = economyModule and economyModule:FindFirstChild("Economy")
+	local config = shared:FindFirstChild("Config")
+	local economyModule = config and config:FindFirstChild("Economy")
 	check("Economy config present", economyModule ~= nil)
 
 	if economyModule then
@@ -69,28 +87,96 @@ if shared then
 	check("Logic modules present", logic ~= nil and logic:FindFirstChild("Odds") ~= nil)
 end
 
--- Remotes built ------------------------------------------------------------
-local net = ReplicatedStorage:FindFirstChild("Net")
-check("Net folder built by the server", net ~= nil)
-if net then
-	check("Ping remote exists", net:FindFirstChild("Ping") ~= nil)
+-- Every shared module loads inside the real engine -------------------------
+-- The one thing Lune structurally cannot tell us. It resolves requires by file
+-- path; Roblox resolves them through script.Parent, so a module that is fine
+-- under Lune can still fail to load in the actual game.
+if shared then
+	local broken: { string } = {}
+	local loaded = 0
+	for _, descendant in shared:GetDescendants() do
+		if descendant:IsA("ModuleScript") then
+			local ok, err = pcall(require, descendant)
+			if ok then
+				loaded += 1
+			else
+				table.insert(broken, `{descendant:GetFullName()} -> {err}`)
+			end
+		end
+	end
+	check(
+		`all {loaded + #broken} shared modules load in the engine`,
+		#broken == 0,
+		table.concat(broken, " | ")
+	)
 end
 
--- World built --------------------------------------------------------------
-local plaza = Workspace:FindFirstChild("Plaza")
-check("Plaza built", plaza ~= nil)
+-- Remotes, by building them --------------------------------------------------
+-- A task never starts the server bootstrap, so the folder does not exist yet.
+-- Calling Net.build() is both allowed and a better test than looking for a
+-- folder: it proves every declared remote is creatable and lands with the
+-- right class, which is what the bootstrap will do for real at runtime.
+if shared then
+	local netModule = shared:FindFirstChild("Net")
+	check("Net module present", netModule ~= nil)
+	if netModule and netModule:IsA("ModuleScript") then
+		local ok, result = pcall(function()
+			local Net = require(netModule)
+			return Net.build()
+		end)
+		check("Net.build() succeeds", ok, if ok then nil else tostring(result))
+		if ok then
+			local folder = result :: Folder
+			local built = #folder:GetChildren()
+			check("Net.build() produced remotes", built > 0, `built {built}`)
+			check(
+				"Ping remote built",
+				folder:FindFirstChild("Ping") ~= nil,
+				"the liveness remote every session uses"
+			)
+			for _, remote in folder:GetChildren() do
+				local isRemote = remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction")
+				if not isRemote then
+					check(`remote '{remote.Name}' has a remote class`, false, remote.ClassName)
+				end
+			end
+		end
+	end
+end
 
-if plaza then
-	check("Plaza floor present", plaza:FindFirstChild("PlazaFloor") ~= nil)
-	check("Egg Market present", plaza:FindFirstChild("EggMarket") ~= nil)
-	check("Fusion Lab present", plaza:FindFirstChild("FusionLab") ~= nil)
-	check("Spawn present", plaza:FindFirstChild("PlazaSpawn") ~= nil)
+-- Rojo put the code where the bootstraps look for it -------------------------
+-- The scripts do not run here, but their modules must still BE there. A Rojo
+-- mapping that silently stops publishing a folder is invisible to every other
+-- check we have, and would ship a game that boots into nothing.
+local server = ServerScriptService:FindFirstChild("Server")
+check("server code published", server ~= nil)
+if server then
+	local services = server:FindFirstChild("Services")
+	check("Services folder published", services ~= nil)
+	if services then
+		local count = #services:GetChildren()
+		-- Not an exact number: the count is expected to grow, and a test that
+		-- has to be edited for every new service gets edited without thought.
+		check("services published", count >= 15, `found {count}`)
+		check("DataService published", services:FindFirstChild("DataService") ~= nil)
+		check("WorldService published", services:FindFirstChild("WorldService") ~= nil)
+	end
+end
 
-	local plots = plaza:FindFirstChild("Plots")
-	check("Plots folder present", plots ~= nil)
-	if plots then
-		local count = #plots:GetChildren()
-		check("eight plots built", count == 8, `found {count}`)
+local starterScripts = StarterPlayer:FindFirstChild("StarterPlayerScripts")
+local client = starterScripts and starterScripts:FindFirstChild("Client")
+check("client code published", client ~= nil)
+if client then
+	local controllers = client:FindFirstChild("Controllers")
+	check("Controllers folder published", controllers ~= nil)
+	if controllers then
+		local count = #controllers:GetChildren()
+		check("controllers published", count >= 11, `found {count}`)
+		check(
+			"BaseHudController published",
+			controllers:FindFirstChild("BaseHudController") ~= nil,
+			"the HUD every other controller hangs buttons on"
+		)
 	end
 end
 
