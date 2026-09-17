@@ -78,3 +78,17 @@ end)
 h.test("the belt fits inside the road", function()
 	h.expectTrue(World.BELT_WIDTH < World.STREET_WIDTH, "the belt must leave room to walk past it")
 end)
+
+h.test("REGRESSION: the pedestal grid matches the economy's pedestal count", function()
+	-- World lays pedestals out as a ROWS x COLUMNS grid while Economy caps how
+	-- many a player may fill. If they disagree, either a base has pedestals no
+	-- player can ever use, or Profile.place accepts an index with no post under
+	-- it and a Nomling is placed into thin air. Neither shows up as an error.
+	local Economy = require("../../src/shared/Config/Economy")
+	local offsets = World.pedestalOffsets()
+	h.expectEqual(
+		#offsets,
+		Economy.PEDESTALS_BASE,
+		`grid is {World.PEDESTAL_ROWS}x{World.PEDESTAL_COLUMNS} but PEDESTALS_BASE is {Economy.PEDESTALS_BASE}`
+	)
+end)

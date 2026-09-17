@@ -298,7 +298,12 @@ local function assign(player: Player)
 			return
 		end
 	end
+	-- Tell the PLAYER, not just the log. A full server is a legitimate state,
+	-- but from inside the game it is indistinguishable from the bug above:
+	-- you are standing on a street with no home and nothing explains it.
 	warn(`[PlotService] no free base for {player.Name}; all {PLOT_COUNT} are taken`)
+	local notify = Net.get("Notify") :: RemoteEvent
+	notify:FireClient(player, `All {PLOT_COUNT} bases are taken right now — try another server!`)
 end
 
 local function release(player: Player)
@@ -332,12 +337,21 @@ end
 --- empty -- so nobody would ever have been given a plot and nothing would ever
 --- have rendered. SERVICE_ORDER puts PlazaService first, so by the time this
 --- runs the pads are there.
-function PlotService.start()
-	local street = Workspace:FindFirstChild("Street")
+--- Finds the bases and builds their pedestals. Safe to call repeatedly: it
+--- does nothing once `plots` is populated.
+local function discoverPlots(): boolean
+	if #plots > 0 then
+		return true
+	end
+	-- WaitForChild, not FindFirstChild. WorldService builds the street in its
+	-- own start(), and the bootstrap pcalls each start() in turn -- so anything
+	-- that makes WorldService slow or throw leaves the street missing at this
+	-- exact moment. ConveyorService already learned this and waits; this one
+	-- did not, and gave up instead.
+	local street = Workspace:WaitForChild("Street", 20)
 	local folder = street and street:FindFirstChild("Bases")
 	if not folder then
-		warn("[PlotService] no Bases folder; is WorldService before PlotService in SERVICE_ORDER?")
-		return
+		return false
 	end
 
 	for i = 1, PLOT_COUNT do
@@ -349,12 +363,40 @@ function PlotService.start()
 			table.insert(plots, plot)
 		end
 	end
+	return #plots > 0
+end
 
-	-- A plot is assigned when the profile lands, not when the player joins --
-	-- there is nothing to draw before then.
+function PlotService.start()
+	-- REGISTERED FIRST, AND UNCONDITIONALLY. This used to sit after a world
+	-- lookup that returned early when the street was missing -- so a single
+	-- hiccup in WorldService meant this callback was never registered at all,
+	-- and NOBODY on that server was ever assigned a base for as long as it
+	-- lived. The symptom is a player wandering a street that has no home for
+	-- them, with nothing in the game saying why. Nothing about finding the
+	-- world should be able to stop base assignment from being wired up.
 	DataService.onLoaded(function(player)
+		-- Discovered here rather than at start, so a late or slow world still
+		-- produces a base instead of a permanent silent failure.
+		if not discoverPlots() then
+			warn("[PlotService] no Bases folder; cannot assign a base")
+			local notify = Net.get("Notify") :: RemoteEvent
+			notify:FireClient(
+				player,
+				"Your base is still being built — please rejoin in a moment."
+			)
+			return
+		end
 		assign(player)
 	end)
+
+	-- Still done eagerly when possible: pedestals are dozens of parts per base
+	-- and building them while a player waits to be teleported home is the one
+	-- moment it would be felt.
+	if discoverPlots() then
+		print(`[PlotService] {#plots} bases ready`)
+	else
+		warn("[PlotService] no bases at start; will retry when a profile lands")
+	end
 end
 
 return PlotService
