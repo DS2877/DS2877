@@ -4,6 +4,35 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### The audio pipeline is fine; my measurement was not · 2026-09-18
+
+The phone reported `theme: loaded=false playing=true len= ... sfx loaded 0/21`,
+and I read `0/21` as "no audio reaches this client at all". It was not evidence
+of anything. **Roblox does not fetch a `Sound`'s asset until the Sound is played
+or preloaded**, and those twenty-one are pooled effects that had never been
+played — so "none loaded" was the expected reading. The check was wrong.
+
+Two facts settle the rest, and neither blames the assets:
+
+- **Same account owns both.** `Audio owned by : 7185134469`,
+  `TEST experience : user=users/7185134469`. Roblox says an account's own assets
+  always work in its own games, so privacy never applied.
+- **The experience can fetch every one of them.** A new probe in
+  `tests/cloud/smoke.luau` calls `ContentProvider:PreloadAsync` on all eight
+  inside the published place and reads their lengths back: theme 112.89s, coin
+  0.86s, and so on. All eight, `loaded=true`.
+
+So what was left was download time for a 113-second track on one phone, with a
+twelve-second deadline I had invented. `AudioController` now preloads the theme
+and every effect at start and reports only what is genuinely unusable *after*
+`PreloadAsync` returns — which is a fact rather than a snapshot. Preloading also
+means the first coin sound of a session no longer arrives late.
+
+`SoundService.RespectFilteringEnabled` is gone from the project: the one
+non-default audio setting we had chosen, on the one service that appeared to be
+failing, and Roblox's own reference page gives it no description at all.
+
+
 ### The audio diagnostic says what it knows, not what it guesses · 2026-09-18
 
 With the rate limiter fixed, the only fault left on Philip's phone was

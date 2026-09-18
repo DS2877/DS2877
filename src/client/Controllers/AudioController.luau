@@ -95,6 +95,60 @@ function AudioController.duck(seconds: number?)
 	):Play()
 end
 
+--- Fetches every sound the game owns, and reports only what genuinely failed.
+---
+--- NO TIMER, and that is the point. The previous version waited twelve seconds
+--- and then reported whatever state it found, which produced a red panel on a
+--- phone reading `sfx loaded 0/21` -- alarming, and meaningless. Roblox does
+--- not fetch a Sound's asset until the Sound is played or preloaded, and those
+--- twenty-one pooled effects had never been played, so "none loaded" was the
+--- expected reading rather than a fault. The theme, meanwhile, was simply still
+--- downloading: it is a 113-second track, and twelve seconds is not a deadline,
+--- it is a guess.
+---
+--- PreloadAsync blocks until each asset is resolved or refused, so after it
+--- returns, TimeLength == 0 means the asset is genuinely unusable and anything
+--- else means it is fine. That is a fact rather than a snapshot.
+---
+--- Preloading is also just better: the first coin sound of a session no longer
+--- arrives late because its asset was still on the way.
+local function preloadEverything(track: Sound?)
+	local queue: { Sound } = {}
+	if track then
+		table.insert(queue, track)
+	end
+	for _, pool in pools do
+		for _, cue in pool do
+			table.insert(queue, cue)
+		end
+	end
+	if #queue == 0 then
+		return
+	end
+
+	task.spawn(function()
+		local ok, err = pcall(function()
+			ContentProvider:PreloadAsync(queue)
+		end)
+		if not ok then
+			Fault.report(`audio preload refused: {err}`)
+			return
+		end
+
+		local failed: { string } = {}
+		for _, cue in queue do
+			if cue.TimeLength <= 0 then
+				table.insert(failed, cue.Name)
+			end
+		end
+		if #failed > 0 then
+			Fault.report(
+				`audio unusable after preload ({#failed}/{#queue}): {table.concat(failed, ", ")}`
+			)
+		end
+	end)
+end
+
 local function startMusic()
 	local track = Audio.MUSIC.theme
 	if not Audio.isReady(track) then
@@ -135,60 +189,7 @@ local function startMusic()
 		{ Volume = 1 }
 	):Play()
 
-	-- DID THE ASSET ACTUALLY ARRIVE? An id that is valid, approved and owned
-	-- still plays nothing if this client failed to fetch it, and Sound raises
-	-- no error for that.
-	--
-	-- PreloadAsync is the documented way to force the fetch and is the only
-	-- thing that prints Roblox's own reason for a refusal. It yields, so it
-	-- gets its own thread, and it is pcall'd because it throws on an asset the
-	-- experience is not allowed to use -- which is itself the answer.
-	task.spawn(function()
-		local ok, err = pcall(function()
-			ContentProvider:PreloadAsync({ sound })
-		end)
-		if not ok then
-			Fault.report(`theme {track.assetId} preload refused: {err}`)
-		end
-	end)
-
-	-- AND THEN REPORT THE STATE, NOT A GUESS. The first version of this check
-	-- fired on `not IsLoaded` alone, which says nothing about whether there is
-	-- music coming out of the phone -- so it risked becoming a permanent red
-	-- line that hides the next real fault. It now stays quiet when the track is
-	-- genuinely playing, and when it is not it prints everything needed to tell
-	-- the three candidates apart in one line:
-	--
-	--   sfx 0/7 too      -- the whole account's audio is unreachable here.
-	--   sfx 7/7, theme 0 -- only the LONG asset is, which points at Roblox's
-	--                       asset privacy: audio is private by default and an
-	--                       experience needs explicit permission
-	--                       (create.roblox.com/docs/audio/assets, docs/VERIFY.md).
-	--   loaded and playing but silent -- a volume bug, ours.
-	task.delay(12, function()
-		if theme ~= sound then
-			return
-		end
-		if sound.IsPlaying and sound.TimeLength > 0 then
-			return
-		end
-
-		local ready, total = 0, 0
-		for _, pool in pools do
-			for _, cue in pool do
-				total += 1
-				if cue.IsLoaded then
-					ready += 1
-				end
-			end
-		end
-
-		Fault.report(
-			`theme {track.assetId}: loaded={sound.IsLoaded} playing={sound.IsPlaying} `
-				.. `len={sound.TimeLength} vol={sound.Volume}x{musicGroup.Volume} `
-				.. `sfx loaded {ready}/{total}`
-		)
-	end)
+	preloadEverything(sound)
 end
 
 function AudioController.start()
@@ -209,6 +210,11 @@ function AudioController.start()
 	end
 
 	startMusic()
+	-- Belt and braces: startMusic preloads with the theme, but it returns early
+	-- when there is no theme asset yet, and the effects still deserve fetching.
+	if not theme then
+		preloadEverything(nil)
+	end
 
 	-- Restore the music level once a duck expires. Polled rather than
 	-- scheduled so overlapping ducks extend cleanly instead of fighting.

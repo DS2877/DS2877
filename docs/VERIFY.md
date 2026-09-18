@@ -345,7 +345,7 @@ Source: [Assets API usage guide](https://create.roblox.com/docs/cloud/guides/usa
 
 ---
 
-## §3.6 Audio asset privacy — ⚠️ checked 2026-09-18; the rule is clear, the diagnosis is not
+## §3.6 Audio asset privacy — ✅ checked 2026-09-18; NOT our problem, and here is the proof
 
 Source: https://create.roblox.com/docs/audio/assets (read 2026-09-18).
 
@@ -373,18 +373,30 @@ uploads differ from Studio uploads in any way.
 theme 75643474514379: loaded=false playing=true len= vol=0.32x1 sfx loaded 0/21
 ```
 
-**Zero of twenty-one.** Not the long track — *every* asset, all seven effects
-across all three pooled copies, and the theme. Meanwhile all eight report
-`Approved`, owned by 7185134469, type `Audio`. `playing=true` with no length is
-Roblox happily playing a sound it has no data for.
+**`sfx loaded 0/21` was a measurement artifact, not evidence.** Roblox does not
+fetch a `Sound`'s asset until the Sound is played or preloaded. Those
+twenty-one are pooled effects that had never been played, so "none loaded" was
+the *expected* reading. The check was wrong, not the game.
 
-That pattern rules out duration and rules out our volume maths. Audio uploaded
-by an account is always usable in that account's own experiences — so the
-question that remains is whether the TEST universe is owned by 7185134469 at
-all. `tools/check-audio.py` now prints the audio's owner and the universe's
-owner side by side, in CI, which answers it without anyone opening a browser.
+**Both remaining questions are now answered, and neither blames the assets.**
 
-**To re-check:** the runtime failure mode for a player, once we know the cause.
+1. *Same account?* Yes. `tools/check-audio.py` asks Open Cloud for both:
+   `Audio owned by : 7185134469` / `TEST experience : user=users/7185134469`.
+   So the privacy rule quoted above does not apply at all.
+2. *Can the experience fetch them?* Yes — proved inside the published place by
+   the audio probe in `tests/cloud/smoke.luau`, which calls
+   `ContentProvider:PreloadAsync` on all eight and reads back their lengths:
+
+   ```
+   PreloadAsync ok=true
+   theme loaded=true len=112.89   coin loaded=true len=0.86
+   deny  loaded=true len=1.00     hatch loaded=true len=1.35   (…and the rest)
+   ```
+
+**So the audio pipeline is sound end to end**, and what is left is fetch time on
+one phone for a 113-second track. `AudioController` now preloads everything at
+start and reports only assets that are genuinely unusable once `PreloadAsync`
+has returned — a fact, rather than a twelve-second guess.
 
 ---
 
