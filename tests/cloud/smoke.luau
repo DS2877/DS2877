@@ -35,6 +35,8 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local ContentProvider = game:GetService("ContentProvider")
+local SoundService = game:GetService("SoundService")
 local StarterPlayer = game:GetService("StarterPlayer")
 local Workspace = game:GetService("Workspace")
 
@@ -532,6 +534,61 @@ if services then
 			#absentPrompts == 0,
 			table.concat(absentPrompts, ", ")
 		)
+	end
+end
+
+-- CAN THIS EXPERIENCE FETCH ITS OWN AUDIO? ---------------------------------
+-- A PROBE, NOT A CHECK, and deliberately so: a server does not render sound,
+-- so a false here is suggestive rather than damning and must not fail a build.
+-- It prints, and a human reads it.
+--
+-- The question it exists to narrow: a phone reported `sfx loaded 0/21` -- not
+-- one of eight assets, short or long. All eight are Approved, and the audio and
+-- the universe are owned by the SAME account (tools/check-audio.py), which
+-- Roblox says is always sufficient: "your own assets are always accessible to
+-- you in your own games regardless of their privacy setting."
+--
+-- So if the server here can resolve them, the asset-to-experience relationship
+-- is sound and the fault is on the client or the device. If it cannot, no
+-- amount of client code will help and the assets themselves are the problem.
+if shared then
+	local audioModule = shared:FindFirstChild("Config")
+	audioModule = audioModule and audioModule:FindFirstChild("Audio")
+	if audioModule and audioModule:IsA("ModuleScript") then
+		local Audio = require(audioModule) :: any
+		local ids: { [string]: number } = {}
+		for name, track in Audio.MUSIC do
+			ids[name] = track.assetId
+		end
+		for name, cue in Audio.SFX do
+			ids[name] = cue.assetId
+		end
+
+		local probes: { Sound } = {}
+		local order: { string } = {}
+		for name, assetId in ids do
+			if assetId <= 0 then
+				continue
+			end
+			local sound = Instance.new("Sound")
+			sound.Name = `Probe_{name}`
+			sound.SoundId = `rbxassetid://{assetId}`
+			sound.Parent = SoundService
+			table.insert(probes, sound)
+			table.insert(order, name)
+		end
+
+		-- PreloadAsync is the documented way to force a fetch, and it throws
+		-- rather than warns when an asset cannot be used -- which is the answer
+		-- we want, in Roblox's own words.
+		local ok, err = pcall(function()
+			ContentProvider:PreloadAsync(probes)
+		end)
+		print(`  ---- audio probe: PreloadAsync ok={ok} {if ok then "" else tostring(err)}`)
+		for i, sound in probes do
+			print(`  ---- audio probe: {order[i]} loaded={sound.IsLoaded} len={sound.TimeLength}`)
+			sound:Destroy()
+		end
 	end
 end
 

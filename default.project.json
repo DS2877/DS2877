@@ -45,10 +45,6 @@
       }
     },
 
-    "SoundService": {
-      "$className": "SoundService",
-      "$properties": { "RespectFilteringEnabled": true }
-    },
 
     "Players": {
       "$className": "Players",
