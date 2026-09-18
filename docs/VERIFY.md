@@ -345,7 +345,7 @@ Source: [Assets API usage guide](https://create.roblox.com/docs/cloud/guides/usa
 
 ---
 
-## §3.6 Audio asset privacy — ❓ checked 2026-09-18, and the runtime behaviour is NOT documented
+## §3.6 Audio asset privacy — ⚠️ checked 2026-09-18; the rule is clear, the diagnosis is not
 
 Source: https://create.roblox.com/docs/audio/assets (read 2026-09-18).
 
@@ -354,24 +354,37 @@ initially the only one who can view and use private audio assets, the asset
 privacy system lets you grant usage permissions to specific friends and
 experiences."* Import limits are 20 MB and 7 minutes.
 
-**NOT found, and we are currently relying on it.** The page does not say what
-happens at RUNTIME when an experience lacks permission for an asset — whether
-the `Sound` errors, warns, or simply never loads. It also does not state whether
-an experience owned by the uploader is permitted automatically. Developer-forum
-reports describe sounds failing to load with *"Asset is not approved for the
-requester"* and *"experience doesn't have permissions"*, including cases where
-permission appeared to be granted.
+**The rule for own-account use, from
+https://create.roblox.com/docs/projects/assets/privacy (read 2026-09-18):**
+*"Using your own assets in your own published games — your assets are always
+accessible to you in your own games regardless of their privacy setting."*
 
-**Why this matters here.** All eight of our assets report `Approved`, owned by
-7185134469, type `Audio` (`tools/check-audio.py`, which runs in CI), and the
-theme still reported `IsLoaded = false` on a real phone while the game itself
-worked. If the seven short effects load and only the 110-second theme does not,
-asset privacy is the first thing to check — and it is a Creator Hub setting on
-the asset, not a code change.
+So privacy does **not** block an uploader's own experience. It blocks everyone
+else's, and the grant is: Creator Dashboard → Development Items → Audio → the
+asset → Permissions → Experiences → Add experiences → universe id → Done.
 
-**To re-check:** find an official statement of the runtime failure mode, and of
-whether same-owner experiences are auto-permitted. Until then the client
-diagnostic prints the state rather than a conclusion (`AudioController`).
+**Still not documented:** the runtime failure mode for a *player* (the page only
+describes a clickable error in Studio's Output window), and whether Open Cloud
+uploads differ from Studio uploads in any way.
+
+**What the phone reported, 2026-09-18:**
+
+```
+theme 75643474514379: loaded=false playing=true len= vol=0.32x1 sfx loaded 0/21
+```
+
+**Zero of twenty-one.** Not the long track — *every* asset, all seven effects
+across all three pooled copies, and the theme. Meanwhile all eight report
+`Approved`, owned by 7185134469, type `Audio`. `playing=true` with no length is
+Roblox happily playing a sound it has no data for.
+
+That pattern rules out duration and rules out our volume maths. Audio uploaded
+by an account is always usable in that account's own experiences — so the
+question that remains is whether the TEST universe is owned by 7185134469 at
+all. `tools/check-audio.py` now prints the audio's owner and the universe's
+owner side by side, in CI, which answers it without anyone opening a browser.
+
+**To re-check:** the runtime failure mode for a player, once we know the cause.
 
 ---
 

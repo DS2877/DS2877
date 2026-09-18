@@ -60,11 +60,46 @@ def describe(asset_id: int) -> dict:
     return opencloud.request("GET", f"/assets/v1/assets/{asset_id}")
 
 
+def universe_owner() -> str:
+    """Who owns the TEST experience, per Roblox.
+
+    THE DECIDING FACT, and the reason this function exists. Roblox's asset
+    privacy page says plainly:
+
+        "Using your own assets in your own published games -- your assets are
+        always accessible to you in your own games regardless of their privacy
+        setting."
+
+    So a private asset is NOT the problem when the uploader owns the
+    experience. It is very much the problem when they do not: every audio asset
+    then fails to load, short and long alike, with no error the player can see.
+    A playtester reported exactly that -- `sfx loaded 0/21`, nothing at all --
+    while all eight assets came back Approved and owned by one account.
+
+    Which leaves one question that can actually be answered from here: is that
+    account the same one that owns the universe?
+    """
+    universe_id = os.environ.get("ROBLOX_TEST_UNIVERSE_ID", "").strip()
+    if not universe_id:
+        return "ROBLOX_TEST_UNIVERSE_ID is not set"
+    try:
+        info = opencloud.request("GET", f"/cloud/v2/universes/{universe_id}")
+    except opencloud.OpenCloudError as exc:
+        return f"lookup failed -- {exc}"
+    # The field is `user` ("users/123") or `group` ("groups/456") depending on
+    # who holds it, so report whichever came back rather than assuming.
+    for key in ("user", "group"):
+        if info.get(key):
+            return f"{key}={info[key]}"
+    return f"no owner field in {json.dumps(info, separators=(',', ':'))}"
+
+
 def main() -> int:
     rows = entries()
     print(f"Checking {len(rows)} audio assets from {CONFIG.relative_to(ROOT)}\n")
 
     problems: list[str] = []
+    owners: set[str] = set()
     for name, asset_id in sorted(rows):
         if asset_id <= 0:
             print(f"  {name:<12} {asset_id:<18} NOT UPLOADED (assetId is 0)")
@@ -82,6 +117,8 @@ def main() -> int:
         creator = info.get("creationContext", {}).get("creator", {})
         owner = creator.get("userId") or creator.get("groupId") or "?"
         kind = info.get("assetType", "?")
+
+        owners.add(str(owner))
 
         state = str(moderation)
         flag = ""
@@ -106,6 +143,22 @@ def main() -> int:
         }
         if extra:
             print(f"               {json.dumps(extra, separators=(',', ':'))}")
+
+    print()
+
+    # Owner vs owner. This is the one comparison that distinguishes "the code is
+    # wrong" from "the experience is not allowed to play these".
+    print(f"Audio owned by  : {', '.join(sorted(owners)) or 'unknown'}")
+    print(f"TEST experience : {universe_owner()}")
+    print(
+        "\nIf those two are not the same account, that is the whole story: Roblox\n"
+        "says your own assets always work in your own games, and these are not\n"
+        "your own games. Nothing in the code can fix it -- either re-upload under\n"
+        "the account that owns the experience, or grant the experience permission\n"
+        "(Creator Dashboard -> Development Items -> Audio -> the asset ->\n"
+        "Permissions -> Experiences -> Add experiences -> the universe id).\n"
+        "docs/VERIFY.md 3.6."
+    )
 
     print()
     if problems:
