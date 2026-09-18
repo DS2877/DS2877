@@ -37,6 +37,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Economy = require(Shared:WaitForChild("Config"):WaitForChild("Economy"))
 local Snatch = require(Shared:WaitForChild("Config"):WaitForChild("Snatch"))
+local World = require(Shared:WaitForChild("Config"):WaitForChild("World"))
 local HudLayout = require(Shared:WaitForChild("Logic"):WaitForChild("HudLayout"))
 local Income = require(Shared:WaitForChild("Logic"):WaitForChild("Income"))
 local Net = require(Shared:WaitForChild("Net"))
@@ -82,6 +83,12 @@ local fuseButton: TextButton
 local fuseLabel: TextLabel
 local bubbleButton: TextButton
 local bubbleLabel: TextLabel
+local bubbleGlyphFrame: Frame
+--- What the third bottom-bar button is currently offering.
+local barMode: "none" | "bubble" | "gate" = "none"
+--- Which bases have their Laser Gate up, keyed by base index as a string.
+--- Pushed by GateSync; a base missing from here simply has no gate up.
+local gatesUp: { [string]: boolean } = {}
 local renomButton: TextButton
 local renomLabel: TextLabel
 local rail: Frame
@@ -380,6 +387,24 @@ local function build()
 	eggPrice.Text = ""
 	cap(eggPrice, 16)
 
+	-- ONE SLOT, TWO JOBS, NEVER BOTH AT ONCE.
+	--
+	-- This third button used to be SAVE, permanently on the bar and usually
+	-- doing nothing. It now shows only when there is something to press it for,
+	-- and there are exactly two such moments:
+	--
+	--   SAVE IT!    somebody is running off with one of yours, right now.
+	--   LASER GATE  you are standing in your own base and the gate is down.
+	--
+	-- Both are defence, they cannot both matter in the same instant, and giving
+	-- them one slot is how the gate gets a screen affordance without adding
+	-- anything to a HUD a playtester already called "way too much". The gate had
+	-- no on-screen way in at all, and "activating the laser gate" was on the
+	-- list of things that did not work.
+	--
+	-- It sends RaiseGate, which the server re-checks from scratch -- proximity
+	-- included (D-025). This button decides what to OFFER, never what is
+	-- allowed.
 	bubbleButton = barButton("Bubble", SPLIT.bubble, Style.PALETTE.nomBlue)
 	-- The bubble is DRAWN, not typed. A circle always renders; a 2021 emoji
 	-- does not.
@@ -399,14 +424,13 @@ local function build()
 	bubbleLabel = buttonText(bubbleButton, Enum.Font.FredokaOne, Style.PALETTE.nomCream, 18)
 	bubbleLabel.ZIndex = 5
 	bubbleLabel.Text = "SAVE IT!"
+	bubbleGlyphFrame = bubbleGlyph
 
-	-- HIDDEN UNTIL THERE IS SOMETHING TO SAVE. From a playtest: "the save
-	-- button I don't even know what the function is for." It was permanently
-	-- on the bar doing nothing, which is the worst way to teach a mechanic --
-	-- a button you have pressed ten times to no effect is one you stop
-	-- believing in. It now appears only while a thief is actually running off
-	-- with something near you, which makes it self-explanatory: it shows up at
-	-- the exact moment it means "press this".
+	-- HIDDEN UNTIL THERE IS SOMETHING TO PRESS IT FOR. From a playtest: "the
+	-- save button I don't even know what the function is for." It was
+	-- permanently on the bar doing nothing, which is the worst way to teach a
+	-- mechanic -- a button you have pressed ten times to no effect is one you
+	-- stop believing in.
 	bubbleButton.Visible = false
 
 	eggButton.Activated:Connect(function()
@@ -427,7 +451,11 @@ local function build()
 	end)
 
 	bubbleButton.Activated:Connect(function()
-		local ok, reason, fault = Net.invoke("Bubble")
+		-- Whichever job the slot is doing at the moment it is tapped. Read from
+		-- the mode rather than re-deciding here, so what you pressed is always
+		-- what the label said.
+		local remote = if barMode == "gate" then "RaiseGate" else "Bubble"
+		local ok, reason, fault = Net.invoke(remote)
 		if fault then
 			Fault.report(fault)
 		end
@@ -641,6 +669,60 @@ local function isCarrierNear(): boolean
 	return false
 end
 
+--- Am I standing in my own base? Flat distance against the footprint the
+--- server uses, from the base position the profile sync already carries.
+---
+--- The CLIENT decides what to offer; the SERVER decides what is allowed. This
+--- is deliberately the more generous of the two -- a button that appears a step
+--- early and then explains itself teaches the rule, while one that refuses to
+--- appear teaches nothing at all.
+local function atOwnBase(snap: { [string]: any }): boolean
+	local baseX, baseZ = tonumber(snap.baseX), tonumber(snap.baseZ)
+	if not baseX or not baseZ then
+		return false
+	end
+	local character = Players.LocalPlayer.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return false
+	end
+	local here = root.Position
+	return math.abs(here.X - baseX) <= World.BASE_DEPTH / 2 + Snatch.GATE_RANGE
+		and math.abs(here.Z - baseZ) <= World.BASE_WIDTH / 2 + Snatch.GATE_RANGE
+end
+
+--- Switches the third bottom-bar button between its two jobs, or hides it.
+local function setBarMode(mode: "none" | "bubble" | "gate")
+	if mode == barMode then
+		return
+	end
+	barMode = mode
+
+	if mode == "none" then
+		bubbleButton.Visible = false
+		return
+	end
+
+	local wasVisible = bubbleButton.Visible
+	bubbleButton.Visible = true
+	if mode == "bubble" then
+		bubbleLabel.Text = "SAVE IT!"
+		bubbleButton.BackgroundColor3 = Style.PALETTE.nomBlue
+		bubbleGlyphFrame.Visible = true
+	else
+		bubbleLabel.Text = "LASER GATE"
+		bubbleButton.BackgroundColor3 = Style.PALETTE.nomPink
+		-- The drawn bubble belongs to the bubble. Leaving it behind the word
+		-- LASER GATE would say two things at once.
+		bubbleGlyphFrame.Visible = false
+	end
+	-- Only punch it when it ARRIVES. Punching on every mode swap would make the
+	-- bar twitch as you walk in and out of your own gate range.
+	if not wasVisible then
+		JuiceController.pop(bubbleButton, 0.2)
+	end
+end
+
 local function refresh(delta: number)
 	local snap = snapshot
 	if not snap then
@@ -719,7 +801,16 @@ local function refresh(delta: number)
 		renomButton.Visible = false
 	end
 
-	bubbleButton.Visible = isCarrierNear()
+	-- A gate that is already up has nothing to press, so the slot goes quiet
+	-- rather than offering a button that can only refuse. The lasers across the
+	-- front of the base are the feedback that it worked.
+	local myGateUp = gatesUp[tostring(snap.baseIndex or "")] == true
+	setBarMode(
+		if isCarrierNear()
+			then "bubble"
+			elseif not myGateUp and atOwnBase(snap) then "gate"
+			else "none"
+	)
 end
 
 --- Adds a round button to the right-hand rail. `order` decides where it sits,
@@ -783,6 +874,16 @@ function BaseHudController.start()
 		-- purchase, a hatch or an offline payout rather than the steady tick.
 		if previous and (snap.coins or 0) > (previous.coins or 0) * 1.05 then
 			JuiceController.pop(purse, 0.1)
+		end
+	end)
+
+	-- Which bases are gated. Broadcast to everyone, because a thief needs to
+	-- see a locked base from the road; here it is only used to stop offering
+	-- the owner a button they cannot use.
+	local gateSync = Net.get("GateSync") :: RemoteEvent
+	gateSync.OnClientEvent:Connect(function(payload)
+		if type(payload) == "table" then
+			gatesUp = payload
 		end
 	end)
 

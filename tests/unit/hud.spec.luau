@@ -102,3 +102,22 @@ h.test("the purse leaves the objective banner room to read", function()
 	local bannerWidth = rowWidth - (HudLayout.PURSE_W + HudLayout.GAP)
 	h.expectTrue(bannerWidth >= 240, `objective banner is only {bannerWidth}pt wide at 568pt`)
 end)
+
+h.test("the rail has room for every round button it carries", function()
+	-- Four buttons today: help, Re-Nom, book, shop. A fifth does NOT fit on a
+	-- 375pt screen -- 5 x 44 + 4 x 6 is 244pt into 209pt of rail -- and a
+	-- UIListLayout does not complain, it just puts the last one off the bottom
+	-- edge where nobody will ever find it.
+	--
+	-- This is here because the Laser Gate nearly became that fifth button. It
+	-- went into the bottom bar's third slot instead, sharing with SAVE, and the
+	-- next thing that wants a rail button has to take something out first.
+	local RAIL_SLOTS = 4
+	local shortest = SCREEN_HEIGHTS[1]
+	local available = shortest - HudLayout.RAIL_TOP - HudLayout.RAIL_BOTTOM
+	local needed = HudLayout.RAIL_W * RAIL_SLOTS + HudLayout.RAIL_GAP * (RAIL_SLOTS - 1)
+	h.expectTrue(
+		needed <= available,
+		`{RAIL_SLOTS} rail buttons need {needed}pt, the rail has {available}pt at {shortest}pt`
+	)
+end)

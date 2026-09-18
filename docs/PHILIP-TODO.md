@@ -307,9 +307,10 @@ one line of it is worth more than a whole round of guessing.
 | 5 | Tap it | It hatches, with a sound |
 | 6 | Walk to the **FUSION KITCHEN** counter and tap the prompt | **The kitchen opens.** This is the one that was dead — the prompt existed and had nothing connected to it |
 | 7 | Walk to the **EGG MARKET** counter and tap the prompt | The market opens |
-| 8 | Stand in your base and tap the **Laser Gate** button | Lasers across the front of your base, and a message. If it refuses, it says why |
+| 8 | Stand in your base | A pink **LASER GATE** button appears in the bottom bar. There is also a wooden button beside the path, opposite the nest — both do the same thing |
+| 8b | Tap it | Lasers across the front of your base, and a message. If it refuses, it says why |
 | 9 | Tap **Buy Egg** at the bottom | It buys, or it tells you why not. Silence is a bug — send me the red panel |
-| 10 | Look at the bottom bar | **No SAVE button** unless somebody is actually running off with one of yours. That is deliberate |
+| 10 | Walk out of your base | The LASER GATE button goes away. That third slot only ever shows something you can actually press — SAVE IT! when a thief is near, LASER GATE when you are home |
 | 11 | Walk into a planter, and into the pots on the kitchen counter | **You bump into them.** They used to be ghosts |
 | 12 | Look at the awning over a base | Six posts along the front, a beam across them, and a scalloped fringe hanging off it. Walk under it — you should not hit your head, even jumping |
 

@@ -119,6 +119,21 @@ World.NEST_LENGTH = 25
 World.NEST_CUP = 3.4
 World.NEST_CUP_PITCH = 5.8
 
+--- The Laser Gate button, on the OTHER side of the path from the nest.
+---
+--- It used to stand at z = BASE_WIDTH/2 - 7 -- 47 studs along the road from
+--- where you spawn, in a corner of a 108 x 76 plot, with a 12-stud activation
+--- range. A playtester reported "activating the laser gate" as one of the
+--- things that did not work, and the most likely reading is that he never got
+--- near enough to it to see a prompt at all. A defence you have to go looking
+--- for is not a defence.
+---
+--- Same inset as the nest, mirrored across the path, so walking in from the
+--- road puts the eggs on one side and the gate on the other.
+World.GATE_BUTTON_Z = -World.NEST_Z
+World.GATE_BUTTON_WIDTH = 3
+World.GATE_BUTTON_HEIGHT = 4.5
+
 -- --- the awning -------------------------------------------------------------
 -- A market-stall canopy across the base front: posts, a beam, striped fabric
 -- and a scalloped valance. Heights live here because the lowest piece of it has
@@ -182,6 +197,18 @@ function World.nestFootprint(
 		z = World.NEST_Z,
 		halfDepth = World.NEST_DEPTH / 2,
 		halfLength = World.NEST_LENGTH / 2,
+	}
+end
+
+--- The Laser Gate button's footprint, mirroring the nest across the path.
+function World.gateButtonFootprint(
+	side: number
+): { x: number, z: number, halfDepth: number, halfLength: number }
+	return {
+		x = -side * World.NEST_INSET,
+		z = World.GATE_BUTTON_Z,
+		halfDepth = World.GATE_BUTTON_WIDTH / 2,
+		halfLength = World.GATE_BUTTON_WIDTH / 2,
 	}
 end
 

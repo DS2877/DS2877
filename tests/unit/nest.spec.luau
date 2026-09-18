@@ -99,3 +99,56 @@ h.test("the awning clears a jumping player", function()
 	local lowest = World.AWNING_LIP - World.AWNING_BEAM_H - World.AWNING_VALANCE_H
 	h.expectTrue(lowest > 12.7, `the valance hangs to {lowest}, inside a 12.7-stud jump`)
 end)
+
+h.test("the Laser Gate button is beside the path, not in a corner", function()
+	-- It used to be 47 studs along the road from the spawn, in a corner of a
+	-- 108 x 76 plot, with a 12-stud activation range. A playtester listed
+	-- "activating the laser gate" among the things that did not work, and the
+	-- most likely reading is that he never got close enough to see a prompt.
+	--
+	-- So: within a short walk of where you arrive, and on the opposite side of
+	-- the path from the eggs, so one glance takes in both.
+	for _, side in { -1, 1 } do
+		local gate = World.gateButtonFootprint(side)
+		local nest = World.nestFootprint(side)
+		h.expectTrue(
+			gate.z * nest.z < 0,
+			`side {side}: the gate and the nest are both at z {gate.z} / {nest.z}`
+		)
+
+		-- Where the owner spawns, relative to the base centre.
+		local spawnX = -side * (World.BASE_DEPTH / 2 - 8)
+		local walk = math.sqrt((gate.x - spawnX) ^ 2 + gate.z ^ 2)
+		h.expectTrue(
+			walk < 30,
+			`side {side}: the gate button is {math.floor(walk)} studs from spawn`
+		)
+	end
+end)
+
+h.test("the Laser Gate button clears the pedestals and the awning", function()
+	for _, side in { -1, 1 } do
+		local gate = World.gateButtonFootprint(side)
+		for i, pedestal in World.pedestalRing(Economy.PEDESTALS_BASE) do
+			h.expectTrue(
+				not overlaps(
+					gate.x,
+					gate.z,
+					gate.halfDepth,
+					gate.halfLength,
+					pedestal.x,
+					pedestal.z,
+					PEDESTAL_HALF,
+					PEDESTAL_HALF
+				),
+				`side {side}: the gate button overlaps pedestal {i}`
+			)
+		end
+		local far = math.abs(gate.x) + gate.halfDepth
+		local postNear = World.BASE_DEPTH / 2 - World.AWNING_INSET - World.AWNING_POST_WIDTH / 2
+		h.expectTrue(
+			far < postNear,
+			`side {side}: the gate button reaches {far}, posts at {postNear}`
+		)
+	end
+end)

@@ -4,6 +4,32 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### The Laser Gate you can actually find · 2026-09-18
+
+*"Activating the laser gate"* was one of three things the playtest said did not
+work, and unlike the kitchen there was no code defect — the button was just 47
+studs along the road in a corner of a 108 × 76 plot behind a 12-stud activation
+range. It is now beside the path, mirroring the egg nest across it, so walking
+in from the road puts the eggs on one side and the gate on the other. It also
+has an on-screen way in for the first time: the bottom bar's third button, the
+one that shows SAVE IT! when a thief is near, offers LASER GATE when you are
+home with the gate down (D-030). The server still re-checks everything.
+
+**Every client controller is now proved to load in a real engine.**
+`tests/cloud/smoke.luau` requires all fourteen inside the published place and
+checks each one reports its own name and has a `start()`. `Bootstrap.client`
+pcalls every require on purpose, so a controller that throws while loading is
+skipped in silence — its buttons never wired, and the report from a phone is
+"nothing happens when I press it". Both halves of that hole, server and client,
+are now closed: 38 checks, all passing.
+
+**The base geometry is arithmetic a test can check.** `World.pedestalRing()` and
+`World.nestFootprint()` are pure and shared with `PlotService`, and
+`tests/unit/nest.spec.luau` holds the clearances that were previously true by
+luck — including the one that was not, the bench overlapping the path by half a
+stud.
+
+
 ### The playtest round: dead buttons, silent music, eggs in the world · 2026-09-17
 
 Philip's report was *"none of the buttons in game works. I tried buying,

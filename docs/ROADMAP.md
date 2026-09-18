@@ -96,11 +96,13 @@ unsnatchable and does not mutate or earn (D-024). Both are wired into
 `SnatchRules`, and the NPC snatchers respect them too — a defence Sneaky Sam
 ignores is a defence nobody ever tests.
 
-**Still open: three of the four leaderboards** (one is live), and a HUD button
-for the gate. Today the only way to raise it is the button on the base, which
-teaches the mechanic but means you cannot defend from across the street — that
-is deliberate (D-025), but a HUD button that respects the same proximity rule
-would be kinder on a phone.
+**The HUD button for the gate landed 2026-09-18** (D-030), sharing the bottom
+bar's third slot with SAVE, and the button in the world moved out of the corner
+of the plot to beside the path — it was 47 studs from spawn behind a 12-stud
+range, which is almost certainly why a playtester listed the gate among the
+things that did not work.
+
+**Still open: three of the four leaderboards** (one is live).
 
 Weather and mutations; snatching, Bubble Wand, Laser Gate, Vault, Sneaky Sam; rebirth; four leaderboards.
 

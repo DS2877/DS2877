@@ -572,16 +572,21 @@ local function buildBase(index: number, parent: Instance): BasePart
 	end
 	gateBars.Parent = model
 
-	-- The button, beside the path at the road end -- where you arrive, and
-	-- where you run back to. GateService puts the prompt on it.
+	-- The button, BESIDE THE PATH -- mirroring the egg nest across it, so you
+	-- walk in from the road with the eggs on one side and the gate on the
+	-- other. It used to stand 47 studs along the road in a corner of the plot
+	-- with a 12-stud activation range, which is a defence you have to go
+	-- looking for; "activating the laser gate" was on the list of things a
+	-- playtester said did not work. GateService puts the prompt on it.
+	local gateSpot = World.gateButtonFootprint(side)
 	local gateButton = part({
 		Name = "GateButton",
-		Size = Vector3.new(3, 4.5, 3),
-		CFrame = CFrame.new(
-			cx - side * (World.BASE_DEPTH / 2 - 6),
-			2.25,
-			cz + World.BASE_WIDTH / 2 - 7
+		Size = Vector3.new(
+			World.GATE_BUTTON_WIDTH,
+			World.GATE_BUTTON_HEIGHT,
+			World.GATE_BUTTON_WIDTH
 		),
+		CFrame = CFrame.new(cx + gateSpot.x, World.GATE_BUTTON_HEIGHT / 2, cz + gateSpot.z),
 		Color = Style.PALETTE.nomCocoa,
 		Material = Enum.Material.Wood,
 	}, model)

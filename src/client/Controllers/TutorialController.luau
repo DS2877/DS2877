@@ -127,6 +127,7 @@ local HELP_LINES = {
 	"🛡️  Brand-new players cannot be snatched from, and neither can you at first.",
 	"⛅  Weather sweeps in every so often: big coin boost, and it can MUTATE the Nomlings you have out.",
 	"💙  Tap the blue SAVE button to rescue a Nomling a snatcher is running off with.",
+	"🔒  Stand in your base and tap LASER GATE to lock it for a minute.",
 	"💰  You keep earning while you're away — come back to a pile of coins.",
 }
 
