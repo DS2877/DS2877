@@ -292,6 +292,11 @@ jobs:
         continue-on-error: true
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
+          # The universe id too, so the check can compare who owns the AUDIO
+          # with who owns the EXPERIENCE. Roblox says an account's own assets
+          # always work in its own games -- so if those two differ, that is the
+          # entire explanation for a client loading none of them.
+          ROBLOX_TEST_UNIVERSE_ID: ${{ vars.ROBLOX_TEST_UNIVERSE_ID }}
         run: python3 tools/check-audio.py
 
   upload-audio:
