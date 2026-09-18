@@ -68,7 +68,7 @@ end
 --- no-op, so callers never need to check.
 function AudioController.play(name: string)
 	local cue = Audio.SFX[name]
-	if not cue or not Audio.isReady(cue) then
+	if not cue or not Audio.isReady(cue) or Audio.isMuted(name) then
 		return
 	end
 	local pool = pools[name]
@@ -204,7 +204,9 @@ function AudioController.start()
 	sfxGroup.Parent = SoundService
 
 	for name, cue in Audio.SFX do
-		if Audio.isReady(cue) then
+		-- A muted cue gets no pool: three Sounds and a preload for something
+		-- that can never play is just work.
+		if Audio.isReady(cue) and not Audio.isMuted(name) then
 			buildPool(name, cue)
 		end
 	end

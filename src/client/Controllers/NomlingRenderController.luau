@@ -73,7 +73,29 @@ type Live = {
 	--- is how a MOVING anchor (a belt item, a carried creature) is told apart
 	--- from a static one on a pedestal.
 	lastOrigin: CFrame,
+	--- THE DIRECTION IT IS WALKING, remembered between frames.
+	---
+	--- Without this the belt creatures spun. The facing was taken from the
+	--- distance travelled since the last render tick, and the server moves the
+	--- anchor on its own slower tick -- so some frames saw a real step and some
+	--- saw nothing, and a frame that saw nothing fell through to an unrotated
+	--- CFrame. Alternating between "facing where I am going" and "facing world
+	--- north" several times a second is precisely what a playtester described:
+	--- "rotating front to back fast -- looks horrible".
+	---
+	--- So the direction is a property of the creature, not of one frame. It
+	--- only ever updates on a step big enough to mean something, and it is
+	--- turned towards rather than snapped to.
+	facing: Vector3?,
 }
+
+--- How far an anchor must move between render ticks before it counts as a step
+--- and is allowed to change which way a creature faces. Below this it is
+--- replication jitter: the server moves on its own tick, so plenty of render
+--- frames legitimately see no movement at all.
+local FACING_STEP = 0.02
+--- How sharply a creature turns towards a new heading, per motion tick.
+local FACING_TURN = 0.25
 
 local live: { [BasePart]: Live } = {}
 --- Prompts this client has already wired. Tracked here rather than by writing
@@ -310,6 +332,7 @@ local function build(anchor: BasePart)
 		phase = (genome.seed % 1000) / 1000 * math.pi * 2,
 		bornAt = os.clock(),
 		lastOrigin = anchor.CFrame,
+		facing = nil,
 	}
 end
 
@@ -465,13 +488,34 @@ function NomlingRenderController.start()
 					local stride = clock * 7 + entry.phase
 					local bounce = math.abs(math.sin(stride)) * 0.30
 					local roll = math.sin(stride * 0.5) * 0.09
-					local facing = Vector3.new(travel.X, 0, travel.Z)
 					local base = origin.Position + Vector3.new(0, bounce + popOffset, 0)
-					if facing.Magnitude > 0.001 then
-						entry.root.CFrame = CFrame.lookAt(base, base + facing.Unit)
+
+					-- FACING IS REMEMBERED, NOT RE-DERIVED EVERY FRAME. A step
+					-- has to be big enough to mean something before it counts as
+					-- a change of direction: below that it is replication
+					-- jitter, and taking it seriously is what made these spin.
+					local paced = Vector3.new(travel.X, 0, travel.Z)
+					if paced.Magnitude > FACING_STEP then
+						local wanted = paced.Unit
+						local current = entry.facing
+						-- Turned towards, never snapped to. A belt reversal or a
+						-- thief changing course then reads as the creature
+						-- turning around rather than as a frame of teleport.
+						entry.facing = if current
+							then (current:Lerp(wanted, FACING_TURN)).Unit
+							else wanted
+					end
+
+					local heading = entry.facing
+					if heading then
+						entry.root.CFrame = CFrame.lookAt(base, base + heading)
 							* CFrame.Angles(0, 0, roll)
 					else
-						entry.root.CFrame = CFrame.new(base) * CFrame.Angles(0, 0, roll)
+						-- Never seen a step yet. Keep whatever the anchor says
+						-- rather than inventing an orientation.
+						entry.root.CFrame = CFrame.new(base)
+							* origin.Rotation
+							* CFrame.Angles(0, 0, roll)
 					end
 				elseif noticed then
 					-- It noticed you. Turns to look, and bounces about twice as

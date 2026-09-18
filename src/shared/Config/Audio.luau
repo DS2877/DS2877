@@ -69,6 +69,29 @@ local SFX: { [string]: Cue } = {
 Audio.MUSIC = MUSIC
 Audio.SFX = SFX
 
+--- Cues that exist but must not play.
+---
+--- `coin` fires every time the purse ticks up, which on a base earning steadily
+--- is several times a second. A playtester's verdict was blunt -- "the sound
+--- from earnings is terrible, remove/mute for now" -- and a sound heard that
+--- often has to be nearly nothing or it becomes the whole game.
+---
+--- MUTED HERE RATHER THAN DELETED. The asset is uploaded and Roblox audio
+--- cannot be replaced in place, so throwing the id away would spend another of
+--- ten monthly upload slots to get it back. Removing a name from this table is
+--- the whole of turning it on again; the coin still FLIES, because the picture
+--- was never the problem.
+local MUTED: { [string]: boolean } = {
+	coin = true,
+}
+
+Audio.MUTED = MUTED
+
+--- True when a cue is declared but deliberately silenced.
+function Audio.isMuted(name: string): boolean
+	return MUTED[name] == true
+end
+
 --- How far the music ducks under a reveal, and for how long. A reveal is the
 --- product; the theme gets out of its way.
 Audio.DUCK_VOLUME = 0.35
