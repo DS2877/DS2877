@@ -317,10 +317,61 @@ local function destroy(anchor: BasePart)
 	live[anchor] = nil
 end
 
+--- Turns the "put one out" prompt on, but only on YOUR OWN empty pedestals.
+---
+--- ProximityPrompt.Enabled written on a client does not replicate, which is the
+--- whole reason the world can carry one prompt per pedestal and still show it
+--- to exactly one person. Same trick as Store and Snatch on a creature.
+---
+--- Driven by attribute signals rather than a poll: the server sets `Occupied`
+--- and `Spare` on every post whenever it renders a plot, which is exactly when
+--- the answer can change.
+local function watchPedestal(prompt: ProximityPrompt)
+	local post = prompt.Parent
+	if not (post and post:IsA("BasePart")) then
+		return
+	end
+	-- Pedestals live in Pedestals_N, which lives on the pad. The pad is what
+	-- carries the owner.
+	local pad = post.Parent and post.Parent.Parent
+
+	local function apply()
+		local owner = if pad then tonumber(pad:GetAttribute("OwnerUserId")) else nil
+		local mine = owner == Players.LocalPlayer.UserId
+		local empty = post:GetAttribute("Occupied") ~= true
+		local spare = tonumber(post:GetAttribute("Spare")) or 0
+		prompt.Enabled = mine and empty and spare > 0
+		if prompt.Enabled then
+			prompt.ObjectText = if spare == 1 then "1 put away" else `{spare} put away`
+		end
+	end
+
+	post:GetAttributeChangedSignal("Occupied"):Connect(apply)
+	post:GetAttributeChangedSignal("Spare"):Connect(apply)
+	if pad then
+		pad:GetAttributeChangedSignal("OwnerUserId"):Connect(apply)
+	end
+
+	prompt.Triggered:Connect(function()
+		-- Handled on the SERVER too (PlotService puts a Triggered handler on
+		-- this same prompt), which is the trusted path and the one that decides
+		-- what happens. This connection exists only so a refusal reaches the
+		-- player: a prompt's return value goes nowhere.
+		local index = tonumber(post:GetAttribute("PedestalIndex"))
+		if not index then
+			Fault.report(`Place prompt on {post:GetFullName()} has no PedestalIndex`)
+		end
+	end)
+
+	apply()
+end
+
 local function watch(instance: Instance)
 	if instance:IsA("BasePart") and instance.Name == ANCHOR_NAME then
 		-- Attributes may land a frame after the part does.
 		task.defer(build, instance)
+	elseif instance:IsA("ProximityPrompt") and instance.Name == "Place" then
+		task.defer(watchPedestal, instance)
 	end
 end
 

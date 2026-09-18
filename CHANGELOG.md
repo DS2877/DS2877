@@ -4,6 +4,32 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### Putting a Nomling away is no longer one-way · 2026-09-18
+
+`Store` took a creature off its pedestal and back into the book, and **nothing
+anywhere put one back**. The next purchase filled the slot, and the stored
+creature was out of the world for good — it could still be fused, and that was
+the only thing left to do with it. A dead end for a creature you chose to keep
+is exactly what this project keeps saying it will not ship, and it had been open
+since Store landed.
+
+An empty pedestal in your own base now offers **"Put one out"**, and the server
+brings back the best thing you have put away — highest rarity, with a mutation
+worth more than a rarity step, because that is the one a player is proudest of.
+The client names a pedestal, never a creature, so there is nothing to forge but
+an index the server bounds-checks anyway. `PlaceNomling` takes an optional
+creature id so a picker can be added later without a new remote or a new rate
+limit; the prompt does not use it.
+
+The prompt shows only on your own empty pedestals, and only while you have
+something put away — a button that can only refuse is worse than no button. It
+says how many are waiting.
+
+Also fixed on the way: `Economy.RARITY_ORDER` is an **array**, so
+`RARITY_ORDER["rare"]` is nil, silently, and the first version of the "best one"
+comparison rated every creature equally. `Economy.rarityRank()` is now the one
+place that comparison happens, with a test.
+
 ### The Laser Gate you can actually find · 2026-09-18
 
 *"Activating the laser gate"* was one of three things the playtest said did not

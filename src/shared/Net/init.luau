@@ -144,6 +144,22 @@ local REMOTES: { [string]: RemoteSpec } = {
 		description = "Moves one of your placed Nomlings back into the book.",
 	},
 
+	--- Client -> server. Puts a stored Nomling back out on an empty pedestal.
+	---
+	--- The client names a PEDESTAL, not a creature: which of your stored
+	--- Nomlings goes out is the server's decision (the best earner), so there
+	--- is nothing here to forge but an index the server bounds-checks anyway.
+	--- The optional second argument exists so a picker can be added later
+	--- without a new remote; it is still checked for ownership.
+	PlaceNomling = {
+		name = "PlaceNomling",
+		kind = "function",
+		direction = "clientToServer",
+		rateCapacity = 6,
+		rateRefill = 1,
+		description = "Puts a stored Nomling out on an empty pedestal. Returns ok, reason.",
+	},
+
 	--- Client -> server. Moves one of YOUR OWN Nomlings into the Vault, or back
 	--- out of it onto an ordinary pedestal.
 	---

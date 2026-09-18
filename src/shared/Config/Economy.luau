@@ -54,6 +54,21 @@ Economy.RARITY_ORDER = {
 	"secret",
 }
 
+--- Where a rarity sits in RARITY_ORDER: 1 for common, up to 7 for secret, and
+--- 0 for anything unrecognised.
+---
+--- RARITY_ORDER is an ARRAY, which reads like a lookup table and is not one.
+--- Indexing it by name silently yields nil, and the caller then treats every
+--- creature as equally good -- so the comparison lives here, once.
+local RARITY_RANK: { [string]: number } = {}
+for rank, name in Economy.RARITY_ORDER do
+	RARITY_RANK[name] = rank
+end
+
+function Economy.rarityRank(rarity: string): number
+	return RARITY_RANK[rarity] or 0
+end
+
 --- Coins per second, per rarity, before any multiplier.
 Economy.BASE_INCOME = {
 	common = 1,

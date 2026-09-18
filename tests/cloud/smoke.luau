@@ -436,6 +436,16 @@ if services then
 				if not (hatchery and hatchery:FindFirstChild("Nest1")) then
 					table.insert(absentPrompts, `Base{index}/Hatchery/Nest1`)
 				end
+
+				-- The "put one out" prompt on each pedestal. PlotService builds
+				-- the pedestals during discoverPlots(), before anybody joins,
+				-- so they are here even with no players -- and a pedestal
+				-- without this prompt is a Nomling you put away and can never
+				-- get back.
+				local pad = base:FindFirstChild("Pad")
+				local posts = pad and pad:FindFirstChild(`Pedestals_{index}`)
+				local firstPost = posts and posts:FindFirstChild("Pedestal1")
+				wantPrompt(`Base{index}/Pedestal1`, firstPost, "Place")
 			end
 		end
 

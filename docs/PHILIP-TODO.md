@@ -311,7 +311,8 @@ one line of it is worth more than a whole round of guessing.
 | 8b | Tap it | Lasers across the front of your base, and a message. If it refuses, it says why |
 | 9 | Tap **Buy Egg** at the bottom | It buys, or it tells you why not. Silence is a bug — send me the red panel |
 | 10 | Walk out of your base | The LASER GATE button goes away. That third slot only ever shows something you can actually press — SAVE IT! when a thief is near, LASER GATE when you are home |
-| 11 | Walk into a planter, and into the pots on the kitchen counter | **You bump into them.** They used to be ghosts |
+| 11 | Put a Nomling away (walk up to one, "Put away"), then tap an empty pedestal | **"Put one out"** brings back your best stored creature. Before today, putting one away was permanent |
+| 11b | Walk into a planter, and into the pots on the kitchen counter | **You bump into them.** They used to be ghosts |
 | 12 | Look at the awning over a base | Six posts along the front, a beam across them, and a scalloped fringe hanging off it. Walk under it — you should not hit your head, even jumping |
 
 ### What I most need to know from this one

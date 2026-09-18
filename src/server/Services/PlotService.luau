@@ -75,6 +75,42 @@ local function pedestalPositions(pad: BasePart): { CFrame }
 	return result
 end
 
+--- The "put one out here" prompt on an empty pedestal.
+---
+--- WITHOUT THIS, PUTTING A NOMLING AWAY WAS ONE-WAY. `Store` took a creature
+--- off its pedestal and back into the book, and nothing anywhere put one back:
+--- the next purchase filled the slot, and the stored one was out of the world
+--- for good. It could still be fused, and that was the only thing left to do
+--- with it. A dead end for a creature you chose to keep is exactly what this
+--- project keeps saying it will not ship.
+---
+--- Starts disabled and stays that way for everybody but the plot's owner. The
+--- same trick the Store and Snatch prompts use: ProximityPrompt.Enabled set on
+--- a client does not replicate, so each player turns on what applies to them
+--- (NomlingRenderController).
+local function placePrompt(post: BasePart, index: number)
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "Place"
+	prompt.ActionText = "Put one out"
+	prompt.ObjectText = "Empty pedestal"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 12
+	prompt.RequiresLineOfSight = false
+	prompt.Enabled = false
+	prompt.Parent = post
+
+	prompt.Triggered:Connect(function(player)
+		-- Server-side, like the gate: a prompt fires here, so this is the
+		-- trusted path. Its return value goes nowhere, so a refusal has to be
+		-- pushed to the player explicitly or it vanishes.
+		local ok, reason = PlotService.placeFromBook(player, index)
+		if not ok and reason then
+			local notify = Net.get("Notify") :: RemoteEvent
+			notify:FireClient(player, reason)
+		end
+	end)
+end
+
 local function buildPedestals(plot: Plot)
 	local folder = Instance.new("Folder")
 	folder.Name = `Pedestals_{plot.index}`
@@ -97,6 +133,7 @@ local function buildPedestals(plot: Plot)
 		post.Material = Enum.Material.SmoothPlastic
 		post.TopSurface = Enum.SurfaceType.Smooth
 		post:SetAttribute("PedestalIndex", i)
+		placePrompt(post, i)
 		post.Parent = folder
 		table.insert(plot.pedestals, post)
 	end
@@ -226,6 +263,86 @@ function PlotService.store(player: Player, nomlingId: unknown): (boolean, string
 	return true, nil
 end
 
+--- Puts a stored Nomling back out on pedestal `index`. Returns ok, reason.
+---
+--- The client names the PEDESTAL; the server picks the creature. Which one is
+--- the interesting question, and "the best earner you are not already showing"
+--- is the answer a player wants almost every time -- so it is the one taken
+--- without asking, rather than opening a picker on a phone for a decision that
+--- is usually obvious. `wanted` is honoured when given, so a picker can be
+--- added later without touching this remote or its rate limit.
+---
+--- Rarity, not raw income, decides "best". Income depends on mutations and
+--- weather and changes under you; rarity is what a player means when they say
+--- their best one.
+function PlotService.placeFromBook(
+	player: Player,
+	index: unknown,
+	wanted: unknown?
+): (boolean, string?)
+	if not NetService.allow(player, "PlaceNomling") then
+		return false, "One at a time!"
+	end
+	if type(index) ~= "number" or index % 1 ~= 0 then
+		return false, "That pedestal does not exist."
+	end
+	local data = DataService.get(player)
+	if not data then
+		return false, "Still loading -- try again in a second."
+	end
+	if data.pedestals[tostring(index)] then
+		return false, "That pedestal is taken."
+	end
+
+	local chosen: Profile.Nomling? = nil
+	if type(wanted) == "string" then
+		-- OWNERSHIP: findNomling searches THIS player's profile, so naming
+		-- somebody else's creature simply finds nothing.
+		local owned = Profile.findNomling(data, wanted)
+		if not owned then
+			return false, "That one is not yours."
+		end
+		if Profile.pedestalOf(data, wanted) then
+			return false, "That one is already out."
+		end
+		chosen = owned
+	else
+		local bestRank = -1
+		for _, nomling in data.nomlings do
+			if Profile.pedestalOf(data, nomling.id) then
+				continue
+			end
+			local rank = Economy.rarityRank(nomling.rarity)
+			if nomling.mutation then
+				-- A mutation is worth more than a rarity step, and it is the
+				-- thing a player is proudest of. Show it.
+				rank += 10
+			end
+			if rank > bestRank then
+				bestRank = rank
+				chosen = nomling
+			end
+		end
+	end
+
+	if not chosen then
+		return false, "Nothing put away to bring out."
+	end
+
+	local ok, reason = Profile.place(data, chosen.id, index, Economy.PEDESTALS_TOTAL)
+	if not ok then
+		return false, reason
+	end
+
+	AnalyticsService.report(player, "nomling_placed", 1, {
+		rarity = chosen.rarity,
+		is_vault = if index == Economy.VAULT_PEDESTAL then "true" else "false",
+	})
+
+	PlotService.render(player)
+	return true, `{chosen.snack} {chosen.animal} is back out.`
+end
+
 --- Moves one of your own Nomlings into the Vault, or back out of it onto the
 --- first free ordinary pedestal. Returns ok, reason.
 ---
@@ -344,6 +461,25 @@ function PlotService.render(player: Player)
 	for id, model in plot.models do
 		model:Destroy()
 		plot.models[id] = nil
+	end
+
+	-- WHAT THE PEDESTAL PROMPTS READ. `Occupied` says whether there is anything
+	-- on this post, and `Spare` says whether the owner has anything put away to
+	-- bring out -- an empty pedestal offering "put one out" to somebody with an
+	-- empty book is a button that can only refuse.
+	--
+	-- Set on every post, every render, rather than only on the ones that
+	-- changed: nine attributes is nothing, and the alternative is tracking
+	-- which ones went stale, which is how they end up stale.
+	local spare = 0
+	for _, nomling in data.nomlings do
+		if not Profile.pedestalOf(data, nomling.id) then
+			spare += 1
+		end
+	end
+	for index, post in plot.pedestals do
+		post:SetAttribute("Occupied", data.pedestals[tostring(index)] ~= nil)
+		post:SetAttribute("Spare", spare)
 	end
 
 	for key, nomlingId in data.pedestals do
@@ -504,6 +640,13 @@ function PlotService.init()
 	local vaultRemote = Net.get("VaultNomling") :: RemoteFunction
 	vaultRemote.OnServerInvoke = function(player, nomlingId)
 		return PlotService.vault(player, nomlingId)
+	end
+
+	-- The same call the pedestal prompt makes. Two ways in, one rule, because
+	-- a rule enforced in one of them is not a rule.
+	local placeRemote = Net.get("PlaceNomling") :: RemoteFunction
+	placeRemote.OnServerInvoke = function(player, index, wanted)
+		return PlotService.placeFromBook(player, index, wanted)
 	end
 end
 

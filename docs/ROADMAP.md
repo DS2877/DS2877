@@ -57,7 +57,7 @@ arrivals board with live countdowns and the server top five, eight
 colour-coded bases, and **all eight audio assets uploaded and live** — the
 game has sound.
 
-**Still open:** placing/moving a Nomling by hand. (The analytics funnel closed
+**Still open:** nothing. Placing a stored Nomling back out landed 2026-09-18 — an empty pedestal offers it, and the server picks your best. (The analytics funnel closed
 on 2026-09-17.)
 
 **Reopened and closed again on 2026-09-17**, from a phone playtest: none of the

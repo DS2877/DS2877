@@ -104,4 +104,24 @@ h.test("fusion has exactly one slot at base", function()
 	h.expectEqual(Economy.FUSION_SLOTS_BASE, 1, "base fusion slots")
 end)
 
+h.test("REGRESSION: rarity ranks come from a lookup, not the array", function()
+	-- RARITY_ORDER is an ARRAY. It reads like a lookup table and is not one:
+	-- RARITY_ORDER["rare"] is nil, silently, and a caller comparing creatures
+	-- that way rates every one of them equally. PlotService picks which stored
+	-- Nomling to put back out by exactly this comparison.
+	for rank, name in Economy.RARITY_ORDER do
+		h.expectEqual(Economy.rarityRank(name), rank, `{name} should rank {rank}`)
+	end
+	h.expectEqual(Economy.rarityRank("not-a-rarity"), 0, "unknown rarities rank last")
+
+	-- And the order is an order: every rarity strictly beats the one before.
+	for i = 2, #Economy.RARITY_ORDER do
+		h.expectTrue(
+			Economy.rarityRank(Economy.RARITY_ORDER[i])
+				> Economy.rarityRank(Economy.RARITY_ORDER[i - 1]),
+			`{Economy.RARITY_ORDER[i]} does not outrank {Economy.RARITY_ORDER[i - 1]}`
+		)
+	end
+end)
+
 return true
