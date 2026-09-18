@@ -189,6 +189,95 @@ if shared then
 	)
 end
 
+-- EVERY CLIENT CONTROLLER LOADS -------------------------------------------
+-- The other half of the same hole, and the one that was still open after the
+-- server was proved healthy.
+--
+-- Bootstrap.client pcalls every require, on purpose: a controller that throws
+-- while loading used to take the whole client with it, and now it does not.
+-- The price of that is silence -- the controller is skipped, its buttons are
+-- never wired, and the report that comes back from a phone is "nothing happens
+-- when I press it". The red Fault panel says so on screen now, but a check that
+-- catches it BEFORE a build reaches a phone is worth more than one that
+-- explains it afterwards.
+--
+-- start() cannot run here: there is no LocalPlayer in a task, so anything that
+-- touches PlayerGui would fail for a reason that says nothing about the game.
+-- Loading is the part that can be tested, and loading is the part that was
+-- failing silently.
+local CONTROLLER_ORDER = {
+	"PingController",
+	"AtmosphereController",
+	"AudioController",
+	"JuiceController",
+	"BaseHudController",
+	"HatcheryController",
+	"TutorialController",
+	"NomlingRenderController",
+	"HomeController",
+	"ShopController",
+	"FusionController",
+	"WeatherController",
+	"BookController",
+	"DeathController",
+}
+
+local clientRoot = starterScripts and starterScripts:FindFirstChild("Client")
+local controllerFolder = clientRoot and clientRoot:FindFirstChild("Controllers")
+check("client Controllers folder replicated", controllerFolder ~= nil)
+
+if clientRoot and controllerFolder then
+	-- The fault reporter first, and on its own: every controller requires it,
+	-- so if this one is missing the whole list fails with the same message and
+	-- the real cause is buried.
+	local faultModule = clientRoot:FindFirstChild("Fault")
+	check(
+		"Fault module published beside the controllers",
+		faultModule ~= nil and faultModule:IsA("ModuleScript"),
+		"controllers reach it as script.Parent.Parent.Fault"
+	)
+
+	local brokenControllers: { string } = {}
+	local loadedControllers = 0
+	local unnamed: { string } = {}
+
+	for _, name in CONTROLLER_ORDER do
+		local module = controllerFolder:FindFirstChild(name)
+		if not (module and module:IsA("ModuleScript")) then
+			table.insert(brokenControllers, `{name} -> no module (check default.project.json)`)
+			continue
+		end
+		-- Name printed BEFORE the require, for the same reason the shared loop
+		-- does it: a module that yields at its top level hangs the task, and
+		-- the last line in the log is then the one that stopped it.
+		print(`  .... requiring {name}`)
+		local ok, controller = pcall(require, module :: ModuleScript)
+		if not ok then
+			table.insert(brokenControllers, `{name} -> {controller}`)
+			continue
+		end
+		loadedControllers += 1
+		-- A controller with no start() is wired into nothing. Every one of
+		-- these has one, and the day one does not is the day its feature
+		-- silently stops existing.
+		local shape = controller :: any
+		if type(shape) ~= "table" or shape.Name ~= name or type(shape.start) ~= "function" then
+			table.insert(unnamed, name)
+		end
+	end
+
+	check(
+		`all {loadedControllers + #brokenControllers} client controllers load in the engine`,
+		#brokenControllers == 0,
+		table.concat(brokenControllers, " | ")
+	)
+	check(
+		"every controller reports its own name and has a start()",
+		#unnamed == 0,
+		table.concat(unnamed, ", ")
+	)
+end
+
 -- THE SERVER ACTUALLY BOOTING ---------------------------------------------
 -- The gap this project kept falling into. A task does not run the place's
 -- scripts, so Bootstrap.server never executes here -- which meant a service
