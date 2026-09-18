@@ -4,6 +4,26 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### CI was publishing builds nobody could play · 2026-09-18
+
+Philip playtested and sent a screenshot of a build from two days earlier: the
+old tutorial copy, the old HUD tray, a hovering Nomling. Nothing was wrong with
+the code. **Nothing was wrong with any of the code.** CI's publish step passed
+`--type Saved`, which uploads a version and does not make it the one players
+get — `tools/publish.py` prints exactly that, and I read "Publish to TEST:
+success" instead. The only thing that published live was `deploy-test.yml`, on
+push to `main`, and this branch has never been merged.
+
+So every run was green, every report said shipped, and three rounds were spent
+debugging code that was never running on his phone.
+
+Fixed: CI publishes `--type Published` to TEST. PROD is untouched and still
+needs an explicit OK. `CLAUDE.md` now carries the `Published` form of the
+command and the reason, and both deploy summaries say what nobody was saying —
+that a running server keeps the old version until it empties, so a playtester
+has to fully leave and rejoin.
+
+
 ### Putting a Nomling away is no longer one-way · 2026-09-18
 
 `Store` took a creature off its pedestal and back into the book, and **nothing

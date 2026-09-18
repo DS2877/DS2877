@@ -195,7 +195,7 @@ jobs:
             src
 
   publish-test:
-    name: Publish to TEST (Saved)
+    name: Publish to TEST (LIVE)
     needs: check
     runs-on: ubuntu-latest
     # Also runs on manual dispatch, not just pull_request. Without that there
@@ -240,14 +240,32 @@ jobs:
             echo "::warning::Secrets live under Settings > Secrets and variables > Actions > Secrets. Variables are the separate Variables tab on the same page -- putting an ID in the Secrets tab is the usual cause."
           fi
 
-      - name: Publish as a Saved version
+      # PUBLISHED, NOT SAVED, AND THIS IS THE WHOLE POINT OF THE JOB.
+      #
+      # This step used to pass --type Saved, which uploads a version and does
+      # NOT make it the one players get. publish.py says so in its own output.
+      # The result: two days of work, every CI run green, every run reporting
+      # "Publish to TEST: success" -- and Philip playing a build from before
+      # any of it, sending back screenshots of bugs that had already been
+      # fixed. Three rounds were spent debugging code that was never running.
+      #
+      # The original reasoning was that a PR should exercise the publish path
+      # without changing what players get. That is right for a team with a
+      # shared test environment. Here there is one developer, one branch, and
+      # one phone, and "what players get" IS the thing being tested. A publish
+      # nobody can open is not a test, it is a green tick that means nothing.
+      #
+      # PROD is untouched by this and still needs Philip's explicit OK
+      # (CLAUDE.md, never-without-asking rule 1); deploy-prod.yml is the only
+      # thing that can reach it.
+      - name: Publish LIVE to TEST
         id: publish
         if: steps.creds.outputs.ready == 'true'
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_API_KEY }}
           ROBLOX_TEST_UNIVERSE_ID: ${{ vars.ROBLOX_TEST_UNIVERSE_ID }}
           ROBLOX_TEST_PLACE_ID: ${{ vars.ROBLOX_TEST_PLACE_ID }}
-        run: python3 tools/publish.py --env test --type Saved --file build/nomling.rbxl
+        run: python3 tools/publish.py --env test --type Published --file build/nomling.rbxl
 
       - name: Cloud smoke test
         if: steps.creds.outputs.ready == 'true'

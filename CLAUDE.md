@@ -28,11 +28,18 @@ python3 tools/simulate-economy/simulate.py   # pacing tables
 python3 tools/simulate-economy/tune.py       # re-derive rebirth constants
 python3 tools/revenue-model/model.py         # revenue scenarios
 
-python3 tools/publish.py --env test --type Saved --file build/nomling.rbxl
+# PUBLISHED, never Saved. A Saved version uploads and is NOT what players get:
+# CI published Saved for two days, every run green, while Philip played a build
+# from before any of it and reported bugs that were already fixed.
+python3 tools/publish.py --env test --type Published --file build/nomling.rbxl
 python3 tools/run-cloud-tests.py --env test
 ```
 
 Toolchain is installed by `scripts/setup-cloud.sh` (cargo, from crates.io — GitHub releases are blocked by the egress proxy). **`luau-lsp` is unavailable in cloud sessions**, so typechecking is CI-only.
+
+**After publishing, say "leave the game completely and rejoin".** A running
+server keeps the old version until it empties, so a playtester who taps Resume
+gets the build they just reported on.
 
 ## Never do these without Philip's explicit OK
 

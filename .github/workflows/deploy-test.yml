@@ -53,5 +53,6 @@ jobs:
           {
             echo "### TEST updated"
             echo ""
-            echo "Open the TEST place on your phone to play the latest main."
+            echo "Open the TEST place on your phone. Fully LEAVE and rejoin:"
+            echo "servers already running keep the old version until they empty."
           } >> "$GITHUB_STEP_SUMMARY"
