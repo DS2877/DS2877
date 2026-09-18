@@ -394,6 +394,75 @@ if services then
 		)
 	end
 
+	-- THE RATE LIMITER, ACTUALLY CALLED.
+	--
+	-- THIS IS THE CHECK THAT WAS MISSING, and its absence cost three weeks.
+	-- NetService.allow() builds a TokenBucket per player per remote on first
+	-- use, and it was building one for EVERY declared remote -- including the
+	-- server -> client ones, which declare rateCapacity = 0 because they are
+	-- never rate limited. TokenBucket.new asserts capacity > 0, so allow()
+	-- threw, so every remote handler in the game errored on its first line,
+	-- so every button on the phone did nothing and said nothing.
+	--
+	-- Every other check passed throughout. init() and start() are clean,
+	-- because the buckets are built lazily on the first CALL -- and a Luau
+	-- task has no Players, so nothing ever made one.
+	--
+	-- So: make one. `allow` uses the player only as a table key, so a stand-in
+	-- exercises the exact path a real player takes.
+	local netService = services and services:FindFirstChild("NetService")
+	if netService then
+		local NetService = require(netService :: ModuleScript) :: any
+		local Net = require(shared:FindFirstChild("Net") :: ModuleScript) :: any
+		local stand = {} :: any
+
+		local refused: { string } = {}
+		local threw: { string } = {}
+		local callable = 0
+		for name, spec in Net.REMOTES do
+			if spec.direction == "serverToClient" then
+				continue
+			end
+			callable += 1
+			local ok, allowed = pcall(NetService.allow, stand, name)
+			if not ok then
+				table.insert(threw, `{name} -> {allowed}`)
+			elseif allowed ~= true then
+				table.insert(refused, name)
+			end
+		end
+
+		check(
+			`allow() survives a first call for all {callable} client-callable remotes`,
+			#threw == 0,
+			table.concat(threw, " | ")
+		)
+		check(
+			"a first call is within budget for every one of them",
+			#refused == 0,
+			table.concat(refused, ", ")
+		)
+
+		-- And the config the buckets are built from. A client-callable remote
+		-- with a zero budget can never be called at all.
+		local badBudget: { string } = {}
+		for name, spec in Net.REMOTES do
+			local clientCallable = spec.direction ~= "serverToClient"
+			local positive = spec.rateCapacity > 0 and spec.rateRefill > 0
+			if clientCallable ~= positive then
+				table.insert(
+					badBudget,
+					`{name} ({spec.direction}, {spec.rateCapacity}/{spec.rateRefill})`
+				)
+			end
+		end
+		check(
+			"every remote's rate budget matches its direction",
+			#badBudget == 0,
+			table.concat(badBudget, ", ")
+		)
+	end
+
 	-- EVERY THING YOU CAN WALK UP TO AND PRESS, AND THE PROMPT ON IT.
 	--
 	-- This is the check that would have caught the round that started with

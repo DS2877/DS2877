@@ -30,7 +30,30 @@ local function bucketsFor(player: Player): BucketsByRemote
 	local created: BucketsByRemote = {}
 	local now = os.clock()
 	for name, spec in Net.REMOTES do
-		created[name] = TokenBucket.new(spec.rateCapacity, spec.rateRefill, now)
+		-- ONLY THE REMOTES A CLIENT CAN CALL, and this line is the single
+		-- most expensive bug this project has had.
+		--
+		-- A server -> client remote is never rate limited, so it declares
+		-- rateCapacity = 0 -- and TokenBucket.new asserts capacity > 0. This
+		-- loop built a bucket for EVERY declared remote, so the first
+		-- serverToClient one it reached threw, and since table iteration order
+		-- is arbitrary that was essentially always.
+		--
+		-- The throw came out of bucketsFor, which means NetService.allow threw,
+		-- which means EVERY remote handler in the game errored on its first
+		-- line: buying, hatching, the belt, the gate, fusion, rebirth, the
+		-- Bubble Wand, the Vault. On the client an InvokeServer whose handler
+		-- errors raises, the error is swallowed by the Activated connection,
+		-- and the symptom on a phone is a button that does nothing at all.
+		--
+		-- That is "none of the buttons in game works", reported three times
+		-- across three weeks. It never showed up in any test because the cloud
+		-- smoke test runs init() and start() but there are no Players in a
+		-- task, so nothing ever called allow(). tests/cloud now does, with a
+		-- stand-in, for every client-callable remote.
+		if spec.direction ~= "serverToClient" then
+			created[name] = TokenBucket.new(spec.rateCapacity, spec.rateRefill, now)
+		end
 	end
 	buckets[player] = created
 	return created

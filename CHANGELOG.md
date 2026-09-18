@@ -4,6 +4,41 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### The reason none of the buttons worked · 2026-09-18
+
+Philip tapped the egg and the fault panel said:
+
+```
+ClaimHatch: server handler errored -- TokenBucket:25: capacity must be positive
+```
+
+`NetService` builds a rate-limit bucket per player per remote, lazily, on the
+first call. It built one for **every declared remote** — including the
+server→client ones, which carry `rateCapacity = 0` because nothing rate-limits
+a message the server sends. `TokenBucket.new` asserts capacity is positive, so
+the first one the loop reached threw, and table iteration order being arbitrary,
+that was every time.
+
+The throw came out of `NetService.allow`, which is the **first line of every
+remote handler in the game**. Buying, hatching, the belt, the Laser Gate,
+fusion, rebirth, the Bubble Wand, the Vault — all of them errored before doing
+anything. On the client, an `InvokeServer` whose handler errors raises, the
+error is swallowed by the `Activated` connection, and what a phone shows is a
+button that does nothing and says nothing.
+
+That is *"none of the buttons in game works"*, reported three times across three
+weeks, and it was one `if` away the whole time.
+
+**Why no test caught it.** Every check passed, honestly, all the way through.
+`init()` and `start()` are clean — the buckets are built on the first *call*,
+and a Luau task has no Players, so nothing ever made one. The cloud smoke test
+now calls `NetService.allow` with a stand-in player for every client-callable
+remote, and checks that each remote's rate budget matches its direction.
+
+**The fault panel is what found it.** Three rounds of guessing produced nothing;
+one line of red text on a phone named the file and the line number.
+
+
 ### CI was publishing builds nobody could play · 2026-09-18
 
 Philip playtested and sent a screenshot of a build from two days earlier: the
