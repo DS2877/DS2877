@@ -4,6 +4,32 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased]
 
+### The audio diagnostic says what it knows, not what it guesses · 2026-09-18
+
+With the rate limiter fixed, the only fault left on Philip's phone was
+`theme 75643474514379 never loaded on this client` — fired twelve seconds after
+joining, whatever he pressed. So hatching and putting a Nomling away and back
+out both work; what is left is the music.
+
+That check fired on `not Sound.IsLoaded` alone, which says nothing about whether
+sound is coming out of the phone. A red line that is permanently on screen hides
+the next real fault, which is the one job this panel has. It now:
+
+- stays quiet when the track is genuinely playing;
+- calls `ContentProvider:PreloadAsync`, the documented way to force the fetch
+  and the only thing that prints Roblox's own reason for refusing an asset;
+- and when it does fire, prints one line that separates the three candidates:
+  `sfx 0/7` (all audio unreachable here), `sfx 7/7 theme 0` (only the long asset
+  — which points at asset privacy, a Creator Hub setting, not code), or loaded
+  and playing but silent (a volume bug, ours).
+
+`docs/VERIFY.md` §3.6 records what the Roblox docs do and do not say: audio is
+private by default and needs permission granted per experience — but the runtime
+failure mode is **not documented**, and neither is whether an experience owned by
+the uploader is permitted automatically. `tools/check-audio.py` now dumps every
+field the Assets API returns, so if a permission field exists CI will show it.
+
+
 ### The reason none of the buttons worked · 2026-09-18
 
 Philip tapped the egg and the fault panel said:

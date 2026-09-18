@@ -19,6 +19,7 @@
 	Missing assets are skipped silently -- see Config/Audio.luau.
 ]]
 
+local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
@@ -135,12 +136,58 @@ local function startMusic()
 	):Play()
 
 	-- DID THE ASSET ACTUALLY ARRIVE? An id that is valid, approved and owned
-	-- still plays nothing if this client failed to fetch it, and Sound gives no
-	-- error for that. Ten seconds is far longer than a two-minute ogg needs.
-	task.delay(10, function()
-		if theme == sound and not sound.IsLoaded then
-			Fault.report(`theme {track.assetId} never loaded on this client`)
+	-- still plays nothing if this client failed to fetch it, and Sound raises
+	-- no error for that.
+	--
+	-- PreloadAsync is the documented way to force the fetch and is the only
+	-- thing that prints Roblox's own reason for a refusal. It yields, so it
+	-- gets its own thread, and it is pcall'd because it throws on an asset the
+	-- experience is not allowed to use -- which is itself the answer.
+	task.spawn(function()
+		local ok, err = pcall(function()
+			ContentProvider:PreloadAsync({ sound })
+		end)
+		if not ok then
+			Fault.report(`theme {track.assetId} preload refused: {err}`)
 		end
+	end)
+
+	-- AND THEN REPORT THE STATE, NOT A GUESS. The first version of this check
+	-- fired on `not IsLoaded` alone, which says nothing about whether there is
+	-- music coming out of the phone -- so it risked becoming a permanent red
+	-- line that hides the next real fault. It now stays quiet when the track is
+	-- genuinely playing, and when it is not it prints everything needed to tell
+	-- the three candidates apart in one line:
+	--
+	--   sfx 0/7 too      -- the whole account's audio is unreachable here.
+	--   sfx 7/7, theme 0 -- only the LONG asset is, which points at Roblox's
+	--                       asset privacy: audio is private by default and an
+	--                       experience needs explicit permission
+	--                       (create.roblox.com/docs/audio/assets, docs/VERIFY.md).
+	--   loaded and playing but silent -- a volume bug, ours.
+	task.delay(12, function()
+		if theme ~= sound then
+			return
+		end
+		if sound.IsPlaying and sound.TimeLength > 0 then
+			return
+		end
+
+		local ready, total = 0, 0
+		for _, pool in pools do
+			for _, cue in pool do
+				total += 1
+				if cue.IsLoaded then
+					ready += 1
+				end
+			end
+		end
+
+		Fault.report(
+			`theme {track.assetId}: loaded={sound.IsLoaded} playing={sound.IsPlaying} `
+				.. `len={sound.TimeLength} vol={sound.Volume}x{musicGroup.Volume} `
+				.. `sfx loaded {ready}/{total}`
+		)
 	end)
 end
 

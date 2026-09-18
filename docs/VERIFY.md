@@ -345,6 +345,36 @@ Source: [Assets API usage guide](https://create.roblox.com/docs/cloud/guides/usa
 
 ---
 
+## §3.6 Audio asset privacy — ❓ checked 2026-09-18, and the runtime behaviour is NOT documented
+
+Source: https://create.roblox.com/docs/audio/assets (read 2026-09-18).
+
+**Confirmed.** Uploaded audio is **private by default**: *"Although you are
+initially the only one who can view and use private audio assets, the asset
+privacy system lets you grant usage permissions to specific friends and
+experiences."* Import limits are 20 MB and 7 minutes.
+
+**NOT found, and we are currently relying on it.** The page does not say what
+happens at RUNTIME when an experience lacks permission for an asset — whether
+the `Sound` errors, warns, or simply never loads. It also does not state whether
+an experience owned by the uploader is permitted automatically. Developer-forum
+reports describe sounds failing to load with *"Asset is not approved for the
+requester"* and *"experience doesn't have permissions"*, including cases where
+permission appeared to be granted.
+
+**Why this matters here.** All eight of our assets report `Approved`, owned by
+7185134469, type `Audio` (`tools/check-audio.py`, which runs in CI), and the
+theme still reported `IsLoaded = false` on a real phone while the game itself
+worked. If the seven short effects load and only the 110-second theme does not,
+asset privacy is the first thing to check — and it is a Creator Hub setting on
+the asset, not a code change.
+
+**To re-check:** find an official statement of the runtime failure mode, and of
+whether same-owner experiences are auto-permitted. Until then the client
+diagnostic prints the state rather than a conclusion (`AudioController`).
+
+---
+
 ## Open items to re-verify before launch
 
 | # | Item | Why it matters | When |

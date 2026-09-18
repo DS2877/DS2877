@@ -94,6 +94,19 @@ def main() -> int:
 
         print(f"  {name:<12} {asset_id:<18} {state:<12} owner={owner} type={kind}{flag}")
 
+        # EVERYTHING ROBLOX WILL TELL US, not just the fields we thought to ask
+        # for. Audio is private by default and an experience needs permission
+        # (docs/VERIFY.md 3.6); the runtime failure mode is undocumented, so if
+        # a privacy or permission field exists at all, it is worth seeing rather
+        # than guessing at from a phone.
+        extra = {
+            key: value
+            for key, value in info.items()
+            if key not in ("moderationResult", "creationContext", "assetType", "path")
+        }
+        if extra:
+            print(f"               {json.dumps(extra, separators=(',', ':'))}")
+
     print()
     if problems:
         print("PROBLEMS:")
